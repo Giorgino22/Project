@@ -15,16 +15,16 @@
 
 export const network = {
   /** Name of the whole network (hub page, footers). */
-  name: 'Toolstin',
+  name: 'Tool-Tin',
 
   /** Your central domain WITHOUT "https://" (e.g. 'practical-tools.com'). Each site becomes a subdomain. */
   domain: 'toolstin.com',
 
   /** Who runs the sites – required by law in many countries (legal notice + privacy policy). */
   owner: {
-    name: '', // e.g. 'Max Muster'
-    address: '', // e.g. 'Musterstrasse 1, 8000 Zürich, Switzerland'
-    email: '', // e.g. 'hello@your-domain.com'
+    name: 'Martin Odermatt', // e.g. 'Max Muster'
+    address: 'Brückenstrasse 12, 5430 Wettingen, Schweiz', // e.g. 'Musterstrasse 1, 8000 Zürich, Switzerland'
+    email: 'martin@odermatts.ch', // e.g. 'hello@your-domain.com'
   },
 
   /** Date shown on the privacy policies. Update it whenever you switch ads, statistics or tips on/off. */
