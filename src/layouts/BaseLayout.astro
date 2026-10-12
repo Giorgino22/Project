@@ -1,0 +1,96 @@
+---
+/**
+ * The HTML frame of every page: <head> with everything search engines and social
+ * networks read (title, description, language versions, preview image), then
+ * header, page content and footer.
+ */
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { config, features } from '../config';
+import { defaultLang, t, type Lang } from '../i18n';
+import { absoluteUrl, alternatesOf } from '../site/pages';
+import '../styles/global.css';
+
+interface Props {
+  lang: Lang;
+  /** Full text for the browser tab and Google headline */
+  title: string;
+  description: string;
+  /** Identifies the page across languages (for hreflang links and the language menu) */
+  pageKey: string;
+  /** Path of this page, e.g. "/de/pdf-zusammenfuegen/" */
+  path: string;
+  /** Structured data for search engines (see src/site/seo.ts) */
+  jsonLd?: Record<string, unknown>[];
+  /** true = ask search engines not to index this page (used by the 404 page) */
+  noindex?: boolean;
+}
+
+const { lang, title, description, pageKey, path, jsonLd = [], noindex = false } = Astro.props;
+const dict = t(lang);
+const canonical = absoluteUrl(path);
+const versions = alternatesOf(pageKey);
+const fallback = versions.find((version) => version.lang === defaultLang);
+const ogImage = absoluteUrl('/og-image.jpg');
+
+// JSON inside <script> must not contain "</script>", so "<" is escaped.
+const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    {!noindex && versions.map((version) => <link rel="alternate" hreflang={version.lang} href={absoluteUrl(version.path)} />)}
+    {!noindex && fallback && <link rel="alternate" hreflang="x-default" href={absoluteUrl(fallback.path)} />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={config.siteName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content={dict.locale} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    {jsonLd.map((data) => <script is:inline type="application/ld+json" set:html={toJson(data)} />)}
+
+    {
+      features.ads && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${config.ads.adsenseClient}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
+    {
+      config.analytics.cloudflareToken && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: config.analytics.cloudflareToken })}
+        />
+      )
+    }
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{dict.nav.skip}</a>
+    <Header lang={lang} pageKey={pageKey} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} pageKey={pageKey} />
+  </body>
+</html>

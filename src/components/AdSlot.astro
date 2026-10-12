@@ -1,0 +1,37 @@
+---
+/**
+ * A Google AdSense ad unit. Renders NOTHING until you fill in
+ * config.ads.adsenseClient and the slot ID in src/config.ts.
+ */
+import { config, features } from '../config';
+import { t, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  /** Which of the ad places from config.ads.slots this is */
+  slot: keyof typeof config.ads.slots;
+}
+
+const { lang, slot } = Astro.props;
+const slotId = config.ads.slots[slot];
+const show = features.ads && slotId.trim() !== '';
+---
+
+{
+  show && (
+    <aside class="ad-slot" aria-label={t(lang).ads.label}>
+      <span class="ad-label">{t(lang).ads.label}</span>
+      <ins
+        class="adsbygoogle"
+        style="display:block"
+        data-ad-client={config.ads.adsenseClient}
+        data-ad-slot={slotId}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+      <script is:inline>
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
+  )
+}

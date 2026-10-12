@@ -1,0 +1,122 @@
+---
+/**
+ * Privacy policy and legal notice. Sections switch on and off automatically with
+ * the features in src/config.ts, so the policy always matches what the site does.
+ * ⚠️ This is a starting point, not legal advice – see docs/LAUNCH-CHECKLIST.md.
+ */
+import { config, features } from '../config';
+import { t, type Lang } from '../i18n';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { fill } from '../lib/format';
+import type { LegalKind } from '../site/pages';
+
+interface Props {
+  lang: Lang;
+  kind: LegalKind;
+  path: string;
+}
+
+const { lang, kind, path } = Astro.props;
+const dict = t(lang);
+const privacy = dict.legal.privacy;
+const imprint = dict.legal.imprint;
+const page = dict.legal[kind];
+const { owner } = config;
+const hasOwner = owner.name.trim() !== '' && owner.address.trim() !== '';
+const updated = new Date(config.legalUpdated).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' });
+
+/** Splits text into plain parts and web addresses, so addresses can become links. */
+const withLinks = (text: string) => text.split(/(https?:\/\/[^\s)]+)/g);
+const hostingText = fill(privacy.hostingText, {
+  hostName: config.hosting.name,
+  hostAddress: config.hosting.address,
+  hostPrivacyUrl: config.hosting.privacyUrl,
+});
+---
+
+<BaseLayout
+  lang={lang}
+  title={`${page.title} | ${config.siteName}`}
+  description={fill(page.description, { site: config.siteName })}
+  pageKey={kind}
+  path={path}
+>
+  <div class="container">
+    <article class="prose page-intro">
+      <h1>{page.title}</h1>
+
+      {
+        kind === 'privacy' ? (
+          <>
+            <p><em>{fill(privacy.updated, { date: updated })}</em></p>
+            <p>{privacy.intro}</p>
+
+            <h2>{privacy.controllerTitle}</h2>
+            <p>{privacy.controllerText}</p>
+            {hasOwner ? (
+              <address>{[owner.name, owner.address, owner.email].filter(Boolean).join('\n')}</address>
+            ) : (
+              <p class="warning-box">{imprint.missing}</p>
+            )}
+
+            <h2>{privacy.filesTitle}</h2>
+            <p>{privacy.filesText}</p>
+
+            <h2>{privacy.hostingTitle}</h2>
+            <p>{withLinks(hostingText).map((part) => (part.startsWith('http') ? <a href={part}>{part}</a> : part))}</p>
+
+            {features.analytics && (
+              <>
+                <h2>{privacy.analyticsTitle}</h2>
+                <p>{privacy.analyticsText}</p>
+              </>
+            )}
+            {features.ads && (
+              <>
+                <h2>{privacy.adsTitle}</h2>
+                <p>{withLinks(privacy.adsText).map((part) => (part.startsWith('http') ? <a href={part}>{part}</a> : part))}</p>
+              </>
+            )}
+            {features.affiliates && (
+              <>
+                <h2>{privacy.affiliateTitle}</h2>
+                <p>{privacy.affiliateText}</p>
+              </>
+            )}
+            {features.support && (
+              <>
+                <h2>{privacy.supportTitle}</h2>
+                <p>{privacy.supportText}</p>
+              </>
+            )}
+
+            <h2>{privacy.cookiesTitle}</h2>
+            <p>{features.ads ? privacy.cookiesAds : privacy.cookiesNone}</p>
+
+            <h2>{privacy.rightsTitle}</h2>
+            <p>{privacy.rightsText}</p>
+          </>
+        ) : (
+          <>
+            <h2>{imprint.operatorTitle}</h2>
+            {hasOwner ? (
+              <address>{`${owner.name}\n${owner.address}`}</address>
+            ) : (
+              <p class="warning-box">{imprint.missing}</p>
+            )}
+            {owner.email && (
+              <>
+                <h2>{imprint.contactTitle}</h2>
+                <p>
+                  {imprint.emailLabel}: <a href={`mailto:${owner.email}`}>{owner.email}</a>
+                </p>
+              </>
+            )}
+            <h2>{imprint.disclaimerTitle}</h2>
+            <p>{imprint.disclaimerText}</p>
+          </>
+        )
+      }
+    </article>
+  </div>
+</BaseLayout>

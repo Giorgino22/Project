@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
+
+# Copied from node_modules by scripts/copy-pdfjs-assets.mjs on every build
+public/pdfjs/
+
+# Test output
+test-results/
+playwright-report/
+tests/fixtures/generated/
+
+# Editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local env files (never commit secrets)
+.env
+.env.*

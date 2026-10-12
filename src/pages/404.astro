@@ -1,0 +1,36 @@
+---
+/** Shown for addresses that don't exist. Cloudflare Pages serves dist/404.html automatically. */
+import ToolCard from '../components/ToolCard.astro';
+import { languages, t } from '../i18n';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { homePath } from '../site/pages';
+import { tools } from '../tools/registry';
+
+const popular = tools.filter((tool) => !('convert' in tool)).slice(0, 6);
+---
+
+<BaseLayout lang="en" title="404 – Page not found" description="This page does not exist." pageKey="home" path="/404/" noindex>
+  <div class="container">
+    <section class="page-intro">
+      {
+        languages.map((lang) => (
+          <div lang={lang}>
+            <h1>{t(lang).notFound.title}</h1>
+            <p class="lead">
+              {t(lang).notFound.text} <a href={homePath(lang)}>{t(lang).notFound.home}</a>
+            </p>
+          </div>
+        ))
+      }
+    </section>
+    <ul class="tool-grid">
+      {
+        popular.map((tool) => (
+          <li>
+            <ToolCard toolId={tool.id} lang="en" />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</BaseLayout>

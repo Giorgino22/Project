@@ -1,0 +1,12 @@
+// Cloudflare settings for publishing the site as a "Worker with static assets"
+// (Cloudflare's recommended way for new sites). Only the files in dist/ are served –
+// there is no server code. See docs/LAUNCH-CHECKLIST.md, step 3.
+{
+  "name": "keeplocal",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

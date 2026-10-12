@@ -1,0 +1,141 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import Icon from '../Icon.astro';
+import StatusLine from '../StatusLine.astro';
+import SupportBox from '../SupportBox.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.EpcQrCode;
+---
+
+<ToolShell lang={lang} component="EpcQrCode">
+  <div class="qr-layout">
+    <div class="options">
+      <label class="field">
+        <span class="field-label">{text.nameLabel}</span>
+        <input type="text" name="name" maxlength="70" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span class="field-label">{text.ibanLabel}</span>
+        <input type="text" name="iban" autocomplete="off" spellcheck="false" placeholder="DE89 3704 0044 0532 0130 00" />
+      </label>
+      <label class="field">
+        <span class="field-label">{text.bicLabel}</span>
+        <input type="text" name="bic" autocomplete="off" spellcheck="false" />
+      </label>
+      <label class="field">
+        <span class="field-label">{text.amountLabel}</span>
+        <input type="text" name="amount" inputmode="decimal" autocomplete="off" placeholder="0.00" />
+      </label>
+      <label class="field">
+        <span class="field-label">{text.referenceLabel}</span>
+        <input type="text" name="reference" maxlength="140" autocomplete="off" />
+        <span class="field-help">{text.referenceHelp}</span>
+      </label>
+    </div>
+
+    <div class="preview">
+      <canvas data-preview width="240" height="240" role="img" aria-label="EPC QR code" hidden></canvas>
+      <p class="preview-hint" data-hint>{text.emptyHint}</p>
+      <StatusLine />
+      <div class="actions">
+        <button type="button" class="btn btn-primary btn-small" data-download="png" disabled>
+          <Icon name="download" />
+          {text.downloadPng}
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" data-download="svg" disabled>
+          <Icon name="download" />
+          {text.downloadSvg}
+        </button>
+      </div>
+    </div>
+  </div>
+  <div data-support hidden><SupportBox lang={lang} /></div>
+</ToolShell>
+
+<script>
+  import QRCode from 'qrcode';
+  import type { Dictionary } from '../../i18n/en';
+  import { EpcError, epcPayload, formatIban, isValidIban, parseAmount } from '../../lib/qr-payloads';
+  import { encodeCanvas } from '../../scripts/images';
+  import { downloadBlob } from '../../scripts/results';
+  import { $, readTexts, Status, toolRoots } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['EpcQrCode'];
+
+  // The EPC standard asks for error correction level M and black on white.
+  const options = (width: number) => ({ errorCorrectionLevel: 'M' as const, margin: 4, width });
+
+  for (const root of toolRoots('EpcQrCode')) {
+    const t = readTexts<Texts>(root);
+    const status = new Status($(root, '[data-status]'));
+    const preview = $<HTMLCanvasElement>(root, '[data-preview]');
+    const hint = $(root, '[data-hint]');
+    const downloads = [...root.querySelectorAll<HTMLButtonElement>('[data-download]')];
+    const input = (name: string) => $<HTMLInputElement>(root, `input[name="${name}"]`);
+    let payload = '';
+
+    async function update(): Promise<void> {
+      payload = '';
+      root.querySelectorAll('[aria-invalid]').forEach((field) => field.removeAttribute('aria-invalid'));
+      const name = input('name').value;
+      const iban = input('iban').value;
+      const ready = name.trim() !== '' && iban.trim() !== '';
+      hint.hidden = ready;
+      preview.hidden = true;
+      downloads.forEach((button) => (button.disabled = true));
+      if (!ready) {
+        status.clear();
+        return;
+      }
+
+      try {
+        const amount = parseAmount(input('amount').value);
+        if (Number.isNaN(amount)) throw new EpcError('amount');
+        payload = epcPayload({ name, iban, bic: input('bic').value, amount, reference: input('reference').value });
+        await QRCode.toCanvas(preview, payload, options(240));
+        preview.hidden = false;
+        downloads.forEach((button) => (button.disabled = false));
+        status.clear();
+      } catch (error) {
+        payload = '';
+        if (!(error instanceof EpcError)) throw error;
+        status.set(t.errors[error.field], 'error');
+        root.querySelector(`input[name="${error.field}"]`)?.setAttribute('aria-invalid', 'true');
+      }
+    }
+
+    let timer: number | undefined;
+    root.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => void update(), 150);
+    });
+
+    // Tidy up a valid IBAN when leaving the field: "de89370400…" → "DE89 3704 00…"
+    input('iban').addEventListener('blur', () => {
+      if (isValidIban(input('iban').value)) input('iban').value = formatIban(input('iban').value);
+    });
+
+    for (const button of downloads) {
+      button.addEventListener('click', async () => {
+        if (!payload) return;
+        if (button.dataset.download === 'svg') {
+          const svg = await QRCode.toString(payload, { ...options(1024), type: 'svg' });
+          downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), 'epc-qr-code.svg');
+        } else {
+          const canvas = document.createElement('canvas');
+          await QRCode.toCanvas(canvas, payload, options(1024));
+          downloadBlob(await encodeCanvas(canvas, 'png'), 'epc-qr-code.png');
+        }
+        root.querySelector<HTMLElement>('[data-support]')?.removeAttribute('hidden');
+      });
+    }
+  }
+</script>

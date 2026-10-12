@@ -1,0 +1,28 @@
+---
+/** Where finished files appear (with download buttons). Behaviour: src/scripts/results.ts */
+import { t, type Lang } from '../i18n';
+import Icon from './Icon.astro';
+import SupportBox from './SupportBox.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const dict = t(lang).common;
+---
+
+<div class="results" data-results hidden>
+  <ul class="result-list" data-result-list></ul>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-download-all hidden>
+      <Icon name="download" />
+      {dict.downloadAll}
+    </button>
+    <button type="button" class="btn btn-secondary" data-start-over>
+      <Icon name="refresh-cw" />
+      {dict.startOver}
+    </button>
+  </div>
+  <SupportBox lang={lang} />
+</div>

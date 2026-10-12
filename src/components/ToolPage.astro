@@ -1,0 +1,146 @@
+---
+/**
+ * The template for every tool page: intro, the tool itself, how-to, FAQ and related tools.
+ * The texts come from the language files; the tool UI from src/components/tools/.
+ */
+import { config } from '../config';
+import { t, type Lang } from '../i18n';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { IMAGE_FORMATS, type ImageFormat } from '../lib/formats';
+import { absoluteUrl, homePath, toolPath, toolText } from '../site/pages';
+import { breadcrumbSchema, faqSchema, webApplicationSchema } from '../site/seo';
+import { getTool, tools, type ToolId } from '../tools/registry';
+import AdSlot from './AdSlot.astro';
+import AffiliateBox from './AffiliateBox.astro';
+import Icon from './Icon.astro';
+import ToolCard from './ToolCard.astro';
+import { toolComponents } from './tools';
+
+interface Props {
+  lang: Lang;
+  toolId: ToolId;
+  path: string;
+}
+
+const { lang, toolId, path } = Astro.props;
+const dict = t(lang);
+const tool = getTool(toolId);
+const text = toolText(toolId, lang);
+const Tool = toolComponents[tool.component];
+const url = absoluteUrl(path);
+const categoryName = dict.categories[tool.category];
+
+// Converter pages explain the two formats involved; the general converter explains all of them.
+const isConverter = tool.component === 'ConvertImage';
+const formatsToExplain: ImageFormat[] = tool.convert ? [tool.convert.from, tool.convert.to] : ['jpg', 'png', 'webp'];
+const converterPages = tools.filter((other) => 'convert' in other && other.id !== toolId);
+
+// Related tools: same category first, then the rest (without the many converter pages).
+const related = [
+  ...tools.filter((other) => other.category === tool.category),
+  ...tools.filter((other) => other.category !== tool.category),
+]
+  .filter((other) => other.id !== toolId && !('convert' in other))
+  .slice(0, 6);
+
+const jsonLd = [
+  webApplicationSchema(text, url, lang),
+  breadcrumbSchema([
+    { name: dict.nav.home, url: absoluteUrl(homePath(lang)) },
+    { name: categoryName, url: absoluteUrl(`${homePath(lang)}#${tool.category}`) },
+    { name: text.name, url },
+  ]),
+  faqSchema(text.faq),
+];
+---
+
+<BaseLayout
+  lang={lang}
+  title={`${text.title} | ${config.siteName}`}
+  description={text.description}
+  pageKey={`tool:${toolId}`}
+  path={path}
+  jsonLd={jsonLd}
+>
+  <div class="container">
+    <section class="page-intro">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href={homePath(lang)}>{dict.nav.home}</a></li>
+          <li><a href={`${homePath(lang)}#${tool.category}`}>{categoryName}</a></li>
+          <li aria-current="page">{text.name}</li>
+        </ol>
+      </nav>
+      <h1>{text.h1}</h1>
+      <p class="lead">{text.lead}</p>
+      <span class="badge"><Icon name="lock" /> {dict.badge}</span>
+    </section>
+
+    <Tool lang={lang} tool={tool} />
+
+    <AdSlot lang={lang} slot="afterTool" />
+    <AffiliateBox lang={lang} toolId={toolId} />
+
+    <section>
+      <h2>{dict.toolPage.howTo}</h2>
+      <ol class="steps">{text.steps.map((step) => <li>{step}</li>)}</ol>
+    </section>
+
+    {
+      isConverter && (
+        <section>
+          <h2>{dict.toolPage.aboutFormats}</h2>
+          {formatsToExplain.map((format) => (
+            <>
+              <h3>{IMAGE_FORMATS[format].label}</h3>
+              <p>{dict.formats[format]}</p>
+            </>
+          ))}
+          <h3>{dict.toolPage.popularConversions}</h3>
+          <ul class="chip-list">
+            {converterPages.map((other) => (
+              <li>
+                <a href={toolPath(other.id, lang)}>{toolText(other.id, lang).name}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <section class="callout">
+      <Icon name="shield-check" />
+      <div>
+        <h2 style="margin: 0 0 4px; font-size: 1.05rem">{dict.toolPage.privacyTitle}</h2>
+        <p>{dict.toolPage.privacyText}</p>
+      </div>
+    </section>
+
+    <AdSlot lang={lang} slot="beforeFaq" />
+
+    <section class="faq">
+      <h2>{dict.toolPage.faq}</h2>
+      {
+        text.faq.map((item) => (
+          <details>
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))
+      }
+    </section>
+
+    <section>
+      <h2>{dict.toolPage.related}</h2>
+      <ul class="tool-grid">
+        {
+          related.map((other) => (
+            <li>
+              <ToolCard toolId={other.id} lang={lang} />
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</BaseLayout>

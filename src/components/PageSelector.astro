@@ -1,0 +1,44 @@
+---
+/**
+ * Page selection for PDF tools: optionally "All pages / Only these pages", plus a text
+ * field for ranges like "1-3, 5". Behaviour: setupPageSelector() in src/scripts/ui.ts
+ */
+import { t, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  legend: string;
+  /** Show the "All pages" option (then the text field starts disabled) */
+  allowAll?: boolean;
+}
+
+const { lang, legend, allowAll = false } = Astro.props;
+const dict = t(lang).common;
+---
+
+<fieldset class="field" data-page-selector>
+  <legend>{legend}</legend>
+  {
+    allowAll && (
+      <>
+        <label class="choice">
+          <input type="radio" name="pages-mode" value="all" checked />
+          {dict.pagesAll}
+        </label>
+        <label class="choice">
+          <input type="radio" name="pages-mode" value="some" />
+          {dict.pagesSome}
+        </label>
+      </>
+    )
+  }
+  <input
+    type="text"
+    data-pages-input
+    placeholder={dict.pagesPlaceholder}
+    aria-label={legend}
+    autocomplete="off"
+    disabled={allowAll}
+  />
+  <span class="field-help">{dict.pagesHelp}</span>
+</fieldset>

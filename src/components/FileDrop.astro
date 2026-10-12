@@ -1,0 +1,26 @@
+---
+/**
+ * The "Choose files or drop them here" box. The real <input type="file"> is invisible
+ * but covers the whole box, so a click anywhere opens the file dialog.
+ * Behaviour: src/scripts/file-drop.ts
+ */
+import { t, type Lang } from '../i18n';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  /** Allowed files, e.g. "application/pdf,.pdf" or "image/*" */
+  accept: string;
+  multiple?: boolean;
+}
+
+const { lang, accept, multiple = false } = Astro.props;
+const dict = t(lang).common;
+---
+
+<label class="dropzone" data-dropzone>
+  <Icon name="file-plus" />
+  <span class="dropzone-title">{multiple ? dict.chooseFiles : dict.chooseFile}</span>
+  <span class="dropzone-hint">{multiple ? dict.orDropMany : dict.orDrop}</span>
+  <input type="file" accept={accept} multiple={multiple} />
+</label>

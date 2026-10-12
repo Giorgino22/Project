@@ -1,0 +1,62 @@
+---
+import { config } from '../config';
+import { t, type Lang } from '../i18n';
+import { alternatesOf, legalPath, toolPath, toolText } from '../site/pages';
+import { categories, tools } from '../tools/registry';
+
+interface Props {
+  lang: Lang;
+  pageKey: string;
+}
+
+const { lang, pageKey } = Astro.props;
+const dict = t(lang);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      {
+        categories.map((category) => (
+          <nav aria-label={dict.categories[category]}>
+            <h2>{dict.categories[category]}</h2>
+            <ul>
+              {tools
+                .filter((tool) => tool.category === category)
+                .map((tool) => (
+                  <li>
+                    <a href={toolPath(tool.id, lang)}>{toolText(tool.id, lang).name}</a>
+                  </li>
+                ))}
+            </ul>
+          </nav>
+        ))
+      }
+      <div>
+        <h2>{config.siteName}</h2>
+        <p>{dict.footer.about}</p>
+        <ul>
+          <li><a href={legalPath('privacy', lang)}>{dict.footer.privacy}</a></li>
+          <li><a href={legalPath('imprint', lang)}>{dict.footer.imprint}</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© {year} {config.siteName}</span>
+      <span>
+        {dict.footer.languages}:{' '}
+        {
+          alternatesOf(pageKey).map((version, index) => (
+            <>
+              {index > 0 && ' · '}
+              <a href={version.path} hreflang={version.lang} lang={version.lang}>
+                {t(version.lang).name}
+              </a>
+            </>
+          ))
+        }
+      </span>
+    </div>
+  </div>
+</footer>

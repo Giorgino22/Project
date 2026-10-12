@@ -1,0 +1,26 @@
+---
+/** "Did this save you time? Buy me a coffee" – shown after a tool finished. Hidden if config.supportUrl is empty. */
+import { config, features } from '../config';
+import { t, type Lang } from '../i18n';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const dict = t(Astro.props.lang).support;
+---
+
+{
+  features.support && (
+    <div class="support-box">
+      <p>
+        <strong>{dict.title}</strong> {dict.text}
+      </p>
+      <a class="btn btn-secondary btn-small" href={config.supportUrl} target="_blank" rel="noopener">
+        <Icon name="coffee" />
+        {dict.button}
+      </a>
+    </div>
+  )
+}

@@ -1,0 +1,53 @@
+---
+import { config } from '../config';
+import { t, type Lang } from '../i18n';
+import { alternatesOf, homePath } from '../site/pages';
+import { categories } from '../tools/registry';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  /** Identifies the current page across languages (for the language menu) */
+  pageKey: string;
+}
+
+const { lang, pageKey } = Astro.props;
+const dict = t(lang);
+const versions = alternatesOf(pageKey);
+---
+
+<header class="site-header">
+  <div class="container">
+    <a class="logo" href={homePath(lang)}>
+      <Icon name="shield-check" />
+      {config.siteName}
+    </a>
+    <nav class="header-nav" aria-label={dict.nav.allTools}>
+      {categories.map((category) => <a href={`${homePath(lang)}#${category}`}>{dict.categories[category]}</a>)}
+      {
+        versions.length > 1 && (
+          <details class="lang-menu">
+            <summary aria-label={dict.nav.language}>
+              <Icon name="globe" />
+              {lang.toUpperCase()}
+            </summary>
+            <ul>
+              {versions.map((version) => (
+                <li>
+                  <a
+                    href={version.path}
+                    hreflang={version.lang}
+                    lang={version.lang}
+                    aria-current={version.lang === lang ? 'page' : undefined}
+                  >
+                    {t(version.lang).name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      }
+    </nav>
+  </div>
+</header>

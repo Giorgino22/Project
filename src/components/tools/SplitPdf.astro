@@ -1,0 +1,123 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import PageSelector from '../PageSelector.astro';
+import PasswordPrompt from '../PasswordPrompt.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.SplitPdf;
+---
+
+<ToolShell lang={lang} component="SplitPdf">
+  <FileDrop lang={lang} accept="application/pdf,.pdf" />
+  <p class="file-info" data-file-info hidden></p>
+  <PasswordPrompt lang={lang} />
+  <div class="options" data-options hidden>
+    <fieldset class="field">
+      <legend>{text.modeLabel}</legend>
+      <label class="choice"><input type="radio" name="split-mode" value="extract" checked /> {text.modeExtract}</label>
+      <label class="choice"><input type="radio" name="split-mode" value="each" /> {text.modeEach}</label>
+      <label class="choice"><input type="radio" name="split-mode" value="ranges" /> {text.modeRanges}</label>
+    </fieldset>
+    <PageSelector lang={lang} legend={text.pagesLabel} />
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { PDFDocument } from '@cantoo/pdf-lib';
+  import type { Dictionary } from '../../i18n/en';
+  import { baseName, fill, formatBytes, padNumber } from '../../lib/format';
+  import { formatRange, parsePageRanges, parsePageSelection, rangesToIndices } from '../../lib/page-ranges';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { openPdfFile, PasswordPrompt } from '../../scripts/pdf-open';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import { $, bytesToBlob, describeError, pagesLabel, radioValue, readTexts, runTask, Status, toolRoots } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['SplitPdf'];
+
+  for (const root of toolRoots('SplitPdf')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const fileInfo = $(root, '[data-file-info]');
+    const options = $(root, '[data-options]');
+    const pagesInput = $<HTMLInputElement>(root, '[data-pages-input]');
+    const prompt = new PasswordPrompt(root);
+    let current: { file: File; doc: PDFDocument } | undefined;
+
+    const reset = () => {
+      current = undefined;
+      fileInfo.hidden = true;
+      options.hidden = true;
+      button.disabled = true;
+      status.clear();
+    };
+    const results = new Results(root, t, lang, { zipName: 'split.zip', onStartOver: reset });
+
+    // "Every page as its own PDF" needs no page numbers.
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="split-mode"]')) {
+      radio.addEventListener('change', () => (pagesInput.disabled = radioValue(root, 'split-mode') === 'each'));
+    }
+
+    setupFileDrop(root, async ([file]) => {
+      if (!file) return;
+      results.clear();
+      status.clear();
+      try {
+        const doc = await openPdfFile(file, prompt, t);
+        current = { file, doc };
+        fileInfo.textContent = `${file.name} · ${pagesLabel(doc.getPageCount(), t)} · ${formatBytes(file.size, lang)}`;
+        fileInfo.hidden = false;
+        options.hidden = false;
+        button.disabled = false;
+      } catch (error) {
+        status.set(describeError(error, t), 'error');
+      }
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        if (!current) return;
+        const { extractPages } = await import('../../lib/pdf-ops');
+        const { file, doc } = current;
+        const name = baseName(file.name);
+        const pageCount = doc.getPageCount();
+        const makeFile = async (indices: number[], suffix: string): Promise<OutputFile> => ({
+          name: `${name}_${suffix}.pdf`,
+          blob: bytesToBlob(await extractPages(doc, indices), 'application/pdf'),
+        });
+
+        const outputs: OutputFile[] = [];
+        const mode = radioValue(root, 'split-mode');
+        if (mode === 'each') {
+          for (let index = 0; index < pageCount; index++) {
+            outputs.push(await makeFile([index], `page-${padNumber(index + 1, pageCount)}`));
+          }
+        } else if (mode === 'ranges') {
+          for (const range of parsePageRanges(pagesInput.value, pageCount)) {
+            outputs.push(await makeFile(rangesToIndices([range]), `pages-${formatRange(range)}`));
+          }
+        } else {
+          outputs.push(await makeFile(parsePageSelection(pagesInput.value, pageCount), 'extract'));
+        }
+        results.show(outputs);
+        status.set(fill(t.result, { count: outputs.length }), 'success');
+      }),
+    );
+  }
+</script>

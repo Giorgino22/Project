@@ -1,0 +1,20 @@
+# Dependabot keeps the libraries up to date: once a month it opens ONE pull request with all
+# minor and patch updates. The CI check tells you whether it's safe to merge.
+# Major versions (which can contain breaking changes) are skipped – upgrade those deliberately.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      dependencies:
+        patterns: ['*']
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

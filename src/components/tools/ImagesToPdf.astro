@@ -1,0 +1,132 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.ImagesToPdf;
+---
+
+<ToolShell lang={lang} component="ImagesToPdf">
+  <FileDrop lang={lang} accept="image/*" multiple />
+  <ol class="file-list" data-file-list></ol>
+  <div class="options">
+    <label class="field">
+      <span class="field-label">{text.pageSizeLabel}</span>
+      <select name="page-size">
+        <option value="a4" selected>{text.a4}</option>
+        <option value="letter">{text.letter}</option>
+        <option value="fit">{text.fit}</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">{text.orientationLabel}</span>
+      <select name="orientation">
+        <option value="auto" selected>{text.auto}</option>
+        <option value="portrait">{text.portrait}</option>
+        <option value="landscape">{text.landscape}</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">{text.marginLabel}</span>
+      <select name="margin">
+        <option value="0" selected>{text.marginNone}</option>
+        <option value="20">{text.marginSmall}</option>
+        <option value="40">{text.marginLarge}</option>
+      </select>
+    </label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { baseName, fill, formatBytes } from '../../lib/format';
+  import type { Orientation, PageSizeName } from '../../lib/image-layout';
+  import { detectImageKind, readJpegOrientation } from '../../lib/metadata';
+  import type { EmbeddableImage } from '../../lib/pdf-ops';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { FileListView } from '../../scripts/file-list';
+  import { decodeImage, drawToCanvas, encodeCanvas } from '../../scripts/images';
+  import { Results } from '../../scripts/results';
+  import { $, bytesToBlob, readTexts, runTask, Status, toolRoots, UserError } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['ImagesToPdf'];
+
+  /**
+   * Prepares one image for the PDF. JPG and PNG files go in unchanged (no quality loss).
+   * Other formats, and phone photos stored sideways, are first drawn upright on a
+   * canvas and saved as a high-quality JPG.
+   */
+  async function toEmbeddable(file: File, t: Texts): Promise<EmbeddableImage> {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const kind = detectImageKind(bytes);
+    if (kind === 'png') return { bytes, type: 'png' };
+    if (kind === 'jpg' && readJpegOrientation(bytes) === 1) return { bytes, type: 'jpg' };
+
+    const image = await decodeImage(file).catch(() => {
+      throw new UserError(fill(t.errorNotImage, { name: file.name }));
+    });
+    try {
+      const canvas = drawToCanvas(image, image.width, image.height, '#ffffff');
+      const jpg = await encodeCanvas(canvas, 'jpg', 0.92);
+      return { bytes: new Uint8Array(await jpg.arrayBuffer()), type: 'jpg' };
+    } finally {
+      image.release();
+    }
+  }
+
+  for (const root of toolRoots('ImagesToPdf')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const select = (name: string) => $<HTMLSelectElement>(root, `select[name="${name}"]`).value;
+
+    const list = new FileListView($(root, '[data-file-list]'), t, () => {
+      button.disabled = list.items.length === 0;
+      results.clear();
+    });
+    const results = new Results(root, t, lang, {
+      zipName: 'images.zip',
+      onStartOver: () => {
+        list.clear();
+        status.clear();
+      },
+    });
+
+    setupFileDrop(root, (files) => {
+      status.clear();
+      list.add(files.map((file) => ({ file, meta: formatBytes(file.size, lang), thumbnail: URL.createObjectURL(file) })));
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        const { imagesToPdf } = await import('../../lib/pdf-ops');
+        const images: EmbeddableImage[] = [];
+        for (const item of list.items) images.push(await toEmbeddable(item.file, t));
+        const bytes = await imagesToPdf(images, {
+          pageSize: select('page-size') as PageSizeName,
+          orientation: select('orientation') as Orientation,
+          margin: Number(select('margin')),
+        });
+        const first = list.items[0]!.file;
+        const name = list.items.length === 1 ? `${baseName(first.name)}.pdf` : 'images.pdf';
+        results.show([{ name, blob: bytesToBlob(bytes, 'application/pdf') }]);
+        status.set(t.done, 'success');
+      }),
+    );
+  }
+</script>

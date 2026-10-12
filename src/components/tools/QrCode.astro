@@ -1,0 +1,253 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import Icon from '../Icon.astro';
+import StatusLine from '../StatusLine.astro';
+import SupportBox from '../SupportBox.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.QrCode;
+const types = [
+  ['url', text.typeUrl],
+  ['text', text.typeText],
+  ['wifi', text.typeWifi],
+  ['email', text.typeEmail],
+  ['phone', text.typePhone],
+] as const;
+---
+
+<ToolShell lang={lang} component="QrCode">
+  <div class="qr-layout">
+    <div>
+      <fieldset class="field">
+        <legend>{text.typeLabel}</legend>
+        <div class="segmented">
+          {
+            types.map(([value, label]) => (
+              <label>
+                <input type="radio" name="qr-type" value={value} checked={value === 'url'} />
+                <span>{label}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      <div class="options" data-fields="url">
+        <label class="field">
+          <span class="field-label">{text.urlLabel}</span>
+          <input type="text" inputmode="url" name="url" placeholder={text.urlPlaceholder} autocomplete="off" />
+        </label>
+      </div>
+      <div class="options" data-fields="text" hidden>
+        <label class="field">
+          <span class="field-label">{text.textLabel}</span>
+          <textarea name="text"></textarea>
+        </label>
+      </div>
+      <div class="options" data-fields="wifi" hidden>
+        <label class="field">
+          <span class="field-label">{text.ssidLabel}</span>
+          <input type="text" name="ssid" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.wifiPasswordLabel}</span>
+          <input type="text" name="wifi-password" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.securityLabel}</span>
+          <select name="security">
+            <option value="WPA" selected>WPA / WPA2 / WPA3</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">{text.securityNone}</option>
+          </select>
+        </label>
+        <label class="choice"><input type="checkbox" name="hidden-network" /> {text.hiddenLabel}</label>
+      </div>
+      <div class="options" data-fields="email" hidden>
+        <label class="field">
+          <span class="field-label">{text.emailLabel}</span>
+          <input type="email" name="email" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.subjectLabel}</span>
+          <input type="text" name="subject" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.bodyLabel}</span>
+          <textarea name="body"></textarea>
+        </label>
+      </div>
+      <div class="options" data-fields="phone" hidden>
+        <label class="field">
+          <span class="field-label">{text.phoneLabel}</span>
+          <input type="tel" name="phone" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="options">
+        <label class="field">
+          <span class="field-label">{text.colorLabel}</span>
+          <input type="color" name="dark" value="#000000" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.backgroundLabel}</span>
+          <input type="color" name="light" value="#ffffff" />
+        </label>
+        <label class="field">
+          <span class="field-label">{text.sizeLabel}</span>
+          <select name="size">
+            <option value="512">512 px</option>
+            <option value="1024" selected>1024 px</option>
+            <option value="2048">2048 px</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">{text.errorCorrectionLabel}</span>
+          <select name="ecc">
+            <option value="L">L – 7 %</option>
+            <option value="M" selected>M – 15 %</option>
+            <option value="Q">Q – 25 %</option>
+            <option value="H">H – 30 %</option>
+          </select>
+          <span class="field-help">{text.errorCorrectionHelp}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="preview">
+      <canvas data-preview width="240" height="240" role="img" aria-label="QR code" hidden></canvas>
+      <p class="preview-hint" data-hint>{text.emptyHint}</p>
+      <StatusLine />
+      <div class="actions">
+        <button type="button" class="btn btn-primary btn-small" data-download="png" disabled>
+          <Icon name="download" />
+          {text.downloadPng}
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" data-download="svg" disabled>
+          <Icon name="download" />
+          {text.downloadSvg}
+        </button>
+      </div>
+    </div>
+  </div>
+  <div data-support hidden><SupportBox lang={lang} /></div>
+</ToolShell>
+
+<script>
+  import QRCode from 'qrcode';
+  import type { Dictionary } from '../../i18n/en';
+  import { isRiskyQrColors } from '../../lib/color';
+  import { emailPayload, normalizeUrl, phonePayload, wifiPayload, type WifiEncryption } from '../../lib/qr-payloads';
+  import { encodeCanvas } from '../../scripts/images';
+  import { downloadBlob } from '../../scripts/results';
+  import { $, radioValue, readTexts, Status, toolRoots } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['QrCode'];
+  type Level = 'L' | 'M' | 'Q' | 'H';
+
+  for (const root of toolRoots('QrCode')) {
+    const t = readTexts<Texts>(root);
+    const status = new Status($(root, '[data-status]'));
+    const preview = $<HTMLCanvasElement>(root, '[data-preview]');
+    const hint = $(root, '[data-hint]');
+    const downloads = [...root.querySelectorAll<HTMLButtonElement>('[data-download]')];
+    const value = (name: string) => $<HTMLInputElement>(root, `[name="${name}"]`).value;
+    const checked = (name: string) => $<HTMLInputElement>(root, `[name="${name}"]`).checked;
+
+    /** The text that goes into the QR code, built from the fields of the chosen type. */
+    function payload(): string {
+      switch (radioValue(root, 'qr-type')) {
+        case 'url':
+          return normalizeUrl(value('url'));
+        case 'text':
+          return value('text');
+        case 'wifi':
+          return value('ssid').trim()
+            ? wifiPayload({
+                ssid: value('ssid'),
+                password: value('wifi-password'),
+                encryption: value('security') as WifiEncryption,
+                hidden: checked('hidden-network'),
+              })
+            : '';
+        case 'email':
+          return value('email').trim() ? emailPayload(value('email'), value('subject'), value('body')) : '';
+        case 'phone':
+          return /\d/.test(value('phone')) ? phonePayload(value('phone')) : '';
+        default:
+          return '';
+      }
+    }
+
+    const options = (width: number) => ({
+      errorCorrectionLevel: value('ecc') as Level,
+      margin: 4, // the white border ("quiet zone") scanners need
+      width,
+      color: { dark: value('dark'), light: value('light') },
+    });
+
+    async function update(): Promise<void> {
+      const text = payload();
+      downloads.forEach((button) => (button.disabled = !text));
+      if (!text) {
+        preview.hidden = true;
+        hint.hidden = false;
+        status.clear();
+        return;
+      }
+      try {
+        await QRCode.toCanvas(preview, text, options(240));
+        preview.hidden = false;
+        hint.hidden = true;
+        if (isRiskyQrColors(value('dark'), value('light'))) status.set(t.lowContrast, 'error');
+        else status.clear();
+      } catch {
+        // The library throws when the content is too long for a QR code.
+        preview.hidden = true;
+        downloads.forEach((button) => (button.disabled = true));
+        status.set(t.tooLong, 'error');
+      }
+    }
+
+    // Show only the fields of the chosen type.
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="qr-type"]')) {
+      radio.addEventListener('change', () => {
+        for (const group of root.querySelectorAll<HTMLElement>('[data-fields]')) {
+          group.hidden = group.dataset.fields !== radio.value;
+        }
+      });
+    }
+
+    // Redraw shortly after the visitor stops typing ("debounce"), not on every key press.
+    let timer: number | undefined;
+    const scheduleUpdate = () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => void update(), 120);
+    };
+    root.addEventListener('input', scheduleUpdate);
+    root.addEventListener('change', scheduleUpdate);
+
+    for (const button of downloads) {
+      button.addEventListener('click', async () => {
+        const text = payload();
+        const size = Number(value('size'));
+        if (button.dataset.download === 'svg') {
+          const svg = await QRCode.toString(text, { ...options(size), type: 'svg' });
+          downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), 'qr-code.svg');
+        } else {
+          const canvas = document.createElement('canvas');
+          await QRCode.toCanvas(canvas, text, options(size));
+          downloadBlob(await encodeCanvas(canvas, 'png'), 'qr-code.png');
+        }
+        root.querySelector<HTMLElement>('[data-support]')?.removeAttribute('hidden');
+      });
+    }
+  }
+</script>

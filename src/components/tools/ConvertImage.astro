@@ -1,0 +1,133 @@
+---
+/**
+ * Used by the "Image converter" page and by every "X to Y" page (PNG to JPG, …).
+ * Those pages pass `tool.convert`, which preselects the target format.
+ */
+import { t, type Lang } from '../../i18n';
+import { IMAGE_FORMATS, type ImageFormat } from '../../lib/formats';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang, tool } = Astro.props;
+const text = t(lang).components.ConvertImage;
+const target: ImageFormat = tool.convert?.to ?? 'jpg';
+const formats = Object.keys(IMAGE_FORMATS) as ImageFormat[];
+---
+
+<ToolShell lang={lang} component="ConvertImage">
+  <FileDrop lang={lang} accept="image/*" multiple />
+  <ol class="file-list" data-file-list></ol>
+  <div class="options">
+    <fieldset class="field">
+      <legend>{text.toLabel}</legend>
+      <div class="segmented">
+        {
+          formats.map((format) => (
+            <label>
+              <input type="radio" name="target" value={format} checked={format === target} />
+              <span>{IMAGE_FORMATS[format].label}</span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+    <div class="field" data-show-for="jpg webp" hidden={!IMAGE_FORMATS[target].lossy}>
+      <label class="field-label" for="convert-quality">{text.qualityLabel}</label>
+      <div class="range-row">
+        <input id="convert-quality" type="range" min="10" max="100" step="5" value="90" />
+        <output for="convert-quality" data-quality-value>90%</output>
+      </div>
+    </div>
+    <label class="field" data-show-for="jpg" hidden={target !== 'jpg'}>
+      <span class="field-label">{text.backgroundLabel}</span>
+      <input type="color" name="background" value="#ffffff" />
+    </label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { fill, formatBytes, outputName } from '../../lib/format';
+  import { IMAGE_FORMATS, type ImageFormat } from '../../lib/formats';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { FileListView } from '../../scripts/file-list';
+  import { decodeImage, drawToCanvas, encodeCanvas, FormatNotSupportedError } from '../../scripts/images';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import { $, radioValue, readTexts, runTask, Status, toolRoots, UserError } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['ConvertImage'];
+
+  for (const root of toolRoots('ConvertImage')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const quality = $<HTMLInputElement>(root, '#convert-quality');
+    const qualityValue = $(root, '[data-quality-value]');
+    const background = $<HTMLInputElement>(root, 'input[name="background"]');
+
+    quality.addEventListener('input', () => (qualityValue.textContent = `${quality.value}%`));
+    // Quality only matters for JPG/WebP, the background colour only for JPG.
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="target"]')) {
+      radio.addEventListener('change', () => {
+        const target = radioValue(root, 'target');
+        for (const element of root.querySelectorAll<HTMLElement>('[data-show-for]')) {
+          element.hidden = !element.dataset.showFor!.split(' ').includes(target);
+        }
+      });
+    }
+
+    const list = new FileListView($(root, '[data-file-list]'), t, () => {
+      button.disabled = list.items.length === 0;
+      results.clear();
+    });
+    const results = new Results(root, t, lang, {
+      zipName: 'converted-images.zip',
+      onStartOver: () => {
+        list.clear();
+        status.clear();
+      },
+    });
+
+    setupFileDrop(root, (files) => {
+      status.clear();
+      list.add(files.map((file) => ({ file, meta: formatBytes(file.size, lang), thumbnail: URL.createObjectURL(file) })));
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        const target = radioValue(root, 'target') as ImageFormat;
+        const outputs: OutputFile[] = [];
+        for (const { file } of list.items) {
+          const image = await decodeImage(file).catch(() => {
+            throw new UserError(fill(t.errorNotImage, { name: file.name }));
+          });
+          try {
+            const canvas = drawToCanvas(image, image.width, image.height, target === 'jpg' ? background.value : undefined);
+            const blob = await encodeCanvas(canvas, target, Number(quality.value) / 100).catch((error) => {
+              throw error instanceof FormatNotSupportedError ? new UserError(t.webpUnsupported) : error;
+            });
+            outputs.push({ name: outputName(file.name, IMAGE_FORMATS[target].extension), blob });
+          } finally {
+            image.release();
+          }
+        }
+        results.show(outputs);
+        status.set(t.done, 'success');
+      }),
+    );
+  }
+</script>

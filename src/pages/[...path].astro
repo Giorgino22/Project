@@ -1,0 +1,31 @@
+---
+/**
+ * ONE file creates ALL pages of the site.
+ *
+ * `getStaticPaths` runs at build time and returns one entry per page and language
+ * (home, every tool, legal pages). Astro then renders each entry to an HTML file,
+ * e.g. /de/pdf-zusammenfuegen/index.html. The page list comes from src/site/pages.ts.
+ */
+import HomePage from '../components/HomePage.astro';
+import LegalPage from '../components/LegalPage.astro';
+import ToolPage from '../components/ToolPage.astro';
+import { getAllPages, type SitePage } from '../site/pages';
+
+export function getStaticPaths() {
+  return getAllPages().map((page) => ({
+    // "/de/pdf-zusammenfuegen/" → "de/pdf-zusammenfuegen"; the home page "/" → undefined
+    params: { path: page.path === '/' ? undefined : page.path.slice(1, -1) },
+    props: { page },
+  }));
+}
+
+interface Props {
+  page: SitePage;
+}
+
+const { page } = Astro.props;
+---
+
+{page.kind === 'home' && <HomePage lang={page.lang} />}
+{page.kind === 'tool' && page.toolId && <ToolPage lang={page.lang} toolId={page.toolId} path={page.path} />}
+{(page.kind === 'privacy' || page.kind === 'imprint') && <LegalPage lang={page.lang} kind={page.kind} path={page.path} />}

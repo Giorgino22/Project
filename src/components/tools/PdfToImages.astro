@@ -1,0 +1,152 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import PageSelector from '../PageSelector.astro';
+import PasswordPrompt from '../PasswordPrompt.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.PdfToImages;
+---
+
+<ToolShell lang={lang} component="PdfToImages">
+  <FileDrop lang={lang} accept="application/pdf,.pdf" />
+  <p class="file-info" data-file-info hidden></p>
+  <PasswordPrompt lang={lang} />
+  <div class="options" data-options hidden>
+    <fieldset class="field">
+      <legend>{text.formatLabel}</legend>
+      <div class="segmented">
+        <label><input type="radio" name="image-format" value="jpg" checked /><span>JPG</span></label>
+        <label><input type="radio" name="image-format" value="png" /><span>PNG</span></label>
+      </div>
+    </fieldset>
+    <label class="field">
+      <span class="field-label">{text.resolutionLabel}</span>
+      <select name="dpi">
+        <option value="72">{text.resolutionLow}</option>
+        <option value="150" selected>{text.resolutionMedium}</option>
+        <option value="300">{text.resolutionHigh}</option>
+      </select>
+    </label>
+    <PageSelector lang={lang} legend={text.pagesLabel} allowAll />
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { baseName, fill, formatBytes, padNumber } from '../../lib/format';
+  import { limitScale } from '../../lib/image-layout';
+  import { encodeCanvas } from '../../scripts/images';
+  import { PasswordPrompt } from '../../scripts/pdf-open';
+  import { openPdfForRendering, type PdfJsDocument } from '../../scripts/pdfjs';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import {
+    $,
+    describeError,
+    pagesLabel,
+    radioValue,
+    readTexts,
+    runTask,
+    selectedPages,
+    setupPageSelector,
+    Status,
+    toolRoots,
+  } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['PdfToImages'];
+
+  /** Draws one PDF page onto a canvas at the wanted resolution and saves it as an image. */
+  async function renderPage(pdf: PdfJsDocument, pageNumber: number, dpi: number, format: 'jpg' | 'png'): Promise<Blob> {
+    const page = await pdf.getPage(pageNumber);
+    try {
+      const size = page.getViewport({ scale: 1 }); // 1 = 72 DPI, the PDF's own unit
+      const viewport = page.getViewport({ scale: limitScale(size.width, size.height, dpi / 72) });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvas, viewport, background: '#ffffff' }).promise;
+      const blob = await encodeCanvas(canvas, format, 0.9);
+      canvas.width = canvas.height = 0; // releases the canvas memory right away
+      return blob;
+    } finally {
+      page.cleanup();
+    }
+  }
+
+  for (const root of toolRoots('PdfToImages')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const fileInfo = $(root, '[data-file-info]');
+    const options = $(root, '[data-options]');
+    const prompt = new PasswordPrompt(root);
+    let current: { file: File; pdf: PdfJsDocument } | undefined;
+
+    const forget = () => {
+      void current?.pdf.loadingTask.destroy(); // frees the memory pdf.js used for the previous file
+      current = undefined;
+    };
+    const results = new Results(root, t, lang, {
+      zipName: 'images.zip',
+      onStartOver: () => {
+        forget();
+        fileInfo.hidden = true;
+        options.hidden = true;
+        button.disabled = true;
+        status.clear();
+      },
+    });
+    setupPageSelector(root);
+
+    setupFileDrop(root, async ([file]) => {
+      if (!file) return;
+      results.clear();
+      status.clear();
+      forget();
+      try {
+        const pdf = await openPdfForRendering(file, prompt, t);
+        current = { file, pdf };
+        fileInfo.textContent = `${file.name} · ${pagesLabel(pdf.numPages, t)} · ${formatBytes(file.size, lang)}`;
+        fileInfo.hidden = false;
+        options.hidden = false;
+        button.disabled = false;
+      } catch (error) {
+        status.set(describeError(error, t), 'error');
+      }
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        if (!current) return;
+        const { file, pdf } = current;
+        const format = radioValue(root, 'image-format') as 'jpg' | 'png';
+        const dpi = Number($<HTMLSelectElement>(root, 'select[name="dpi"]').value);
+        const pages = selectedPages(root, pdf.numPages);
+        const outputs: OutputFile[] = [];
+        for (const [position, index] of pages.entries()) {
+          status.set(fill(t.progress, { current: position + 1, total: pages.length }));
+          const blob = await renderPage(pdf, index + 1, dpi, format);
+          outputs.push({ name: `${baseName(file.name)}_page-${padNumber(index + 1, pdf.numPages)}.${format}`, blob });
+        }
+        results.show(outputs);
+        status.set(t.done, 'success');
+      }),
+    );
+  }
+</script>

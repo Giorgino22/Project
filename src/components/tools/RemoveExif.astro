@@ -1,0 +1,171 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.RemoveExif;
+---
+
+<ToolShell lang={lang} component="RemoveExif">
+  <FileDrop lang={lang} accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple />
+  <ul class="meta-findings" data-findings></ul>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { fill, formatBytes, outputName } from '../../lib/format';
+  import { detectImageKind, stripMetadata, webpExifBlock, type ImageKind } from '../../lib/metadata';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import { $, bytesToBlob, readTexts, runTask, Status, toolRoots } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['RemoveExif'];
+
+  const CLEANABLE: ImageKind[] = ['jpg', 'png', 'webp'];
+  const MIME: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+
+  interface Finding {
+    label: string;
+    value: string;
+    /** Link to a map for GPS positions */
+    link?: string;
+  }
+
+  /** Reads the hidden metadata of a photo and picks the parts people care about. */
+  async function findMetadata(bytes: Uint8Array, kind: ImageKind, t: Texts, lang: string): Promise<Finding[]> {
+    const { default: exifr } = await import('exifr');
+    const source = kind === 'webp' ? webpExifBlock(bytes) : bytes; // exifr can't open WebP itself
+    if (!source) return [];
+    const data: Record<string, unknown> | undefined = await exifr
+      .parse(source, { tiff: true, gps: true, xmp: true, iptc: true, icc: false, ifd1: false, mergeOutput: true })
+      .catch(() => undefined);
+    if (!data) return [];
+
+    const text = (value: unknown) => (value === undefined || value === null ? '' : String(value).trim());
+    const findings: Finding[] = [];
+    const used = new Set<string>();
+    const add = (keys: string[], label: string, value: string, link?: string) => {
+      keys.forEach((key) => used.add(key));
+      if (value) findings.push({ label, value, link });
+    };
+
+    const lat = Number(data.latitude);
+    const lon = Number(data.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      add(['latitude', 'longitude', 'GPSLatitude', 'GPSLongitude', 'GPSLatitudeRef', 'GPSLongitudeRef'], t.gps, `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+        `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`);
+    }
+    const make = text(data.Make);
+    const model = text(data.Model);
+    add(['Make', 'Model'], t.camera, model.startsWith(make) ? model : `${make} ${model}`.trim());
+    const date = data.DateTimeOriginal ?? data.CreateDate;
+    add(['DateTimeOriginal', 'CreateDate'], t.date, date instanceof Date ? date.toLocaleString(lang) : text(date));
+    add(['Software'], t.software, text(data.Software));
+    add(['Artist', 'Copyright', 'creator'], t.author, [data.Artist, data.Copyright, data.creator].map(text).filter(Boolean).join(' · '));
+
+    const others = Object.keys(data).filter((key) => !used.has(key)).length;
+    if (others > 0) findings.push({ label: fill(t.otherFields, { count: others }), value: '' });
+    return findings;
+  }
+
+  /** Shows the findings of one file. Values are inserted with textContent – metadata can contain anything. */
+  function renderFindings(file: File, findings: Finding[] | string, t: Texts, lang: string): HTMLLIElement {
+    const item = document.createElement('li');
+    const title = document.createElement('strong');
+    title.textContent = `${file.name} (${formatBytes(file.size, lang)})`;
+    const summary = document.createElement('div');
+    item.append(title, summary);
+
+    if (typeof findings === 'string') {
+      summary.textContent = findings; // e.g. "unsupported format"
+    } else if (findings.length === 0) {
+      summary.className = 'no-findings';
+      summary.textContent = t.nothingFound;
+    } else {
+      summary.className = 'has-findings';
+      summary.textContent = t.found;
+      const list = document.createElement('ul');
+      for (const finding of findings) {
+        const row = document.createElement('li');
+        row.textContent = finding.value ? `${finding.label}: ${finding.value} ` : finding.label;
+        if (finding.link) {
+          const link = document.createElement('a');
+          link.href = finding.link;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = t.mapLink;
+          row.append(link);
+        }
+        list.append(row);
+      }
+      item.append(list);
+    }
+    return item;
+  }
+
+  for (const root of toolRoots('RemoveExif')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const findingsList = $(root, '[data-findings]');
+    let files: { file: File; bytes: Uint8Array; kind: ImageKind }[] = [];
+
+    const results = new Results(root, t, lang, {
+      zipName: 'clean-photos.zip',
+      onStartOver: () => {
+        files = [];
+        findingsList.replaceChildren();
+        button.disabled = true;
+        status.clear();
+      },
+    });
+
+    setupFileDrop(root, async (chosen) => {
+      results.clear();
+      status.clear();
+      files = [];
+      findingsList.replaceChildren();
+      for (const file of chosen) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const kind = detectImageKind(bytes);
+        if (!CLEANABLE.includes(kind)) {
+          findingsList.append(renderFindings(file, fill(t.unsupported, { name: file.name }), t, lang));
+          continue;
+        }
+        files.push({ file, bytes, kind });
+        findingsList.append(renderFindings(file, await findMetadata(bytes, kind, t, lang), t, lang));
+      }
+      button.disabled = files.length === 0;
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        const outputs: OutputFile[] = files.map(({ file, bytes, kind }) => {
+          const { bytes: clean, removed } = stripMetadata(bytes);
+          const note = removed.length
+            ? fill(t.removedList, { list: removed.map((k) => t.kinds[k]).join(', ') })
+            : t.nothingRemoved;
+          const extension = file.name.match(/\.(\w+)$/)?.[1] ?? kind;
+          return { name: outputName(file.name, extension, '-clean'), blob: bytesToBlob(clean, MIME[kind]!), note };
+        });
+        results.show(outputs);
+        status.set(t.done, 'success');
+      }),
+    );
+  }
+</script>

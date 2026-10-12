@@ -1,0 +1,151 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.ResizeImage;
+---
+
+<ToolShell lang={lang} component="ResizeImage">
+  <FileDrop lang={lang} accept="image/*" multiple />
+  <ol class="file-list" data-file-list></ol>
+  <div class="options">
+    <fieldset class="field">
+      <legend>{text.modeLabel}</legend>
+      <div class="segmented">
+        <label><input type="radio" name="resize-mode" value="percent" checked /><span>{text.modePercent}</span></label>
+        <label><input type="radio" name="resize-mode" value="pixels" /><span>{text.modePixels}</span></label>
+      </div>
+    </fieldset>
+    <div class="field" data-mode="percent">
+      <label class="field-label" for="percent">{text.percentLabel}</label>
+      <div class="range-row">
+        <input id="percent" type="range" min="5" max="200" step="5" value="50" />
+        <output for="percent" data-percent-value>50%</output>
+      </div>
+    </div>
+    <div class="field" data-mode="pixels" hidden>
+      <label class="field-label" for="width">{text.widthLabel}</label>
+      <input id="width" type="number" min="1" max="20000" inputmode="numeric" />
+    </div>
+    <div class="field" data-mode="pixels" hidden>
+      <label class="field-label" for="height">{text.heightLabel}</label>
+      <input id="height" type="number" min="1" max="20000" inputmode="numeric" />
+    </div>
+    <label class="choice" data-mode="pixels" hidden>
+      <input type="checkbox" name="keep-aspect" checked />
+      {text.keepAspect}
+    </label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { baseName, fill, formatBytes } from '../../lib/format';
+  import { IMAGE_FORMATS } from '../../lib/formats';
+  import { computeResize, type ResizeOptions } from '../../lib/image-layout';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { FileListView } from '../../scripts/file-list';
+  import { decodeImage, drawToCanvas, encodeCanvas, formatOfFile } from '../../scripts/images';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import { $, radioValue, readTexts, runTask, Status, toolRoots, UserError } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['ResizeImage'];
+
+  for (const root of toolRoots('ResizeImage')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const percent = $<HTMLInputElement>(root, '#percent');
+    const percentValue = $(root, '[data-percent-value]');
+    const widthInput = $<HTMLInputElement>(root, '#width');
+    const heightInput = $<HTMLInputElement>(root, '#height');
+    const keepAspect = $<HTMLInputElement>(root, 'input[name="keep-aspect"]');
+
+    percent.addEventListener('input', () => (percentValue.textContent = `${percent.value}%`));
+    // Show the fields of the chosen mode (percent or pixels) and hide the others.
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="resize-mode"]')) {
+      radio.addEventListener('change', () => {
+        const mode = radioValue(root, 'resize-mode');
+        for (const element of root.querySelectorAll<HTMLElement>('[data-mode]')) element.hidden = element.dataset.mode !== mode;
+      });
+    }
+
+    const list = new FileListView($(root, '[data-file-list]'), t, () => {
+      button.disabled = list.items.length === 0;
+      results.clear();
+    });
+    const results = new Results(root, t, lang, {
+      zipName: 'resized-images.zip',
+      onStartOver: () => {
+        list.clear();
+        status.clear();
+      },
+    });
+
+    setupFileDrop(root, async (files) => {
+      status.clear();
+      for (const file of files) {
+        // Read the size of each image so the visitor sees it in the list.
+        const image = await decodeImage(file).catch(() => undefined);
+        const meta = image ? `${image.width} × ${image.height} px · ${formatBytes(file.size, lang)}` : formatBytes(file.size, lang);
+        if (image && !widthInput.placeholder) {
+          widthInput.placeholder = String(image.width);
+          heightInput.placeholder = String(image.height);
+        }
+        image?.release();
+        list.add([{ file, meta, thumbnail: URL.createObjectURL(file) }]);
+      }
+    });
+
+    const readOptions = (): ResizeOptions => {
+      if (radioValue(root, 'resize-mode') === 'percent') return { mode: 'percent', percent: Number(percent.value) };
+      const width = Number(widthInput.value) || undefined; // empty field → undefined
+      const height = Number(heightInput.value) || undefined;
+      if (!width && !height) throw new UserError(t.needSize);
+      return { mode: 'pixels', width, height, keepAspect: keepAspect.checked };
+    };
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        const options = readOptions();
+        const outputs: OutputFile[] = [];
+        for (const { file } of list.items) {
+          const image = await decodeImage(file).catch(() => {
+            throw new UserError(fill(t.errorNotImage, { name: file.name }));
+          });
+          try {
+            const size = computeResize(image.width, image.height, options);
+            const format = formatOfFile(file) ?? 'png'; // keep the format; unusual ones become PNG
+            const canvas = drawToCanvas(image, size.width, size.height, format === 'jpg' ? '#ffffff' : undefined);
+            const blob = await encodeCanvas(canvas, format, 0.92);
+            outputs.push({
+              name: `${baseName(file.name)}-${size.width}x${size.height}.${IMAGE_FORMATS[format].extension}`,
+              blob,
+              note: `${size.width} × ${size.height} px`,
+            });
+          } finally {
+            image.release();
+          }
+        }
+        results.show(outputs);
+        status.set(t.done, 'success');
+      }),
+    );
+  }
+</script>

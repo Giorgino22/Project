@@ -1,0 +1,130 @@
+---
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import Results from '../Results.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.CompressImage;
+---
+
+<ToolShell lang={lang} component="CompressImage">
+  <FileDrop lang={lang} accept="image/*" multiple />
+  <ol class="file-list" data-file-list></ol>
+  <div class="options">
+    <div class="field">
+      <label class="field-label" for="quality">{text.qualityLabel}</label>
+      <div class="range-row">
+        <input id="quality" type="range" min="10" max="100" step="5" value="75" />
+        <output for="quality" data-quality-value>75%</output>
+      </div>
+      <span class="field-help">{text.qualityHelp}</span>
+    </div>
+    <label class="field">
+      <span class="field-label">{text.formatLabel}</span>
+      <select name="format">
+        <option value="same" selected>{text.formatSame}</option>
+        <option value="jpg">JPG</option>
+        <option value="webp">WebP</option>
+      </select>
+    </label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-run disabled>{text.button}</button>
+  </div>
+  <StatusLine />
+  <Results lang={lang} />
+</ToolShell>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { fill, formatBytes, outputName, percentSaved } from '../../lib/format';
+  import { IMAGE_FORMATS, type ImageFormat } from '../../lib/formats';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { FileListView } from '../../scripts/file-list';
+  import { compressPng, decodeImage, drawToCanvas, encodeCanvas, formatOfFile } from '../../scripts/images';
+  import { Results, type OutputFile } from '../../scripts/results';
+  import { $, readTexts, runTask, Status, toolRoots, UserError } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['CompressImage'];
+
+  /** PNG has no "quality" setting – instead we reduce the number of colours. */
+  function pngColors(quality: number): number {
+    if (quality >= 100) return 0; // 0 = lossless
+    if (quality >= 60) return 256;
+    if (quality >= 30) return 128;
+    return 64;
+  }
+
+  async function compress(file: File, choice: string, quality: number, t: Texts, lang: string): Promise<OutputFile> {
+    const original = formatOfFile(file); // undefined for GIF, BMP, AVIF…
+    const target: ImageFormat = choice === 'same' ? (original ?? 'jpg') : (choice as ImageFormat);
+    const image = await decodeImage(file).catch(() => {
+      throw new UserError(fill(t.errorNotImage, { name: file.name }));
+    });
+    try {
+      // JPG can't be transparent, so we put a white background behind the image.
+      const canvas = drawToCanvas(image, image.width, image.height, target === 'jpg' ? '#ffffff' : undefined);
+      const compressed =
+        target === 'png' ? await compressPng(canvas, pngColors(quality)) : await encodeCanvas(canvas, target, quality / 100);
+      const name = outputName(file.name, IMAGE_FORMATS[target].extension, '-compressed');
+
+      // Never hand back a bigger file in the same format – then the original is the better result.
+      if (target === original && compressed.size >= file.size) return { name, blob: file, note: t.keptOriginal };
+      const note =
+        compressed.size < file.size
+          ? fill(t.smaller, { percent: percentSaved(file.size, compressed.size) })
+          : `${formatBytes(file.size, lang)} → ${formatBytes(compressed.size, lang)}`;
+      return { name, blob: compressed, note };
+    } finally {
+      image.release();
+    }
+  }
+
+  for (const root of toolRoots('CompressImage')) {
+    const t = readTexts<Texts>(root);
+    const lang = root.dataset.lang ?? 'en';
+    const status = new Status($(root, '[data-status]'));
+    const button = $<HTMLButtonElement>(root, '[data-run]');
+    const quality = $<HTMLInputElement>(root, '#quality');
+    const qualityValue = $(root, '[data-quality-value]');
+    quality.addEventListener('input', () => (qualityValue.textContent = `${quality.value}%`));
+
+    const list = new FileListView($(root, '[data-file-list]'), t, () => {
+      button.disabled = list.items.length === 0;
+      results.clear();
+    });
+    const results = new Results(root, t, lang, {
+      zipName: 'compressed-images.zip',
+      onStartOver: () => {
+        list.clear();
+        status.clear();
+      },
+    });
+
+    setupFileDrop(root, (files) => {
+      status.clear();
+      list.add(files.map((file) => ({ file, meta: formatBytes(file.size, lang), thumbnail: URL.createObjectURL(file) })));
+    });
+
+    button.addEventListener('click', () =>
+      runTask(button, status, t, async () => {
+        const choice = $<HTMLSelectElement>(root, 'select[name="format"]').value;
+        const outputs: OutputFile[] = [];
+        for (const item of list.items) outputs.push(await compress(item.file, choice, Number(quality.value), t, lang));
+        results.show(outputs);
+
+        const before = list.items.reduce((sum, item) => sum + item.file.size, 0);
+        const after = outputs.reduce((sum, output) => sum + output.blob.size, 0);
+        status.set(`${t.done} ${formatBytes(before, lang)} → ${formatBytes(after, lang)}`, 'success');
+      }),
+    );
+  }
+</script>

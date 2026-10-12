@@ -1,0 +1,24 @@
+---
+/**
+ * The frame around every tool. It passes the translated texts to the tool's browser
+ * script as JSON (data-i18n), plus any extra data-* attributes (e.g. data-to="jpg").
+ */
+import { t, type Lang } from '../../i18n';
+import type { ComponentName } from '../../tools/registry';
+
+interface Props {
+  lang: Lang;
+  component: ComponentName;
+  /** Extra values for the script, rendered as data-* attributes */
+  data?: Record<string, string>;
+}
+
+const { lang, component, data = {} } = Astro.props;
+const dict = t(lang);
+const texts = { ...dict.common, ...dict.components[component] };
+const dataAttributes = Object.fromEntries(Object.entries(data).map(([key, value]) => [`data-${key}`, value]));
+---
+
+<div class="tool card" data-tool={component} data-lang={lang} data-i18n={JSON.stringify(texts)} {...dataAttributes}>
+  <slot />
+</div>

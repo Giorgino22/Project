@@ -1,0 +1,23 @@
+---
+import { type Lang } from '../i18n';
+import { toolPath, toolText } from '../site/pages';
+import { getTool, type ToolId } from '../tools/registry';
+import Icon from './Icon.astro';
+
+interface Props {
+  toolId: ToolId;
+  lang: Lang;
+}
+
+const { toolId, lang } = Astro.props;
+const tool = getTool(toolId);
+const text = toolText(toolId, lang);
+---
+
+<a class="tool-card card" href={toolPath(toolId, lang)}>
+  <Icon name={tool.icon} />
+  <span>
+    <strong>{text.name}</strong>
+    <span>{text.short}</span>
+  </span>
+</a>
