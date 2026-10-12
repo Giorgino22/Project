@@ -1,0 +1,387 @@
+---
+/**
+ * The wheel tool: a canvas wheel with a SPIN button, the entries box, and a result dialog.
+ * The behaviour is in the <script> at the bottom – it runs in the visitor's browser.
+ */
+import SupportBox from '@tools/shared/components/SupportBox.astro';
+
+interface Props {
+  /** Entries shown the first time, before the visitor typed their own */
+  preset: string[];
+  /** Name under which this page remembers the visitor's entries in their browser */
+  storageKey: string;
+  /** Show "from / to" fields to create a number wheel */
+  numberRange?: boolean;
+}
+
+const { preset, storageKey, numberRange = false } = Astro.props;
+---
+
+<div class="wheel-tool card" data-wheel data-preset={JSON.stringify(preset)} data-storage-key={storageKey}>
+  <div class="wheel-stage" data-stage>
+    <div class="wheel-box" data-box>
+      <canvas data-canvas aria-hidden="true"></canvas>
+      <div class="wheel-pointer" aria-hidden="true"></div>
+      <button type="button" class="wheel-spin" data-spin aria-label="Spin the wheel">SPIN</button>
+    </div>
+    <div class="wheel-toolbar">
+      <button type="button" class="btn btn-secondary btn-small" data-fullscreen>⛶ Fullscreen</button>
+      <button type="button" class="btn btn-secondary btn-small" data-sound aria-pressed="true">🔊 Sound on</button>
+      <label class="wheel-speed">
+        Spin time
+        <select data-duration>
+          <option value="3">3 s</option>
+          <option value="5" selected>5 s</option>
+          <option value="10">10 s</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="wheel-panel">
+    {
+      numberRange && (
+        <div class="number-range">
+          <label class="field">
+            <span class="field-label">From</span>
+            <input type="number" data-from value="1" inputmode="numeric" />
+          </label>
+          <label class="field">
+            <span class="field-label">To</span>
+            <input type="number" data-to value="10" inputmode="numeric" />
+          </label>
+          <button type="button" class="btn btn-primary" data-make-range>Create wheel</button>
+        </div>
+      )
+    }
+    <label class="field-label" for="entries">Entries <span class="entry-count" data-count></span></label>
+    <textarea id="entries" data-entries rows="10" spellcheck="false" placeholder="One name or option per line"></textarea>
+    <div class="wheel-actions">
+      <button type="button" class="btn btn-secondary btn-small" data-shuffle>🔀 Shuffle</button>
+      <button type="button" class="btn btn-secondary btn-small" data-sort>A–Z Sort</button>
+      <button type="button" class="btn btn-secondary btn-small" data-clear>✕ Clear</button>
+      <button type="button" class="btn btn-secondary btn-small" data-share>🔗 Share link</button>
+    </div>
+    <p class="status" data-status role="status" aria-live="polite"></p>
+    <div data-history-box hidden>
+      <h2 class="history-title">Picked so far</h2>
+      <ol class="history" data-history></ol>
+    </div>
+  </div>
+
+  <dialog class="wheel-dialog" data-dialog aria-labelledby="winner-name">
+    <canvas class="confetti" data-confetti aria-hidden="true"></canvas>
+    <p class="winner-label">The wheel picked</p>
+    <p class="winner-name" id="winner-name" data-winner></p>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" data-again>Spin again</button>
+      <button type="button" class="btn btn-secondary" data-remove>Remove from wheel</button>
+      <button type="button" class="btn btn-secondary" data-close>Close</button>
+    </div>
+    <SupportBox />
+  </dialog>
+</div>
+
+<script>
+  import { load, save } from '@tools/shared/lib/storage';
+  import { randomFraction, randomInt, shuffle } from '../lib/random';
+  import {
+    COLORS,
+    easeOut,
+    entriesFromHash,
+    entriesToHash,
+    normalize,
+    numberRange,
+    parseEntries,
+    planSpin,
+    segmentAtPointer,
+    segmentColor,
+  } from '../lib/wheel';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-wheel]')) setupWheel(root);
+
+  function setupWheel(root: HTMLElement): void {
+    const find = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
+    const box = find('[data-box]');
+    const canvas = find<HTMLCanvasElement>('[data-canvas]');
+    const textarea = find<HTMLTextAreaElement>('[data-entries]');
+    const spinButton = find<HTMLButtonElement>('[data-spin]');
+    const dialog = find<HTMLDialogElement>('[data-dialog]');
+    const status = find('[data-status]');
+    const storageKey = root.dataset.storageKey!;
+
+    // Which entries to show first: a shared link wins, then what this visitor typed last time,
+    // then the page's example entries.
+    let entries: string[] =
+      entriesFromHash(location.hash) ?? load<string[] | null>(storageKey, null) ?? JSON.parse(root.dataset.preset!);
+    textarea.value = entries.join('\n');
+
+    let rotation = 0; // how far the wheel is turned (radians, clockwise)
+    let spinning = false;
+    let lastWinner = -1;
+    const history: string[] = [];
+
+    // ---------------------------------------------------------------- drawing
+
+    function fitText(context: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+      if (context.measureText(text).width <= maxWidth) return text;
+      let short = text;
+      while (short.length > 1 && context.measureText(`${short}…`).width > maxWidth) short = short.slice(0, -1);
+      return `${short}…`;
+    }
+
+    function draw(): void {
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      const size = canvas.width;
+      const radius = size / 2;
+      const ring = size * 0.012; // white border around the wheel
+      const labels = entries.length > 0 ? entries : ['Add entries →'];
+      const count = labels.length;
+      const segment = (2 * Math.PI) / count;
+
+      context.clearRect(0, 0, size, size);
+      for (let i = 0; i < count; i++) {
+        // −π/2 = the top of the circle on a canvas; segment 0 starts there and the rest follow clockwise.
+        const start = -Math.PI / 2 + rotation + i * segment;
+        context.beginPath();
+        context.moveTo(radius, radius);
+        context.arc(radius, radius, radius - ring, start, start + segment);
+        context.closePath();
+        context.fillStyle = entries.length > 0 ? segmentColor(i, count) : '#94a3b8';
+        context.fill();
+        if (count > 1) {
+          context.strokeStyle = 'rgba(255,255,255,0.6)';
+          context.lineWidth = Math.max(1, size * 0.002);
+          context.stroke();
+        }
+
+        // The label is written along the middle of its segment, from the edge towards the centre.
+        context.save();
+        context.translate(radius, radius);
+        context.rotate(start + segment / 2);
+        const room = segment * radius * 0.62; // height available for the text near its middle
+        const fontSize = Math.max(9, Math.min(radius * 0.085, room * 0.75));
+        context.font = `700 ${fontSize}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+        context.fillStyle = '#ffffff';
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+        context.fillText(fitText(context, labels[i]!, radius * 0.68), radius - radius * 0.08, 0);
+        context.restore();
+      }
+      context.beginPath();
+      context.arc(radius, radius, radius - ring / 2, 0, 2 * Math.PI);
+      context.lineWidth = ring;
+      context.strokeStyle = '#ffffff';
+      context.stroke();
+    }
+
+    // Keep the canvas sharp on every screen: its pixel size follows the box size × pixel density.
+    new ResizeObserver(() => {
+      const pixels = Math.round(box.clientWidth * (window.devicePixelRatio || 1));
+      if (pixels > 0 && canvas.width !== pixels) {
+        canvas.width = pixels;
+        canvas.height = pixels;
+        draw();
+      }
+    }).observe(box);
+
+    // ---------------------------------------------------------------- entries
+
+    function setEntries(list: string[], updateTextarea = true): void {
+      entries = list;
+      if (updateTextarea) textarea.value = list.join('\n');
+      save(storageKey, list);
+      find('[data-count]').textContent = `(${list.length})`;
+      draw();
+    }
+    setEntries(entries, false);
+
+    textarea.addEventListener('input', () => setEntries(parseEntries(textarea.value), false));
+    find('[data-shuffle]').addEventListener('click', () => setEntries(shuffle(entries)));
+    find('[data-sort]').addEventListener('click', () =>
+      setEntries([...entries].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))),
+    );
+    find('[data-clear]').addEventListener('click', () => {
+      setEntries([]);
+      textarea.focus();
+    });
+
+    find('[data-share]').addEventListener('click', async () => {
+      const link = `${location.origin}${location.pathname}${entriesToHash(entries)}`;
+      try {
+        await navigator.clipboard.writeText(link);
+        status.textContent = 'Link copied! Anyone who opens it sees this wheel.';
+      } catch {
+        status.textContent = link; // clipboard blocked → show the link so it can be copied by hand
+      }
+    });
+
+    root.querySelector('[data-make-range]')?.addEventListener('click', () => {
+      try {
+        const from = Number(find<HTMLInputElement>('[data-from]').value);
+        const to = Number(find<HTMLInputElement>('[data-to]').value);
+        setEntries(numberRange(from, to));
+        status.textContent = '';
+      } catch {
+        status.textContent = 'Please enter whole numbers, "From" smaller than "To", at most 200 numbers.';
+      }
+    });
+
+    // ---------------------------------------------------------------- sound
+
+    let soundOn = load('wheel:sound', true);
+    const soundButton = find<HTMLButtonElement>('[data-sound]');
+    const showSound = () => {
+      soundButton.textContent = soundOn ? '🔊 Sound on' : '🔇 Sound off';
+      soundButton.setAttribute('aria-pressed', String(soundOn));
+    };
+    showSound();
+    soundButton.addEventListener('click', () => {
+      soundOn = !soundOn;
+      save('wheel:sound', soundOn);
+      showSound();
+    });
+
+    let audio: AudioContext | undefined;
+    /** A short "tick" each time a new segment passes the pointer (made with the Web Audio API). */
+    function tick(): void {
+      if (!soundOn) return;
+      audio ??= new AudioContext();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.frequency.value = 1400;
+      gain.gain.setValueAtTime(0.15, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.04);
+      oscillator.connect(gain).connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(audio.currentTime + 0.05);
+    }
+
+    // ---------------------------------------------------------------- spinning
+
+    function spin(): void {
+      if (spinning) return;
+      if (entries.length < 2) {
+        status.textContent = 'Add at least two entries to spin the wheel.';
+        return;
+      }
+      status.textContent = '';
+      spinning = true;
+      spinButton.disabled = true;
+
+      // 1. Draw the winner fairly. 2. Work out where the wheel has to stop. 3. Animate there.
+      const winner = randomInt(entries.length);
+      const start = rotation;
+      const end = planSpin(start, entries.length, winner, 0.1 + 0.8 * randomFraction(), 5 + randomInt(3));
+      const duration = Number(find<HTMLSelectElement>('[data-duration]').value) * 1000;
+      const startTime = performance.now();
+      let lastSegment = segmentAtPointer(start, entries.length);
+
+      const frame = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        rotation = start + (end - start) * easeOut(progress);
+        draw();
+        const current = segmentAtPointer(rotation, entries.length);
+        if (current !== lastSegment) {
+          lastSegment = current;
+          tick();
+        }
+        if (progress < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          rotation = normalize(end);
+          spinning = false;
+          spinButton.disabled = false;
+          showWinner(winner);
+        }
+      };
+      requestAnimationFrame(frame);
+    }
+
+    spinButton.addEventListener('click', spin);
+    canvas.addEventListener('click', spin);
+
+    // ---------------------------------------------------------------- result
+
+    function showWinner(index: number): void {
+      lastWinner = index;
+      const name = entries[index]!;
+      find('[data-winner]').textContent = name;
+      history.unshift(name);
+      const list = find('[data-history]');
+      list.replaceChildren(
+        ...history.slice(0, 10).map((entry) => {
+          const item = document.createElement('li');
+          item.textContent = entry; // textContent: entries are shown as text, never as HTML
+          return item;
+        }),
+      );
+      find('[data-history-box]').hidden = false;
+      dialog.showModal();
+      confetti(find<HTMLCanvasElement>('[data-confetti]'));
+    }
+
+    find('[data-close]').addEventListener('click', () => dialog.close());
+    find('[data-again]').addEventListener('click', () => {
+      dialog.close();
+      spin();
+    });
+    find('[data-remove]').addEventListener('click', () => {
+      if (lastWinner >= 0 && lastWinner < entries.length) {
+        const list = [...entries];
+        list.splice(lastWinner, 1);
+        setEntries(list);
+      }
+      lastWinner = -1;
+      dialog.close();
+    });
+
+    // ---------------------------------------------------------------- fullscreen
+
+    find('[data-fullscreen]').addEventListener('click', () => {
+      const stage = find('[data-stage]');
+      if (document.fullscreenElement) void document.exitFullscreen();
+      else void stage.requestFullscreen?.();
+    });
+  }
+
+  /** A short burst of confetti (skipped for people who prefer reduced motion). */
+  function confetti(canvas: HTMLCanvasElement): void {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    const pieces = Array.from({ length: 140 }, () => ({
+      x: innerWidth / 2,
+      y: innerHeight / 3,
+      vx: (Math.random() - 0.5) * 16,
+      vy: Math.random() * -14 - 4,
+      size: 6 + Math.random() * 6,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
+      spin: Math.random() * Math.PI,
+    }));
+    const startTime = performance.now();
+    const frame = (now: number) => {
+      const elapsed = now - startTime;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      for (const piece of pieces) {
+        piece.vy += 0.35; // gravity
+        piece.x += piece.vx;
+        piece.y += piece.vy;
+        piece.spin += 0.2;
+        context.save();
+        context.globalAlpha = Math.max(0, 1 - elapsed / 1800);
+        context.translate(piece.x, piece.y);
+        context.rotate(piece.spin);
+        context.fillStyle = piece.color;
+        context.fillRect(-piece.size / 2, -piece.size / 4, piece.size, piece.size / 2);
+        context.restore();
+      }
+      if (elapsed < 1800) requestAnimationFrame(frame);
+      else context.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    requestAnimationFrame(frame);
+  }
+</script>

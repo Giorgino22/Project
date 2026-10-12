@@ -1,0 +1,31 @@
+---
+/** A Google AdSense ad. Renders NOTHING until the publisher ID (network.ts) and this slot ID are set. */
+import { features, network } from '../network';
+
+interface Props {
+  /** Ad unit ID from AdSense (only digits). Empty = no ad here. */
+  slot: string;
+}
+
+const { slot } = Astro.props;
+const show = features.ads && slot.trim() !== '';
+---
+
+{
+  show && (
+    <aside class="ad-slot" aria-label="Advertisement">
+      <span class="ad-label">Advertisement</span>
+      <ins
+        class="adsbygoogle"
+        style="display:block"
+        data-ad-client={network.adsenseClient}
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+      <script is:inline>
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
+  )
+}

@@ -1,0 +1,136 @@
+---
+/**
+ * The HTML frame of every page on the new sites: everything search engines and social
+ * networks read in <head>, a header, the page content and a footer that links to all
+ * other sites of the network (those links help visitors – and Google – find them).
+ */
+import { features, network, sites, siteUrl, type SiteId } from '../network';
+import '../styles/base.css';
+
+interface Props {
+  site: SiteId;
+  /** Full text for the browser tab and the Google headline */
+  title: string;
+  description: string;
+  /** Path of this page, e.g. "/yes-or-no-wheel/" */
+  path: string;
+  /** Structured data for search engines (see lib/seo.ts) */
+  jsonLd?: Record<string, unknown>[];
+  /** true = search engines should not index this page (404 page) */
+  noindex?: boolean;
+  /** Brand colour for the browser UI on phones */
+  themeColor?: string;
+  /** Links shown in the header (other pages of this site) */
+  nav?: { href: string; label: string }[];
+}
+
+const { site, title, description, path, jsonLd = [], noindex = false, themeColor = '#0f766e', nav = [] } = Astro.props;
+const current = sites.find((s) => s.id === site)!;
+const base = siteUrl(site);
+const hub = site === 'hub' ? '' : siteUrl('hub');
+const others = sites.filter((s) => s.id !== site && s.id !== 'hub');
+const year = new Date().getFullYear();
+// JSON inside <script> must not contain "</script>", so "<" is escaped.
+const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={base + path} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={current.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={base + path} />
+    <meta property="og:image" content={`${base}/og-image.jpg`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content={themeColor} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {jsonLd.map((data) => <script is:inline type="application/ld+json" set:html={toJson(data)} />)}
+    {
+      features.ads && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${network.adsenseClient}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="container">
+        <a class="logo" href="/"><img src="/favicon.svg" width="28" height="28" alt="" />{current.name}</a>
+        {
+          nav.length > 0 && (
+            <nav class="header-nav" aria-label="Main">
+              {nav.map((link) => (
+                <a href={link.href} aria-current={link.href === path ? 'page' : undefined}>
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          )
+        }
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <h2>{current.name}</h2>
+            <p>{current.description}</p>
+            {
+              nav.length > 0 && (
+                <ul>
+                  {nav.map((link) => (
+                    <li>
+                      <a href={link.href}>{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+          </div>
+          {
+            others.length > 0 && (
+              <nav aria-label="More free tools">
+                <h2>More free tools</h2>
+                <ul>
+                  {others.map((other) => (
+                    <li>
+                      <a href={siteUrl(other.id)}>{other.name}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )
+          }
+          <div>
+            <h2>{network.name}</h2>
+            <ul>
+              <li><a href={`${hub}/`}>All our tools</a></li>
+              <li><a href={`${hub}/privacy/`}>Privacy policy</a></li>
+              <li><a href={`${hub}/imprint/`}>Legal notice</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© {year} {network.name}</span>
+          <span>Free · No sign-up · Runs in your browser</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

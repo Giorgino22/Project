@@ -1,0 +1,95 @@
+---
+/**
+ * Template for a tool page: title + short intro, the tool itself (passed in as the
+ * default slot), then "how it works", FAQ and links to the site's other tools.
+ * The tool comes FIRST, right below the heading – visitors came to use it, not to read.
+ */
+import { siteUrl, type SiteId } from '../network';
+import { faqSchema, webApplicationSchema } from '../lib/seo';
+import AdSlot from './AdSlot.astro';
+import SiteLayout from './SiteLayout.astro';
+
+export interface ToolPageData {
+  path: string;
+  /** Short name for menus and "more tools" links */
+  name: string;
+  /** Browser tab / Google headline (≤ ~60 characters) */
+  title: string;
+  /** Google snippet (≤ ~160 characters) */
+  description: string;
+  h1: string;
+  lead: string;
+  steps: string[];
+  faq: { q: string; a: string }[];
+}
+
+interface Props {
+  site: SiteId;
+  page: ToolPageData;
+  /** All pages of the site, for the header menu and the "more tools" section */
+  allPages: ToolPageData[];
+  themeColor?: string;
+  /** AdSense slot IDs for this site (empty = no ad) */
+  adSlots?: { afterTool?: string; beforeFaq?: string };
+}
+
+const { site, page, allPages, themeColor, adSlots = {} } = Astro.props;
+const url = siteUrl(site) + page.path;
+const nav = allPages.map((p) => ({ href: p.path, label: p.name }));
+const related = allPages.filter((p) => p.path !== page.path);
+---
+
+<SiteLayout
+  site={site}
+  title={page.title}
+  description={page.description}
+  path={page.path}
+  themeColor={themeColor}
+  nav={nav}
+  jsonLd={[webApplicationSchema(page.name, page.description, url), faqSchema(page.faq)]}
+>
+  <div class="container">
+    <section class="page-intro compact">
+      <h1>{page.h1}</h1>
+      <p class="lead">{page.lead}</p>
+    </section>
+
+    <slot />
+
+    <AdSlot slot={adSlots.afterTool ?? ''} />
+
+    <section>
+      <h2>How it works</h2>
+      <ol class="steps">{page.steps.map((step) => <li>{step}</li>)}</ol>
+    </section>
+
+    <AdSlot slot={adSlots.beforeFaq ?? ''} />
+
+    <section class="faq">
+      <h2>Frequently asked questions</h2>
+      {
+        page.faq.map((item) => (
+          <details>
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))
+      }
+    </section>
+
+    {
+      related.length > 0 && (
+        <section>
+          <h2>More free tools</h2>
+          <ul class="chip-list">
+            {related.map((other) => (
+              <li>
+                <a href={other.path}>{other.name}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</SiteLayout>

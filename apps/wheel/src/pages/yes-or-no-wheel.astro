@@ -1,0 +1,12 @@
+---
+import ToolPage from '@tools/shared/components/ToolPage.astro';
+import Wheel from '../components/Wheel.astro';
+import { allPages, pages, site } from '../site';
+import '../styles/wheel.css';
+
+const page = pages.yesNo;
+---
+
+<ToolPage site={site.id} page={page} allPages={allPages} themeColor={site.themeColor} adSlots={site.adSlots}>
+  <Wheel preset={page.preset} storageKey="wheel:yes-no" />
+</ToolPage>

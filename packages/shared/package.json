@@ -7,7 +7,7 @@
   "exports": {
     "./network": "./src/network.ts",
     "./components/*": "./src/components/*",
-    "./lib/*": "./src/lib/*",
+    "./lib/*": "./src/lib/*.ts",
     "./styles/*": "./src/styles/*"
   }
 }

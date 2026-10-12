@@ -1,0 +1,118 @@
+---
+/** Random team generator: names in, fair random teams out. Behaviour: <script> below. */
+import SupportBox from '@tools/shared/components/SupportBox.astro';
+
+interface Props {
+  preset: string[];
+}
+
+const { preset } = Astro.props;
+---
+
+<div class="teams-tool card" data-teams data-preset={JSON.stringify(preset)}>
+  <div class="teams-form">
+    <div class="field">
+      <label class="field-label" for="team-names">Names <span class="entry-count" data-count></span></label>
+      <textarea id="team-names" data-names rows="10" spellcheck="false" placeholder="One name per line"></textarea>
+    </div>
+    <div class="teams-options">
+      <fieldset class="field">
+        <legend>Split by</legend>
+        <div class="segmented">
+          <label><input type="radio" name="team-mode" value="teams" checked /><span>Number of teams</span></label>
+          <label><input type="radio" name="team-mode" value="size" /><span>People per team</span></label>
+        </div>
+      </fieldset>
+      <label class="field">
+        <span class="field-label" data-number-label>Number of teams</span>
+        <input type="number" data-number min="1" max="100" value="2" inputmode="numeric" />
+      </label>
+      <button type="button" class="btn btn-primary" data-make>Make teams</button>
+    </div>
+  </div>
+  <p class="status" data-status role="status" aria-live="polite"></p>
+  <div data-results hidden>
+    <div class="team-grid" data-grid></div>
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" data-again>🔀 Shuffle again</button>
+      <button type="button" class="btn btn-secondary" data-copy>📋 Copy teams</button>
+    </div>
+    <SupportBox />
+  </div>
+</div>
+
+<script>
+  import { load, save } from '@tools/shared/lib/storage';
+  import { makeTeams, teamsForSize } from '../lib/teams';
+  import { parseEntries } from '../lib/wheel';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-teams]')) {
+    const find = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
+    const textarea = find<HTMLTextAreaElement>('[data-names]');
+    const number = find<HTMLInputElement>('[data-number]');
+    const status = find('[data-status]');
+    let teams: string[][] = [];
+
+    textarea.value = load<string[]>('teams:names', JSON.parse(root.dataset.preset!)).join('\n');
+    const names = () => parseEntries(textarea.value);
+    const showCount = () => (find('[data-count]').textContent = `(${names().length})`);
+    showCount();
+    textarea.addEventListener('input', () => {
+      save('teams:names', names());
+      showCount();
+    });
+
+    const mode = () => root.querySelector<HTMLInputElement>('input[name="team-mode"]:checked')!.value;
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="team-mode"]')) {
+      radio.addEventListener('change', () => {
+        find('[data-number-label]').textContent = mode() === 'teams' ? 'Number of teams' : 'People per team';
+      });
+    }
+
+    function make(): void {
+      const list = names();
+      const value = Math.floor(Number(number.value));
+      if (list.length < 2) {
+        status.textContent = 'Add at least two names.';
+        return;
+      }
+      if (!(value >= 1)) {
+        status.textContent = 'Please enter a number of 1 or more.';
+        return;
+      }
+      status.textContent = '';
+      teams = makeTeams(list, mode() === 'teams' ? value : teamsForSize(list.length, value));
+
+      // Build the team cards. Names are inserted with textContent – they're text, never HTML.
+      find('[data-grid]').replaceChildren(
+        ...teams.map((team, index) => {
+          const card = document.createElement('section');
+          card.className = 'team-card';
+          const title = document.createElement('h3');
+          title.textContent = `Team ${index + 1}`;
+          const members = document.createElement('ul');
+          for (const name of team) {
+            const item = document.createElement('li');
+            item.textContent = name;
+            members.append(item);
+          }
+          card.append(title, members);
+          return card;
+        }),
+      );
+      find('[data-results]').hidden = false;
+    }
+
+    find('[data-make]').addEventListener('click', make);
+    find('[data-again]').addEventListener('click', make);
+    find('[data-copy]').addEventListener('click', async () => {
+      const text = teams.map((team, index) => `Team ${index + 1}: ${team.join(', ')}`).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = 'Teams copied to the clipboard.';
+      } catch {
+        status.textContent = text;
+      }
+    });
+  }
+</script>

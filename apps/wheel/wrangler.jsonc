@@ -1,0 +1,10 @@
+// Cloudflare settings: publishes dist/ as the site "wheel" (see docs/LAUNCH-CHECKLIST.md in the repo root).
+{
+  "name": "wheel",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

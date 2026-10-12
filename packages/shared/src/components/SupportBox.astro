@@ -1,0 +1,17 @@
+---
+/** "Did you like it? Buy me a coffee" – hidden while network.supportUrl is empty. */
+import { features, network } from '../network';
+---
+
+{
+  features.support && (
+    <div class="support-box">
+      <p>
+        <strong>Enjoying this free tool?</strong> It has no paywalls. If you'd like to say thanks, you can buy me a coffee.
+      </p>
+      <a class="btn btn-secondary btn-small" href={network.supportUrl} target="_blank" rel="noopener">
+        ☕ Buy me a coffee
+      </a>
+    </div>
+  )
+}
