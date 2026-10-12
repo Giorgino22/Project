@@ -1,5 +1,5 @@
 /** Splitting a list of names into random teams. */
-import { randomInt, shuffle } from './random';
+import { randomInt, shuffle } from '@tools/shared/lib/random';
 
 /**
  * Shuffles the names and deals them out like cards, one per team in turn, so team sizes

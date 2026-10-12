@@ -1,7 +1,7 @@
 /**
  * Fair random numbers from the browser's cryptographic generator (crypto.getRandomValues).
- * Math.random() would be fine for a game, but this makes the wheel provably unbiased –
- * people use it for giveaways, so fairness matters.
+ * Math.random() would be fine for a game, but this makes every draw provably unbiased –
+ * people use it for giveaways and tests, so fairness matters.
  */
 
 /** Random whole number from 0 to max-1, without "modulo bias" (see the comment inside). */

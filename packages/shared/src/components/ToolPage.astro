@@ -31,9 +31,12 @@ interface Props {
   themeColor?: string;
   /** AdSense slot IDs for this site (empty = no ad) */
   adSlots?: { afterTool?: string; beforeFaq?: string };
+  /** true = no ads at all on this page. Use it for pages aimed at children: ads there need special rules. */
+  noAds?: boolean;
 }
 
-const { site, page, allPages, themeColor, adSlots = {} } = Astro.props;
+const { site, page, allPages, themeColor, noAds = false } = Astro.props;
+const adSlots = noAds ? {} : (Astro.props.adSlots ?? {});
 const url = siteUrl(site) + page.path;
 const nav = allPages.map((p) => ({ href: p.path, label: p.name }));
 const related = allPages.filter((p) => p.path !== page.path);
@@ -46,6 +49,7 @@ const related = allPages.filter((p) => p.path !== page.path);
   path={page.path}
   themeColor={themeColor}
   nav={nav}
+  noAds={noAds}
   jsonLd={[webApplicationSchema(page.name, page.description, url), faqSchema(page.faq)]}
 >
   <div class="container">

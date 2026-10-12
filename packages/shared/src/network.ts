@@ -74,7 +74,7 @@ export const sites = [
     id: 'typing',
     subdomain: 'typing',
     name: 'Typing Test',
-    description: 'Test your typing speed in words per minute.',
+    description: 'Typing speed test, typing practice and a keyboard tester.',
   },
 ] as const;
 

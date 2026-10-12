@@ -22,9 +22,12 @@ interface Props {
   themeColor?: string;
   /** Links shown in the header (other pages of this site) */
   nav?: { href: string; label: string }[];
+  /** true = never load ad code on this page (e.g. pages made for children) */
+  noAds?: boolean;
 }
 
-const { site, title, description, path, jsonLd = [], noindex = false, themeColor = '#0f766e', nav = [] } = Astro.props;
+const { site, title, description, path, jsonLd = [], noindex = false, themeColor = '#0f766e', nav = [], noAds = false } =
+  Astro.props;
 const current = sites.find((s) => s.id === site)!;
 const base = siteUrl(site);
 const hub = site === 'hub' ? '' : siteUrl('hub');
@@ -54,7 +57,7 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     {jsonLd.map((data) => <script is:inline type="application/ld+json" set:html={toJson(data)} />)}
     {
-      features.ads && (
+      features.ads && !noAds && (
         <script
           is:inline
           async

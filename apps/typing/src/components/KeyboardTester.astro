@@ -1,0 +1,100 @@
+---
+/**
+ * Keyboard tester: draws a keyboard and lights up every key the visitor presses.
+ * Behaviour: <script> below. The layout is in src/lib/keyboard.ts.
+ */
+import { mainBlock, navBlock, type Key } from '../lib/keyboard';
+
+const blocks: { name: string; rows: Key[][] }[] = [
+  { name: 'keys-main', rows: mainBlock },
+  { name: 'keys-nav', rows: navBlock },
+];
+/** The keyboard is a grid with 4 columns per key unit, so a 1.25-wide key spans 5 columns. */
+const span = (key: Key) => `grid-column: span ${key.width * 4}`;
+---
+
+<div class="keytest card" data-keytest>
+  <div class="keytest-info">
+    <p class="keytest-last" aria-live="polite">Last key: <strong data-last>–</strong></p>
+    <p class="keytest-count">Keys tested: <strong data-count>0</strong></p>
+    <button type="button" class="btn btn-secondary btn-small" data-reset>↺ Reset</button>
+  </div>
+  <div
+    class="keyboard"
+    data-keyboard
+    tabindex="0"
+    role="application"
+    aria-label="Keyboard test: press any key. To leave, press Esc and then Tab."
+  >
+    {
+      blocks.map((block) => (
+        <div class={block.name}>
+          {block.rows.map((row) => (
+            <div class="key-row">
+              {row.map((key) =>
+                key.code ? (
+                  <span class="key" data-code={key.code} style={span(key)}>
+                    {key.label}
+                  </span>
+                ) : (
+                  <span style={span(key)} />
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+      ))
+    }
+    <p class="keytest-paused" data-paused>Click here to test your keys</p>
+  </div>
+</div>
+
+<script>
+  import { keyName } from '../lib/keyboard';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-keytest]')) {
+    const keyboard = root.querySelector<HTMLElement>('[data-keyboard]')!;
+    const last = root.querySelector<HTMLElement>('[data-last]')!;
+    const count = root.querySelector<HTMLElement>('[data-count]')!;
+    const tested = new Set<string>(); // codes of all keys pressed so far
+    let previousCode = '';
+
+    /** The <span> of a key in the picture (null for keys that aren't drawn, e.g. the number pad). */
+    const keyFor = (code: string) => keyboard.querySelector<HTMLElement>(`.key[data-code="${CSS.escape(code)}"]`);
+
+    function press(event: KeyboardEvent): void {
+      // While testing, keys shouldn't do their normal job (scroll the page, go back…). Shortcuts with
+      // Ctrl or Cmd still work. Esc followed by Tab leaves the tester, so keyboard users never get stuck.
+      const leaving = event.code === 'Tab' && previousCode === 'Escape';
+      if (!leaving && !event.ctrlKey && !event.metaKey) event.preventDefault();
+      previousCode = event.code;
+
+      tested.add(event.code);
+      keyFor(event.code)?.classList.add('down', 'tested');
+      last.textContent = `${keyName(event.key)} (${event.code || 'no code'})`;
+      count.textContent = String(tested.size);
+    }
+
+    keyboard.addEventListener('keydown', press);
+    keyboard.addEventListener('keyup', (event) => {
+      // Some keys (like Print Screen) only send "key released" – count them anyway.
+      if (!tested.has(event.code)) press(event);
+      keyFor(event.code)?.classList.remove('down');
+    });
+    // Leaving the tester: un-press all keys (we won't hear them being released).
+    keyboard.addEventListener('blur', () => {
+      for (const key of keyboard.querySelectorAll('.down')) key.classList.remove('down');
+    });
+
+    root.querySelector('[data-reset]')!.addEventListener('click', () => {
+      tested.clear();
+      for (const key of keyboard.querySelectorAll('.tested')) key.classList.remove('tested');
+      last.textContent = '–';
+      count.textContent = '0';
+      keyboard.focus();
+    });
+
+    // Ready to test right away on computers.
+    if (matchMedia('(pointer: fine)').matches) keyboard.focus({ preventScroll: true });
+  }
+</script>

@@ -1,0 +1,300 @@
+---
+/**
+ * The typing test. Words appear in the box; the visitor types them into the field below and
+ * presses the space bar after each word. The timer starts with the first key.
+ * Behaviour: <script> below. Scoring (WPM, accuracy) lives in src/lib/typing.ts.
+ */
+import SupportBox from '@tools/shared/components/SupportBox.astro';
+import { durationLabel, LESSONS, type TestOptions } from '../lib/typing';
+
+type Props = TestOptions;
+
+const { duration, durations = [], words = 'common', lessons = false, large = false } = Astro.props;
+---
+
+<div class:list={['typing card', { 'typing-large': large }]} data-typing data-duration={duration} data-words={words}>
+  <div class="typing-bar">
+    {
+      durations.length > 0 && (
+        <div class="segmented" role="radiogroup" aria-label="Test length">
+          {durations.map((seconds) => (
+            <label>
+              <input type="radio" name="duration" value={seconds} checked={seconds === duration} />
+              <span>{durationLabel(seconds)}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+    {
+      lessons && (
+        <label class="typing-lesson">
+          <span>Lesson</span>
+          <select data-lesson>
+            {Object.entries(LESSONS).map(([id, name]) => (
+              <option value={id}>{name}</option>
+            ))}
+          </select>
+        </label>
+      )
+    }
+    <span class="typing-timer" data-timer role="timer" aria-label="Time"></span>
+  </div>
+
+  <div data-area>
+    <div class="typing-words" data-box></div>
+    <div class="typing-entry">
+      <input
+        type="text"
+        data-input
+        aria-label="Type the highlighted word, then press space"
+        placeholder="Type here to start"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        enterkeyhint="next"
+      />
+      <button type="button" class="btn btn-secondary" data-restart title="Restart (Esc)">↻ Restart</button>
+    </div>
+    <p class="typing-best" data-best></p>
+  </div>
+
+  <section class="typing-result" data-result hidden tabindex="-1" aria-label="Your result">
+    <p class="result-speed"><strong data-wpm></strong> <span>words per minute</span></p>
+    <p class="result-rating" data-rating></p>
+    <dl class="result-stats">
+      <div><dt>Accuracy</dt><dd data-accuracy></dd></div>
+      <div><dt>Correct words</dt><dd data-correct></dd></div>
+      <div><dt>Wrong words</dt><dd data-wrong></dd></div>
+      <div><dt>Personal best</dt><dd data-best-value></dd></div>
+    </dl>
+    <p class="result-mistakes" data-mistakes hidden></p>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" data-again>↻ Try again</button>
+      <button type="button" class="btn btn-secondary" data-share>📣 Share result</button>
+    </div>
+    <p class="status" data-status role="status" aria-live="polite"></p>
+    <SupportBox />
+  </section>
+</div>
+
+<script>
+  import { load, save } from '@tools/shared/lib/storage';
+  import { commonWords, kidWords } from '../lib/words';
+  import {
+    countKeystrokes,
+    formatTime,
+    lessonWords,
+    pickWords,
+    rating,
+    scoreTest,
+    type LessonId,
+    type TestResult,
+  } from '../lib/typing';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-typing]')) {
+    const find = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
+    const box = find('[data-box]');
+    const input = find<HTMLInputElement>('[data-input]');
+    const timer = find('[data-timer]');
+    const status = find('[data-status]');
+    const lesson = root.querySelector<HTMLSelectElement>('[data-lesson]'); // only on the practice page
+
+    let duration = Number(root.dataset.duration); // seconds; 0 = practice without time limit
+    let words: string[] = []; // the words to type
+    let spans: HTMLElement[] = []; // one <span> per word in the box
+    let typed: string[] = []; // what the visitor typed for each finished word
+    let keys = { correct: 0, wrong: 0 }; // keystrokes, for the accuracy
+    let previous = ''; // the input field's text at the last check
+    let startedAt = 0; // time of the first key (0 = not started yet)
+    let ticker = 0; // ID of the clock interval
+    let finished = false;
+    let lastScore: TestResult | null = null;
+
+    /** Which personal best this test counts towards, e.g. "typing:best:common:60" */
+    const bestKey = () => `typing:best:${lesson ? `practice:${lesson.value}` : `${root.dataset.words}:${duration}`}`;
+    const isDesktop = () => matchMedia('(pointer: fine)').matches;
+
+    function newWords(): string[] {
+      if (lesson) return lessonWords(lesson.value as LessonId, 30);
+      // More words than even a record-breaking typist (200 words per minute) can type in time.
+      const count = Math.ceil(duration / 60) * 200 + 20;
+      return pickWords(root.dataset.words === 'kids' ? kidWords : commonWords, count);
+    }
+
+    /** Starts a fresh test (the clock waits for the first key). */
+    function reset(): void {
+      clearInterval(ticker);
+      words = newWords();
+      typed = [];
+      keys = { correct: 0, wrong: 0 };
+      previous = '';
+      startedAt = 0;
+      finished = false;
+      spans = words.map((word) => {
+        const span = document.createElement('span');
+        span.textContent = word;
+        return span;
+      });
+      spans[0]!.classList.add('current');
+      box.replaceChildren(...spans);
+      box.scrollTop = 0;
+      input.value = '';
+      input.disabled = false;
+      timer.textContent = formatTime(duration);
+      const best = load<number>(bestKey(), 0);
+      find('[data-best]').textContent = best > 0 ? `Your personal best: ${best} WPM` : '';
+      find('[data-area]').hidden = false;
+      find('[data-result]').hidden = true;
+    }
+
+    const secondsSinceStart = () => (performance.now() - startedAt) / 1000;
+
+    /** Runs 10 times a second while the test is running: updates the clock. */
+    function tick(): void {
+      if (duration === 0) {
+        timer.textContent = formatTime(Math.floor(secondsSinceStart())); // practice: time counts up
+        return;
+      }
+      const left = duration - secondsSinceStart();
+      timer.textContent = formatTime(Math.ceil(Math.max(0, left)));
+      if (left <= 0) finish();
+    }
+
+    /** Adds the letters typed since the last check to the keystroke count. */
+    function countKeys(text: string): void {
+      const added = countKeystrokes(words[typed.length]!, previous, text);
+      keys.correct += added.correct;
+      keys.wrong += added.wrong;
+      previous = text;
+    }
+
+    /** The visitor finished a word (space bar): colour it and move on to the next one. */
+    function submit(word: string): void {
+      const span = spans[typed.length]!;
+      span.classList.remove('current', 'typo');
+      span.classList.add(word === words[typed.length] ? 'right' : 'wrong');
+      typed.push(word);
+      previous = '';
+      if (typed.length === words.length) return finish(); // practice: that was the last word
+
+      const next = spans[typed.length]!;
+      next.classList.add('current');
+      // Keep the line with the current word at the top of the box.
+      box.scrollTop = next.offsetTop - spans[0]!.offsetTop;
+    }
+
+    function finish(): void {
+      finished = true;
+      clearInterval(ticker);
+      input.disabled = true;
+
+      const score = scoreTest(words, typed, keys, duration || secondsSinceStart());
+      const best = load<number>(bestKey(), 0);
+      if (score.wpm > best) save(bestKey(), score.wpm);
+      lastScore = score;
+
+      find('[data-wpm]').textContent = String(score.wpm);
+      find('[data-rating]').textContent = (best > 0 && score.wpm > best ? '🎉 New personal best! ' : '') + rating(score.wpm);
+      find('[data-accuracy]').textContent = `${score.accuracy} %`;
+      find('[data-correct]').textContent = String(score.correctWords);
+      find('[data-wrong]').textContent = String(score.wrongWords);
+      find('[data-best-value]').textContent = `${Math.max(best, score.wpm)} WPM`;
+      const mistakes = find('[data-mistakes]');
+      mistakes.textContent = `Words to practise: ${score.mistakes.slice(0, 15).join(', ')}`;
+      mistakes.hidden = score.mistakes.length === 0;
+      status.textContent = '';
+
+      find('[data-area]').hidden = true;
+      const result = find('[data-result]');
+      result.hidden = false;
+      // Focus the result itself, not the "Try again" button: someone still typing would press it by accident.
+      result.focus({ preventScroll: true });
+      result.scrollIntoView({ block: 'nearest' });
+    }
+
+    input.addEventListener('input', () => {
+      if (finished) return;
+      if (!startedAt) {
+        if (input.value.trim() === '') {
+          input.value = ''; // a space before the first word does nothing
+          return;
+        }
+        startedAt = performance.now();
+        ticker = window.setInterval(tick, 100);
+      }
+
+      // A space finishes a word. Normally there is at most one, but fast typing on a phone can bring more.
+      const parts = input.value.split(' ');
+      const current = parts.pop()!; // the word that is still being typed (after the last space)
+      for (const part of parts) {
+        if (part === '') continue; // two spaces in a row
+        countKeys(part);
+        submit(part);
+        if (finished) return;
+      }
+      if (parts.length > 0) input.value = current;
+      countKeys(current);
+
+      // Mark the current word red as soon as the typed letters don't match it any more.
+      spans[typed.length]!.classList.toggle('typo', !words[typed.length]!.startsWith(current));
+    });
+
+    input.addEventListener('keydown', (event) => {
+      // Enter works like the space bar: add a space and let the code above handle it.
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (input.value.trim() === '') return;
+        input.value += ' ';
+        input.dispatchEvent(new Event('input'));
+      }
+    });
+
+    const restart = () => {
+      reset();
+      input.focus();
+    };
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        restart();
+      }
+    });
+    find('[data-restart]').addEventListener('click', restart);
+    find('[data-again]').addEventListener('click', restart);
+    box.addEventListener('click', () => input.focus());
+
+    for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="duration"]')) {
+      radio.addEventListener('change', () => {
+        duration = Number(radio.value);
+        reset();
+        if (isDesktop()) input.focus();
+      });
+    }
+    lesson?.addEventListener('change', () => {
+      reset();
+      if (isDesktop()) input.focus();
+    });
+
+    find('[data-share]').addEventListener('click', async () => {
+      if (!lastScore) return;
+      const text = `I type ${lastScore.wpm} words per minute with ${lastScore.accuracy} % accuracy. How fast are you?`;
+      const url = location.origin + location.pathname;
+      if (navigator.share) {
+        await navigator.share({ text, url }).catch(() => {}); // the visitor closed the share menu
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        status.textContent = 'Copied! Paste it anywhere to challenge your friends.';
+      } catch {
+        status.textContent = `${text} ${url}`; // copying isn't allowed – show the text to copy by hand
+      }
+    });
+
+    reset();
+    // On computers the visitor can start typing right away. (Phones would pop up the keyboard – annoying.)
+    if (isDesktop()) input.focus({ preventScroll: true });
+  }
+</script>

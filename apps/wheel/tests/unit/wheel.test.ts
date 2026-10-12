@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { randomInt, shuffle } from '../../src/lib/random';
+import { randomInt, shuffle } from '@tools/shared/lib/random';
 import { makeTeams, teamsForSize } from '../../src/lib/teams';
 import {
   entriesFromHash,

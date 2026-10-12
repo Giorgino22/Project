@@ -1147,11 +1147,28 @@ input[aria-invalid='true'] {
 
 /* ---------- Small screens ---------- */
 
-@media (max-width: 560px) {
-  .header-nav > a {
-    display: none;
+/* Narrow screens: the menu moves below the logo and becomes a row you can swipe sideways. */
+@media (max-width: 900px) {
+  .site-header .container {
+    flex-wrap: wrap;
+    gap: 0;
   }
 
+  .header-nav {
+    width: calc(100% + 20px);
+    margin: 0 -10px; /* lines the first link's text up with the logo */
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+
+  .header-nav > a {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 560px) {
   .tool {
     padding: 14px;
   }

@@ -1,0 +1,12 @@
+---
+import ToolPage from '@tools/shared/components/ToolPage.astro';
+import TypingTest from '../components/TypingTest.astro';
+import { allPages, pages, site } from '../site';
+import '../styles/typing.css';
+
+const page = pages.threeMinutes;
+---
+
+<ToolPage site={site.id} page={page} allPages={allPages} themeColor={site.themeColor} adSlots={site.adSlots}>
+  <TypingTest {...page.test} />
+</ToolPage>
