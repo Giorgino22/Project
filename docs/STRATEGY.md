@@ -101,10 +101,75 @@ rankings, and nobody can promise those. Treat the table as a way to read your nu
 2. **Unlock PDF** (remove a password you know) · **add page numbers / watermark**
 3. **Compress PDF** (re-compresses the images inside)
 4. More converter pages: AVIF → JPG, SVG → PNG, GIF → PNG · **crop image**
-5. **Text from image (OCR)** with tesseract.js
+5. ~~**Text from image (OCR)** with tesseract.js~~ – done (October 2026)
 6. **Offline mode** (installable web app). It also proves the "no upload" promise.
 7. HEIC → JPG (iPhone photos) is very popular, but the decoder libraries come with LGPL and
    HEVC patent questions. Check those first.
+
+## Update (October 2026): from one site to a network
+
+KeepLocal became the first of several sites on one central domain, each on its own subdomain
+and each aimed at a topic that many people search for.
+
+### What the research showed
+
+Monthly visits, as estimated by Semrush, Similarweb and Ahrefs (the estimates vary a lot):
+
+| Site | What it does | Visits per month |
+| --- | --- | --- |
+| iLovePDF | ~25–30 PDF tools | ~255M |
+| Smallpdf | PDF tools | ~36–43M |
+| Wheel of Names | random name wheel | ~17–25M, visits of ~11 minutes |
+| Monkeytype | typing test | ~15M |
+| imagetotext.info | image → text | ~5.7M |
+| TinyWow | 250+ mixed tools | ~2M |
+
+- **Quality beats quantity.** iLovePDF has about 25 tools and ~255M visits; TinyWow has 250+
+  tools and ~2M.
+- **Skip what Google answers itself.** Google shows its own calculator, timer, metronome, coin
+  flip, dice, colour picker and number spinner, so few searchers click through to a website.
+- **Fun tools bring long visits** (more ads seen per visitor). **Work tools** like PDF bring
+  business visitors, whose ads usually pay more. The network has both.
+
+### What was built, and why
+
+| Site | Aimed at | Notes |
+| --- | --- | --- |
+| Spin the Wheel | Wheel of Names (~17–25M) | Google's spinner only does numbers. Long classroom visits. Fair, provably random draws. Share links. |
+| Typing Test | Monkeytype (~15M) | 1, 3 and 5 minute tests, practice lessons, a kids page **without ads**, a keyboard tester. Original word lists (no copyrighted texts). |
+| Image to text (in KeepLocal) | imagetotext.info (~5.7M) | Runs in the browser, so it's private for receipts and documents. English and German. |
+| Hub | – | Links all sites and their popular tools, and holds the shared legal pages and `ads.txt`. |
+
+### Subdomains vs. one site with sections
+
+Google says it treats `wheel.example.com` and `example.com/wheel/` about the same, but many SEO
+practitioners find folders rank better, because links to any page help all pages. The owner
+chose subdomains (separate, focused sites are easier to keep track of and to tune). We
+make up for it like this:
+
+- every footer links to every other site, and the hub links to each site's most popular tools;
+- one Google Search Console **domain property** covers all subdomains;
+- one AdSense account, with `ads.txt` on the main domain covering all subdomains.
+
+### What we don't build
+
+- **Song/video downloaders** ("youtube to mp3"): against the platforms' rules and a legal risk
+  (youtube-mp3.org was shut down after an industry lawsuit, and MP3Skull lost a $22.2M judgment).
+  AdSense bans such pages, and a strike could suspend the account for **all** sites. Google
+  demotes sites after copyright complaints, and downloaders need servers that cost money per user.
+- **Calculators, timers, speed tests**: Google answers these itself.
+- **AI chat or writing tools**: every use costs money.
+
+### Next ideas (best first)
+
+1. More PDF tools: compress, password-protect, unlock, page numbers (KeepLocal).
+2. Audio/video with your own files: MP4 → MP3, cut audio, video → GIF. The Mediabunny library
+   uses the browser's built-in encoders, so no servers are needed.
+3. German versions of the wheel and typing sites (German word lists), then French, Italian and
+   Spanish.
+4. On-device AI: background remover, speech → text, text → speech. Big model downloads
+   (75–200 MB) and only the newest browsers, so later.
+5. German-speaking niches: Swiss QR-bill, invoices, cancellation letters.
 
 ## Sources
 
@@ -120,3 +185,4 @@ rankings, and nobody can promise those. Treat the table as a way to read your nu
 - Competitors: [BentoPDF](https://www.bentopdf.com/), [OptiDrop on Product Hunt](https://www.producthunt.com/p/optidrop-free-private-tools/optidrop), [NoMoreUploads on Capterra](https://www.capterra.com.au/software/1094605/NoMoreUploads)
 - Expiring QR code complaints: [Trustpilot – qr-code-creator.io](https://es.trustpilot.com/review/qr-code-creator.io)
 - Google's scaled-content policy: [Search Engine Journal – Google spam policies](https://www.searchenginejournal.com/in-depth-look-at-google-spam-policies-updates/511005/)
+- Network research (October 2026): [iLovePDF](https://www.semrush.com/website/ilovepdf.com/overview/) · [Wheel of Names (Semrush)](https://www.semrush.com/website/wheelofnames.com/overview/) · [Wheel of Names (Similarweb)](https://www.similarweb.com/website/wheelofnames.com/) · [Monkeytype](https://www.semrush.com/website/monkeytype.com/overview/) · [imagetotext.info](https://www.similarweb.com/website/imagetotext.info/) · [TinyWow](https://ja.semrush.com/website/tinywow.com/overview) · [Google's built-in tools](https://www.tomsguide.com/how-to/google-search-hidden-features) · [Google Publisher Policies](https://support.google.com/adsense/answer/10502938?hl=en) · [youtube-mp3.org shutdown](https://thenextweb.com/news/riaa-shuts-down-popular-youtube-to-mp3-conversion-site) · [MP3Skull](https://en.wikipedia.org/wiki/Mp3skull) · [Google's piracy demotion](https://searchengineland.com/googles-pirate-update-leads-to-89-drop-in-search-traffic-380699) · [Mediabunny](https://mediabunny.dev/) · [AdSense ads.txt for subdomains](https://support.google.com/adsense/answer/9785052) · [Subdomain vs. subfolder](https://superblog.ai/blog/subdomain-vs-subdirectory/)
