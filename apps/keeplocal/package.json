@@ -32,12 +32,12 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
-    "@playwright/test": "1.56.1",
+    "@playwright/test": "1.64.0",
     "@tesseract.js-data/deu": "1.0.0",
     "@tesseract.js-data/eng": "1.0.0",
     "@types/qrcode": "1.5.6",
     "jsqr": "1.4.0",
-    "typescript": "6.0.2",
+    "typescript": "6.0.3",
     "vitest": "5.0.3"
   }
 }
