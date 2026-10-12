@@ -305,6 +305,20 @@ export const de: Dictionary = {
         other: 'weitere versteckte Daten',
       },
     },
+    ImageToText: {
+      pasteHint: 'Tipp: Sie können auch einen Screenshot mit Strg+V einfügen (⌘+V auf dem Mac).',
+      language: 'Sprache des Textes',
+      languages: { eng: 'Englisch', deu: 'Deutsch', both: 'Deutsch + Englisch' },
+      loading: 'Texterkennung wird geladen … (beim ersten Mal dauert es einige Sekunden)',
+      reading: 'Text wird gelesen … {percent} %',
+      readingMany: 'Bild {current} von {total} wird gelesen … {percent} %',
+      resultLabel: 'Erkannter Text',
+      noText: 'Kein Text gefunden. Versuchen Sie ein schärferes Bild oder eine andere Sprache.',
+      copy: 'Text kopieren',
+      copied: 'In die Zwischenablage kopiert!',
+      downloadTxt: 'Als .txt herunterladen',
+      pastedName: 'eingefuegtes-bild',
+    },
     QrCode: {
       typeLabel: 'Inhalt',
       typeUrl: 'Website',
@@ -767,6 +781,43 @@ export const de: Dictionary = {
         {
           q: 'Kann ich das bedenkenlos mit privaten Fotos nutzen?',
           a: 'Ja – genau darum geht es. Ihre Fotos werden in Ihrem Browser verarbeitet und nie hochgeladen.',
+        },
+      ],
+    },
+    'image-to-text': {
+      slug: 'bild-zu-text',
+      name: 'Bild zu Text',
+      short: 'Text aus jedem Bild kopieren.',
+      title: 'Bild zu Text – Kostenlose OCR, Text aus Bild erkennen',
+      description:
+        'Text aus Bildern, Fotos und Screenshots kostenlos erkennen. Die OCR läuft in Ihrem Browser – Ihre Bilder werden nie hochgeladen. Deutsch und Englisch.',
+      h1: 'Bild zu Text (OCR)',
+      lead: 'Machen Sie aus Fotos, Scans und Screenshots Text, den Sie kopieren und bearbeiten können. Die Texterkennung läuft auf Ihrem Gerät – Ihre Bilder verlassen es nie.',
+      steps: [
+        'Bild auswählen, hineinziehen oder einfügen (JPG, PNG, WebP …).',
+        'Sprache des Textes wählen – die Erkennung startet von selbst.',
+        'Text kopieren oder als .txt-Datei herunterladen.',
+      ],
+      faq: [
+        {
+          q: 'Was ist OCR?',
+          a: 'OCR (optische Zeichenerkennung) bedeutet, dass ein Computer die Buchstaben in einem Bild liest und in echten Text verwandelt, den Sie kopieren, durchsuchen und bearbeiten können.',
+        },
+        {
+          q: 'Werden meine Bilder hochgeladen?',
+          a: 'Nein. Die Texterkennung wird einmal geladen und läuft dann in Ihrem Browser. Ihre Bilder und der erkannte Text verlassen Ihr Gerät nie.',
+        },
+        {
+          q: 'Welche Sprachen werden unterstützt?',
+          a: 'Deutsch und Englisch, inklusive Umlauten und ß. Wählen Sie „Deutsch + Englisch“ für Texte, die beide Sprachen mischen.',
+        },
+        {
+          q: 'Wie erhalte ich die besten Ergebnisse?',
+          a: 'Verwenden Sie scharfe, gut beleuchtete Bilder mit geraden Textzeilen. Screenshots funktionieren am besten; halten Sie die Kamera bei Fotos parallel zur Seite. Handschrift wird meist nicht gut erkannt.',
+        },
+        {
+          q: 'Warum dauert es beim ersten Mal länger?',
+          a: 'Beim ersten Mal lädt Ihr Browser die Texterkennung und die Sprachdaten (einige Megabyte). Danach kommen sie aus dem Browser-Cache und starten viel schneller.',
         },
       ],
     },

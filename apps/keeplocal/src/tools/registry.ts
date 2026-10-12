@@ -25,6 +25,7 @@ export type ComponentName =
   | 'ResizeImage'
   | 'ConvertImage'
   | 'RemoveExif'
+  | 'ImageToText'
   | 'QrCode'
   | 'EpcQrCode'
   | 'PasswordGenerator';
@@ -56,6 +57,7 @@ export const tools = [
   { id: 'resize-image', category: 'image', component: 'ResizeImage', icon: 'scaling' },
   { id: 'image-converter', category: 'image', component: 'ConvertImage', icon: 'repeat' },
   { id: 'remove-exif', category: 'image', component: 'RemoveExif', icon: 'map-pin-off' },
+  { id: 'image-to-text', category: 'image', component: 'ImageToText', icon: 'scan-text' },
 
   // Converter pages: one page per popular search ("png to jpg", "webp to png", …)
   { id: 'png-to-jpg', category: 'image', component: 'ConvertImage', icon: 'repeat', convert: { from: 'png', to: 'jpg' } },

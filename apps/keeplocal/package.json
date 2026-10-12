@@ -8,9 +8,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "predev": "node scripts/copy-pdfjs-assets.mjs",
+    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-ocr-assets.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/copy-pdfjs-assets.mjs",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-ocr-assets.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
@@ -27,11 +27,14 @@
     "fflate": "0.8.3",
     "html-entities": "2.6.0",
     "pdfjs-dist": "6.4.299",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@playwright/test": "1.56.1",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "@types/qrcode": "1.5.6",
     "jsqr": "1.4.0",
     "typescript": "6.0.2",

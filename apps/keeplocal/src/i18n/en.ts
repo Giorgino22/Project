@@ -330,6 +330,20 @@ export const en = {
         other: 'other hidden data',
       },
     },
+    ImageToText: {
+      pasteHint: 'Tip: you can also paste a screenshot with Ctrl+V (⌘+V on a Mac).',
+      language: 'Language of the text',
+      languages: { eng: 'English', deu: 'German', both: 'English + German' },
+      loading: 'Loading the text recognition… (the first time takes a few seconds)',
+      reading: 'Reading the text… {percent}%',
+      readingMany: 'Reading image {current} of {total}… {percent}%',
+      resultLabel: 'Recognised text',
+      noText: 'No text found. Try a sharper image or another language.',
+      copy: 'Copy text',
+      copied: 'Copied to the clipboard!',
+      downloadTxt: 'Download as .txt',
+      pastedName: 'pasted-image',
+    },
     QrCode: {
       typeLabel: 'Content',
       typeUrl: 'Website',
@@ -795,6 +809,43 @@ export const en = {
         {
           q: 'Is it safe to use this with private photos?',
           a: 'Yes – that’s the whole point. Your photos are processed in your browser and never uploaded.',
+        },
+      ],
+    },
+    'image-to-text': {
+      slug: 'image-to-text',
+      name: 'Image to text',
+      short: 'Copy the text out of any picture.',
+      title: 'Image to Text – Free OCR, Extract Text from Images',
+      description:
+        'Extract text from images, photos and screenshots for free. The OCR runs in your browser – your pictures are never uploaded. English and German.',
+      h1: 'Image to text (OCR)',
+      lead: 'Turn photos, scans and screenshots into text you can copy and edit. The text recognition runs on your device – your images never leave it.',
+      steps: [
+        'Choose, drop or paste an image (JPG, PNG, WebP …).',
+        'Pick the language of the text – the recognition starts by itself.',
+        'Copy the text or download it as a .txt file.',
+      ],
+      faq: [
+        {
+          q: 'What is OCR?',
+          a: 'OCR (optical character recognition) means that a computer reads the letters in a picture and turns them into real text you can copy, search and edit.',
+        },
+        {
+          q: 'Are my images uploaded?',
+          a: 'No. The text recognition is loaded once and then runs inside your browser. Your images and the recognised text never leave your device.',
+        },
+        {
+          q: 'Which languages are supported?',
+          a: 'English and German, including umlauts and ß. Choose “English + German” for texts that mix both.',
+        },
+        {
+          q: 'How do I get the best results?',
+          a: 'Use sharp, well-lit images with straight lines of text. Screenshots work best; for photos, hold the camera parallel to the page. Handwriting is usually not recognised well.',
+        },
+        {
+          q: 'Why does the first run take longer?',
+          a: 'The first time, your browser downloads the text recognition and the language data (a few megabytes). After that they come from your browser’s cache and start much faster.',
         },
       ],
     },

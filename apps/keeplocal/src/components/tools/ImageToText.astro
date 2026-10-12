@@ -1,0 +1,189 @@
+---
+/**
+ * Image to text (OCR): reads the text in pictures with tesseract.js – entirely in the browser.
+ * The engine and language files come from our own website (scripts/copy-ocr-assets.mjs).
+ */
+import tesseract from 'tesseract.js/package.json';
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import FileDrop from '../FileDrop.astro';
+import StatusLine from '../StatusLine.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.ImageToText;
+// The recognition language starts out as the language of the page.
+const preselected = lang === 'de' ? 'deu' : 'eng';
+const languages = [
+  { value: 'eng', label: text.languages.eng },
+  { value: 'deu', label: text.languages.deu },
+  { value: 'eng+deu', label: text.languages.both },
+];
+---
+
+<ToolShell lang={lang} component="ImageToText" data={{ assets: `/ocr/${tesseract.version}` }}>
+  <FileDrop lang={lang} accept="image/*" multiple />
+  <p class="field-help">{text.pasteHint}</p>
+  <div class="options">
+    <label class="field">
+      <span class="field-label">{text.language}</span>
+      <select data-language>
+        {languages.map((option) => <option value={option.value} selected={option.value === preselected}>{option.label}</option>)}
+      </select>
+    </label>
+  </div>
+  <StatusLine />
+  <div data-output hidden>
+    <label class="field">
+      <span class="field-label">{text.resultLabel}</span>
+      <textarea data-text rows="12" spellcheck="false"></textarea>
+    </label>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" data-copy>{text.copy}</button>
+      <button type="button" class="btn btn-secondary" data-download>{text.downloadTxt}</button>
+    </div>
+  </div>
+</ToolShell>
+
+<script>
+  import type { Worker as OcrWorker } from 'tesseract.js';
+  import type { Dictionary } from '../../i18n/en';
+  import { fill, outputName } from '../../lib/format';
+  import { cleanText, combineTexts, ocrScale, type OcrLanguage } from '../../lib/ocr';
+  import { setupFileDrop } from '../../scripts/file-drop';
+  import { decodeImage, drawToCanvas } from '../../scripts/images';
+  import { $, describeError, nextPaint, readTexts, Status, toolRoots, UserError } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['ImageToText'];
+
+  /** Draws the image upright on a white canvas, at a size the recognition likes. */
+  async function prepare(file: File, t: Texts): Promise<HTMLCanvasElement> {
+    const image = await decodeImage(file).catch(() => {
+      throw new UserError(fill(t.errorNotImage, { name: file.name }));
+    });
+    try {
+      const scale = ocrScale(image.width, image.height);
+      // White background: transparent screenshots would otherwise turn black.
+      return drawToCanvas(image, Math.round(image.width * scale), Math.round(image.height * scale), '#ffffff');
+    } finally {
+      image.release();
+    }
+  }
+
+  for (const root of toolRoots('ImageToText')) {
+    const t = readTexts<Texts>(root);
+    const assets = root.dataset.assets!; // e.g. "/ocr/7.0.0"
+    const status = new Status($(root, '[data-status]'));
+    const select = $<HTMLSelectElement>(root, '[data-language]');
+    const output = $(root, '[data-output]');
+    const textarea = $<HTMLTextAreaElement>(root, '[data-text]');
+
+    let files: File[] = [];
+    let worker: OcrWorker | null = null; // the recognition engine, kept for the next image
+    let workerLanguage = '';
+    let run = 0; // counts recognition runs – an older run stops as soon as a newer one starts
+    let queue = Promise.resolve(); // runs happen one after another, never at the same time
+    let onProgress = (_progress: number) => {};
+
+    /** Starts the recognition engine for a language – or reuses the one that is already running. */
+    async function getWorker(language: OcrLanguage): Promise<OcrWorker> {
+      if (worker && workerLanguage === language) return worker;
+      await worker?.terminate();
+      worker = null;
+      // tesseract.js is big, so it is only loaded when it's needed.
+      const { default: Tesseract } = await import('tesseract.js');
+      worker = await Tesseract.createWorker(language, Tesseract.OEM.LSTM_ONLY, {
+        workerPath: `${assets}/worker.min.js`,
+        corePath: `${assets}/core`,
+        langPath: `${assets}/lang`,
+        workerBlobURL: false, // load the worker file directly from our website
+        cacheMethod: 'none', // the browser's normal cache keeps the files (see public/_headers)
+        logger: (message) => {
+          if (message.status === 'recognizing text') onProgress(message.progress);
+        },
+      });
+      workerLanguage = language;
+      return worker;
+    }
+
+    async function recognize(id: number): Promise<void> {
+      if (id !== run) return; // a newer run is already waiting
+      output.hidden = true;
+      status.set(t.loading);
+      await nextPaint();
+      try {
+        const engine = await getWorker(select.value as OcrLanguage);
+        const parts: { name: string; text: string }[] = [];
+        for (const [index, file] of files.entries()) {
+          onProgress = (progress) => {
+            if (id !== run) return;
+            const percent = Math.round(progress * 100);
+            const many = { current: index + 1, total: files.length, percent };
+            status.set(files.length === 1 ? fill(t.reading, { percent }) : fill(t.readingMany, many));
+          };
+          onProgress(0);
+          const { data } = await engine.recognize(await prepare(file, t));
+          if (id !== run) return;
+          parts.push({ name: file.name, text: cleanText(data.text) });
+        }
+
+        if (parts.every((part) => part.text === '')) {
+          status.set(t.noText, 'error');
+          return;
+        }
+        textarea.value = combineTexts(parts);
+        textarea.rows = Math.min(20, Math.max(4, textarea.value.split('\n').length + 1)); // as tall as the text
+        output.hidden = false;
+        output.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); // on phones the result is further down
+        status.set(t.done, 'success');
+      } catch (error) {
+        console.error(error);
+        if (id === run) status.set(describeError(error, t), 'error');
+      }
+    }
+
+    /** Recognises the chosen images (again) – after choosing files or changing the language. */
+    function start(): void {
+      if (files.length === 0) return;
+      const id = ++run;
+      queue = queue.then(() => recognize(id));
+    }
+
+    setupFileDrop(root, (chosen) => {
+      files = chosen;
+      start();
+    });
+    select.addEventListener('change', start);
+
+    // A screenshot can also be pasted (Ctrl+V / ⌘+V) anywhere on the page.
+    window.addEventListener('paste', (event) => {
+      const images = [...(event.clipboardData?.files ?? [])].filter((file) => file.type.startsWith('image/'));
+      if (images.length === 0) return; // normal text pasting – nothing to do for us
+      event.preventDefault();
+      files = images.map((file, i) => new File([file], `${t.pastedName}${images.length > 1 ? `-${i + 1}` : ''}.png`, { type: file.type }));
+      start();
+    });
+
+    $(root, '[data-copy]').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(textarea.value);
+        status.set(t.copied, 'success');
+      } catch {
+        textarea.select(); // copying isn't allowed here – select the text, so Ctrl+C works
+      }
+    });
+
+    $(root, '[data-download]').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([textarea.value], { type: 'text/plain;charset=utf-8' }));
+      link.download = outputName(files[0]?.name ?? 'text', 'txt');
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    });
+  }
+</script>

@@ -84,6 +84,7 @@ export const sites: Site[] = [
     description: 'PDF & image tools that never upload your files.',
     links: [
       { path: '/merge-pdf/', label: 'Merge PDF' },
+      { path: '/image-to-text/', label: 'Image to text' },
       { path: '/jpg-to-pdf/', label: 'JPG to PDF' },
       { path: '/compress-image/', label: 'Compress image' },
       { path: '/password-generator/', label: 'Password generator' },

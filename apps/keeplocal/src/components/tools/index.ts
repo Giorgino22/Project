@@ -8,6 +8,7 @@ import ConvertImage from './ConvertImage.astro';
 import DeletePdfPages from './DeletePdfPages.astro';
 import EpcQrCode from './EpcQrCode.astro';
 import ImagesToPdf from './ImagesToPdf.astro';
+import ImageToText from './ImageToText.astro';
 import MergePdf from './MergePdf.astro';
 import PasswordGenerator from './PasswordGenerator.astro';
 import PdfToImages from './PdfToImages.astro';
@@ -28,6 +29,7 @@ export const toolComponents = {
   ResizeImage,
   ConvertImage,
   RemoveExif,
+  ImageToText,
   QrCode,
   EpcQrCode,
   PasswordGenerator,

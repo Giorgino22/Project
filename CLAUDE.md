@@ -33,3 +33,6 @@ explain complex parts, and value usability.
 - `src/site/pages.ts` is the single source of URLs. `src/pages/[...path].astro` renders all pages.
 - pdf.js: use the **legacy** build (`pdfjs-dist/legacy/build/pdf.mjs`); assets copied to `public/pdfjs/<version>/`.
 - PDF editing uses `@cantoo/pdf-lib`; results are always new, unencrypted documents built with `copyPages`.
+- OCR ("Image to text") uses tesseract.js. `scripts/copy-ocr-assets.mjs` copies its worker, WASM core and
+  language data (eng, deu) to `public/ocr/<version>/`. Always pass `workerPath`, `corePath` and `langPath` –
+  the library's defaults load from CDNs, which would break the no-third-party-requests rule.
