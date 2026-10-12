@@ -157,7 +157,7 @@ export const de: Dictionary = {
       disclaimerTitle: 'Haftungsausschluss',
       disclaimerText:
         'Die Tools werden kostenlos und ohne Gewähr bereitgestellt. Bitte bewahren Sie immer eine Kopie Ihrer Originaldateien auf. Für die Inhalte verlinkter externer Websites sind ausschließlich deren Betreiber verantwortlich.',
-      missing: 'Die Betreiberangaben wurden noch nicht ausgefüllt (src/config.ts → owner).',
+      missing: 'Die Betreiberangaben wurden noch nicht ausgefüllt (packages/shared/src/network.ts → owner).',
     },
   },
 

@@ -1,37 +1,35 @@
 # CLAUDE.md
 
-Privacy-first tools website (PDF, image, generators) built with Astro 7 as a fully static site.
-Every tool runs in the visitor's browser; nothing is ever uploaded. Owner is a coding apprentice:
-keep code simple and well commented, and explain complex parts.
+A network of free tool websites in one npm-workspaces monorepo. Each site is a fully static
+Astro 7 app deployed to its own subdomain of one central domain. Everything runs in the visitor's
+browser; nothing is uploaded. Owner is a coding apprentice: keep code simple and well commented,
+explain complex parts, and value usability.
 
-## Commands
+## Layout
 
-- `npm run dev` – dev server (copies pdf.js assets first via `predev`)
-- `npm run check` – `astro check` (TypeScript for .ts and .astro); must report 0 errors/warnings/hints
-- `npm run test:unit` – Vitest, `tests/unit/**`
-- `npm run test:e2e` – Playwright against the built site (`webServer` runs build + `astro preview --ignore-lock`)
-- Run all three before pushing. CI (`.github/workflows/ci.yml`) runs the same.
+- `packages/shared/` – `@tools/shared`: `src/network.ts` is the ONE settings file for all sites
+  (domain, owner, AdSense ID, tip link, analytics, list of sites + `siteUrl()`); shared components/styles.
+- `apps/keeplocal/` – PDF & image tools (English + German). Has its own CLAUDE-relevant rules below.
+- `apps/<other>/` – further sites (English only for now), each with its own tests and `wrangler.jsonc`.
 
-## Architecture
+## Commands (run from the repo root)
 
-- `src/config.ts` – the only user-facing settings file (site name/URL, owner, ads, tips, affiliates,
-  analytics). Money features are off while their value is empty; `features` derives booleans.
-- `src/tools/registry.ts` – list of tools. Converter pages (`convert: {from, to}`) reuse `ConvertImage`.
-- `src/i18n/{en,de}.ts` – all texts. `Dictionary = typeof en`; other languages must match it.
-  Converter page texts come from the `converter()` function in each dictionary.
-- `src/site/pages.ts` – single source of URLs (`getAllPages`, `toolPath`, `alternatesOf`).
-- `src/pages/[...path].astro` – renders every page; `sitemap.xml.ts`, `robots.txt.ts`, `ads.txt.ts` endpoints.
-- `src/components/tools/*.astro` – tool UI + `<script>`; texts reach scripts via `data-i18n` (ToolShell).
-- `src/lib/` – pure, unit-tested logic (no DOM). `src/scripts/` – browser-only helpers.
+- `npm run check` / `npm run test:unit` / `npm run test:e2e` – run for every workspace
+- One site: `npm run dev -w apps/keeplocal`, `npm run test:e2e -w apps/wheel`, …
+- Run check + unit + e2e before pushing. CI (`.github/workflows/ci.yml`) runs the same.
+- Playwright `webServer` uses `astro preview --ignore-lock` (otherwise Astro backgrounds itself in
+  agent environments). Each app uses its own port (keeplocal 4321, wheel 4322, typing 4323, hub 4324).
 
-## Rules
+## Rules for all sites
 
-- Tools must never make network requests with user data. `tests/e2e/site.spec.ts` enforces it.
+- Tools must never send user data anywhere. Each app has an e2e test that blocks third-party requests.
 - Insert user/file-derived strings with `textContent`, never `innerHTML`.
-- No hard-coded UI text in components; add keys to every language file.
-- Load heavy libraries with dynamic `import()` inside handlers (pdf-lib ≈ 550 KB, pdf.js ≈ 430 KB).
-- pdf.js: use the **legacy** build (`pdfjs-dist/legacy/build/pdf.mjs`); the modern build needs
-  `Map.getOrInsertComputed`, which many browsers lack. Assets are copied to `public/pdfjs/<version>/`.
-- PDF editing uses `@cantoo/pdf-lib` (opens encrypted PDFs via `password`); results are always new,
-  unencrypted documents built with `copyPages`.
-- Keep `<meta name="description">` texts ≤ 170 characters (unit test checks tool pages).
+- Load heavy libraries with dynamic `import()` inside handlers.
+- Meta descriptions ≤ 170 characters; one `<h1>` per page; canonical + sitemap per site.
+
+## KeepLocal specifics (apps/keeplocal)
+
+- `src/tools/registry.ts` lists tools; texts live in `src/i18n/{en,de}.ts` (`Dictionary = typeof en`).
+- `src/site/pages.ts` is the single source of URLs. `src/pages/[...path].astro` renders all pages.
+- pdf.js: use the **legacy** build (`pdfjs-dist/legacy/build/pdf.mjs`); assets copied to `public/pdfjs/<version>/`.
+- PDF editing uses `@cantoo/pdf-lib`; results are always new, unencrypted documents built with `copyPages`.

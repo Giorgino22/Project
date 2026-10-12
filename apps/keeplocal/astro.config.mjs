@@ -1,5 +1,6 @@
 // Astro configuration – https://docs.astro.build/en/reference/configuration-reference/
 import { defineConfig } from 'astro/config';
+import { isPlaceholderDomain } from '@tools/shared/network';
 import { config, features } from './src/config';
 
 /**
@@ -17,11 +18,11 @@ function launchReport() {
         logger.info(`Tip button .......... ${status(features.support)}`);
         logger.info(`Affiliate offers .... ${status(features.affiliates)}`);
         logger.info(`Visitor statistics .. ${status(features.analytics)}`);
-        if (config.siteUrl === 'https://keeplocal.pages.dev') {
-          logger.warn('siteUrl in src/config.ts is still the placeholder – set your real domain before telling Google about the site.');
+        if (isPlaceholderDomain) {
+          logger.warn('The domain is still the placeholder – set it in packages/shared/src/network.ts before telling Google about the site.');
         }
         if (!config.owner.name || !config.owner.email) {
-          logger.warn('Your name and e-mail are missing in src/config.ts → owner (needed for the legal pages).');
+          logger.warn('Your name and e-mail are missing in packages/shared/src/network.ts → owner (needed for the legal pages).');
         }
       },
     },

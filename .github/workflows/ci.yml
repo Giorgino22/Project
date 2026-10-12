@@ -1,4 +1,4 @@
-# Runs all checks on every push. A green check mark on GitHub means:
+# Runs all checks of ALL sites (apps/*) on every push. A green check mark on GitHub means:
 # the code type-checks, all unit tests pass, and every tool works in a real browser.
 name: CI
 
@@ -41,5 +41,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
-          path: test-results/
+          path: apps/*/test-results/
           retention-days: 7

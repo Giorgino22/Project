@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { config } from '../../src/config';
 import { dictionaries, languages, t } from '../../src/i18n';
 import { alternatesOf, getAllPages, toolText } from '../../src/site/pages';
 import { buildSitemap } from '../../src/site/sitemap';
@@ -53,8 +54,8 @@ describe('texts', () => {
 describe('sitemap', () => {
   it('lists every page with its language alternates', () => {
     const xml = buildSitemap(getAllPages());
-    expect(xml).toContain('<loc>https://keeplocal.pages.dev/merge-pdf/</loc>');
-    expect(xml).toContain('hreflang="de" href="https://keeplocal.pages.dev/de/pdf-zusammenfuegen/"');
+    expect(xml).toContain(`<loc>${config.siteUrl}/merge-pdf/</loc>`);
+    expect(xml).toContain(`hreflang="de" href="${config.siteUrl}/de/pdf-zusammenfuegen/"`);
     expect(xml).toContain('hreflang="x-default"');
     expect(xml.match(/<url>/g)).toHaveLength(getAllPages().length);
   });

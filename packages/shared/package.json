@@ -1,0 +1,13 @@
+{
+  "name": "@tools/shared",
+  "description": "Settings, components and styles shared by all websites of the network.",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./network": "./src/network.ts",
+    "./components/*": "./src/components/*",
+    "./lib/*": "./src/lib/*",
+    "./styles/*": "./src/styles/*"
+  }
+}

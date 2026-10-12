@@ -5,13 +5,14 @@ node_modules/
 dist/
 .astro/
 
-# Copied from node_modules by scripts/copy-pdfjs-assets.mjs on every build
-public/pdfjs/
+# Copied from node_modules on every build (pdf.js, OCR engine)
+**/public/pdfjs/
+**/public/ocr/
 
 # Test output
 test-results/
 playwright-report/
-tests/fixtures/generated/
+**/tests/fixtures/generated/
 
 # Editors / OS
 .DS_Store

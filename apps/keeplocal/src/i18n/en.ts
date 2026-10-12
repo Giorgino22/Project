@@ -180,7 +180,7 @@ export const en = {
       disclaimerTitle: 'Disclaimer',
       disclaimerText:
         'The tools are provided free of charge and without any warranty. Please always keep a copy of your original files. We are not responsible for the content of external websites we link to.',
-      missing: 'The operator details have not been filled in yet (src/config.ts → owner).',
+      missing: 'The operator details have not been filled in yet (packages/shared/src/network.ts → owner).',
     },
   },
 
