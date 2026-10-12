@@ -36,6 +36,8 @@ export const de: Dictionary = {
     privacy: 'Datenschutz',
     imprint: 'Impressum',
     languages: 'Sprachen',
+    moreTools: 'Weitere kostenlose Tools',
+    allTools: 'Alle unsere Tools',
   },
 
   home: {

@@ -1,0 +1,128 @@
+---
+/**
+ * Privacy policy for all sites of the network. Sections about ads, statistics and tips appear
+ * automatically when you switch those features on in packages/shared/src/network.ts.
+ */
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { features, network, sites, siteUrl } from '@tools/shared/network';
+import '../styles/hub.css';
+
+const { owner, hosting } = network;
+const complete = owner.name.trim() !== '' && owner.address.trim() !== '' && owner.email.trim() !== '';
+const updated = new Date(network.legalUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
+---
+
+<SiteLayout
+  site="hub"
+  title={`Privacy policy – ${network.name}`}
+  description={`How ${network.name} handles your data: our tools run in your browser, so your files and texts are never uploaded. No account needed.`}
+  path="/privacy/"
+  themeColor="#4338ca"
+>
+  <div class="container prose">
+    <section class="page-intro">
+      <h1>Privacy policy</h1>
+      <p class="lead">Last updated: {updated}</p>
+    </section>
+
+    <p>
+      <strong>In short:</strong> our tools run entirely in your web browser. Files and texts you use in them are never
+      uploaded to us or to anyone else. Below we explain which other data is processed when you visit our websites.
+    </p>
+    <p>This privacy policy applies to these websites: {domains.join(', ')}.</p>
+
+    <h2>Who is responsible</h2>
+    {!complete && <p class="warning-box">The operator details have not been filled in yet (packages/shared/src/network.ts → owner).</p>}
+    <address>{owner.name}{'\n'}{owner.address}{'\n'}{owner.email}</address>
+
+    <h2>Your files and inputs</h2>
+    <p>
+      Files you open with our tools (for example PDFs and images) and anything you type into a tool (for example the names on
+      a wheel or the words of a typing test) are processed only on your device, inside your browser. They are not
+      transmitted to our servers or to third parties, and we cannot see them.
+    </p>
+
+    <h2>Data saved in your browser</h2>
+    <p>
+      Some tools remember things for you – for example the entries of a wheel, your typing test personal best or your
+      settings. This is stored in your browser's local storage on your device only and is never sent to us. You can delete it
+      at any time by clearing the site data in your browser. If you share a link to a wheel, its entries are part of that
+      link.
+    </p>
+
+    <h2>Hosting and server log files</h2>
+    <p>
+      Our websites are delivered by {hosting.name}, {hosting.address}. When you open a page, your browser automatically
+      transmits technical information such as your IP address, the date and time, the requested page and your browser type.
+      The host needs this to deliver the website and to protect it against attacks. The legal basis is our legitimate
+      interest in secure and reliable websites (Art. 6(1)(f) GDPR). Data may be processed outside the EU and Switzerland.
+      More information: <a href={hosting.privacyUrl}>{hosting.privacyUrl}</a>
+    </p>
+
+    {
+      features.analytics && (
+        <>
+          <h2>Visitor statistics</h2>
+          <p>
+            We use Cloudflare Web Analytics to count page views. It does not use cookies, does not create user profiles and
+            does not store complete IP addresses. The legal basis is our legitimate interest in knowing which tools are used
+            (Art. 6(1)(f) GDPR).
+          </p>
+        </>
+      )
+    }
+
+    {
+      features.ads && (
+        <>
+          <h2>Advertising (Google AdSense)</h2>
+          <p>
+            To keep the tools free, we show ads from Google AdSense, a service of Google Ireland Limited, Gordon House, Barrow
+            Street, Dublin 4, Ireland. Google may use cookies and similar technologies to show ads and to measure their
+            performance. Personalised ads are only shown if you agree in the consent banner, and you can change your choice at
+            any time. Data may be transferred to Google LLC in the USA. Pages made for children, such as our typing test for
+            kids, show no ads. More information:{' '}
+            <a href="https://policies.google.com/technologies/ads">https://policies.google.com/technologies/ads</a>
+          </p>
+        </>
+      )
+    }
+
+    <h2>Affiliate links</h2>
+    <p>
+      If a page contains affiliate links, they are marked as ads. If you buy something after clicking such a link, we may
+      receive a commission – the price for you stays the same. When you click, the partner may record that you came from our
+      website.
+    </p>
+
+    {
+      features.support && (
+        <>
+          <h2>Tips</h2>
+          <p>
+            If you use the tip button, you are taken to an external payment provider. Their privacy policy applies there; we
+            only receive the information you choose to share.
+          </p>
+        </>
+      )
+    }
+
+    <h2>Cookies</h2>
+    <p>
+      {
+        features.ads
+          ? 'We do not set cookies ourselves. The advertising provider may set cookies as described above, depending on your consent.'
+          : 'We do not use cookies.'
+      }
+    </p>
+
+    <h2>Your rights</h2>
+    <p>
+      You have the right to access, correct and delete your personal data, to restrict or object to its processing, and to
+      data portability. You can also lodge a complaint with a data protection authority – in Switzerland the Federal Data
+      Protection and Information Commissioner (FDPIC), in the EU the authority of your country. To exercise your rights,
+      contact us using the details above.
+    </p>
+  </div>
+</SiteLayout>

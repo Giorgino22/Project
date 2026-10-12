@@ -47,38 +47,73 @@ export const network = {
   analytics: false,
 };
 
+/** The IDs of all sites. To add a site, add its ID here AND an entry to `sites` below. */
+export type SiteId = 'hub' | 'keeplocal' | 'wheel' | 'typing';
+
+export interface Site {
+  id: SiteId;
+  /** '' = the central domain itself (only the hub) */
+  subdomain: string;
+  name: string;
+  /** Emoji shown on the hub page */
+  icon: string;
+  /** One sentence for footers and the hub page */
+  description: string;
+  /** Most popular pages of the site, linked from the hub page */
+  links: { path: string; label: string }[];
+}
+
 /**
  * All websites of the network. To add a site: create apps/<name>/ (copy apps/wheel as a starting
  * point) and add it here – every site's footer and the hub page then link to it automatically.
  */
-export const sites = [
+export const sites: Site[] = [
   {
     id: 'hub',
     subdomain: '',
     name: network.name,
+    icon: '🧰',
     description: 'Free online tools that are fast, simple and respect your privacy.',
+    links: [],
   },
   {
     id: 'keeplocal',
     subdomain: 'keeplocal',
     name: 'KeepLocal',
+    icon: '📄',
     description: 'PDF & image tools that never upload your files.',
+    links: [
+      { path: '/merge-pdf/', label: 'Merge PDF' },
+      { path: '/jpg-to-pdf/', label: 'JPG to PDF' },
+      { path: '/compress-image/', label: 'Compress image' },
+      { path: '/password-generator/', label: 'Password generator' },
+    ],
   },
   {
     id: 'wheel',
     subdomain: 'wheel',
     name: 'Spin the Wheel',
+    icon: '🎡',
     description: 'Random name picker wheel for classrooms, games and decisions.',
+    links: [
+      { path: '/', label: 'Spin the wheel' },
+      { path: '/yes-or-no-wheel/', label: 'Yes or no wheel' },
+      { path: '/random-team-generator/', label: 'Team generator' },
+    ],
   },
   {
     id: 'typing',
     subdomain: 'typing',
     name: 'Typing Test',
+    icon: '⌨️',
     description: 'Typing speed test, typing practice and a keyboard tester.',
+    links: [
+      { path: '/', label: 'Typing speed test' },
+      { path: '/typing-practice/', label: 'Typing practice' },
+      { path: '/keyboard-test/', label: 'Keyboard test' },
+    ],
   },
-] as const;
-
-export type SiteId = (typeof sites)[number]['id'];
+];
 
 /** "wheel" → "https://wheel.example.com" (the hub gets the bare domain). */
 export function siteUrl(id: SiteId): string {

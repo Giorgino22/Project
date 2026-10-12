@@ -59,6 +59,8 @@ export const en = {
     privacy: 'Privacy policy',
     imprint: 'Legal notice',
     languages: 'Languages',
+    moreTools: 'More free tools',
+    allTools: 'All our tools',
   },
 
   home: {

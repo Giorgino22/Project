@@ -1,0 +1,37 @@
+---
+/** Legal notice for all sites of the network. The details come from packages/shared/src/network.ts. */
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { network } from '@tools/shared/network';
+import '../styles/hub.css';
+
+const { owner } = network;
+const complete = owner.name.trim() !== '' && owner.address.trim() !== '' && owner.email.trim() !== '';
+---
+
+<SiteLayout
+  site="hub"
+  title={`Legal notice – ${network.name}`}
+  description={`Legal notice of ${network.name}: who runs these websites and how to get in touch. Free online tools that run in your browser.`}
+  path="/imprint/"
+  themeColor="#4338ca"
+>
+  <div class="container prose">
+    <section class="page-intro">
+      <h1>Legal notice</h1>
+    </section>
+
+    {!complete && <p class="warning-box">The operator details have not been filled in yet (packages/shared/src/network.ts → owner).</p>}
+
+    <h2>Operator of these websites</h2>
+    <address>{owner.name}{'\n'}{owner.address}</address>
+
+    <h2>Contact</h2>
+    <p>E-mail: {owner.email && <a href={`mailto:${owner.email}`}>{owner.email}</a>}</p>
+
+    <h2>Disclaimer</h2>
+    <p>
+      The tools are provided free of charge and without any warranty. Please always keep a copy of your original files. We
+      are not responsible for the content of external websites we link to.
+    </p>
+  </div>
+</SiteLayout>

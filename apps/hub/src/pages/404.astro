@@ -1,0 +1,15 @@
+---
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { sites, siteUrl } from '@tools/shared/network';
+import '../styles/hub.css';
+---
+
+<SiteLayout site="hub" title="Page not found" description="This page does not exist." path="/404/" noindex themeColor="#4338ca">
+  <div class="container">
+    <section class="page-intro">
+      <h1>Page not found</h1>
+      <p class="lead">This page doesn't exist. Try one of these:</p>
+      <ul class="chip-list">{sites.map((site) => <li><a href={`${siteUrl(site.id)}/`}>{site.name}</a></li>)}</ul>
+    </section>
+  </div>
+</SiteLayout>

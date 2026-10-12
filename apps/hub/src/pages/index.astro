@@ -1,0 +1,71 @@
+---
+/** Front page of the central domain: one card per site with its most popular tools. */
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { websiteSchema } from '@tools/shared/lib/seo';
+import { network, sites, siteUrl } from '@tools/shared/network';
+import '../styles/hub.css';
+
+const title = `${network.name} – Free Online Tools for PDF, Typing and More`;
+const description =
+  'Free online tools that work right in your browser: PDF and image tools, a typing speed test, a random name picker wheel and more. No sign-up, no uploads.';
+const toolSites = sites.filter((site) => site.id !== 'hub');
+---
+
+<SiteLayout
+  site="hub"
+  title={title}
+  description={description}
+  path="/"
+  themeColor="#4338ca"
+  jsonLd={[websiteSchema(network.name, `${siteUrl('hub')}/`, description)]}
+>
+  <div class="container">
+    <section class="page-intro">
+      <h1>Free online tools that just work</h1>
+      <p class="lead">
+        No sign-up, no uploads, no clutter. Every tool runs right in your browser, so your files and texts never leave your
+        device.
+      </p>
+    </section>
+
+    <ul class="site-grid">
+      {
+        toolSites.map((site) => (
+          <li class="card site-card">
+            <a class="site-card-title" href={`${siteUrl(site.id)}/`}>
+              <span class="site-icon" aria-hidden="true">
+                {site.icon}
+              </span>
+              <span>
+                <span class="site-name">{site.name}</span>
+                <span class="site-description">{site.description}</span>
+              </span>
+            </a>
+            <ul class="chip-list">
+              {site.links.map((link) => (
+                <li>
+                  <a href={siteUrl(site.id) + link.path}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ul>
+
+    <section class="feature-grid" aria-label="Why our tools">
+      <div class="card">
+        <h2>🔒 Private by design</h2>
+        <p>Your files, names and texts are processed on your own device. Nothing is uploaded and nothing is stored on a server.</p>
+      </div>
+      <div class="card">
+        <h2>⚡ Fast and simple</h2>
+        <p>No accounts, no installs, no waiting for uploads. Open a tool and use it straight away.</p>
+      </div>
+      <div class="card">
+        <h2>💸 Free</h2>
+        <p>All tools are free to use – on your computer, tablet or phone.</p>
+      </div>
+    </section>
+  </div>
+</SiteLayout>

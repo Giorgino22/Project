@@ -1,4 +1,5 @@
 ---
+import { sites, siteUrl } from '@tools/shared/network';
 import { config } from '../config';
 import { t, type Lang } from '../i18n';
 import { alternatesOf, legalPath, toolPath, toolText } from '../site/pages';
@@ -12,6 +13,8 @@ interface Props {
 const { lang, pageKey } = Astro.props;
 const dict = t(lang);
 const year = new Date().getFullYear();
+// The other websites of the network (they are listed in packages/shared/src/network.ts).
+const sisterSites = sites.filter((site) => site.id !== 'keeplocal' && site.id !== 'hub');
 ---
 
 <footer class="site-footer">
@@ -33,6 +36,19 @@ const year = new Date().getFullYear();
           </nav>
         ))
       }
+      <nav aria-label={dict.footer.moreTools}>
+        <h2>{dict.footer.moreTools}</h2>
+        <ul>
+          {
+            sisterSites.map((site) => (
+              <li>
+                <a href={`${siteUrl(site.id)}/`}>{site.name}</a>
+              </li>
+            ))
+          }
+          <li><a href={`${siteUrl('hub')}/`}>{dict.footer.allTools}</a></li>
+        </ul>
+      </nav>
       <div>
         <h2>{config.siteName}</h2>
         <p>{dict.footer.about}</p>

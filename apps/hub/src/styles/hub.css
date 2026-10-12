@@ -1,0 +1,74 @@
+/* Hub: indigo brand colour + the site cards on the front page. */
+:root {
+  --primary: #4338ca;
+  --primary-hover: #3730a3;
+  --primary-soft: #eef0ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #a5b4fc;
+    --primary-hover: #c7d2fe;
+    --primary-soft: #1e1b4b;
+    --on-primary: #14123a;
+  }
+}
+
+.site-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 8px 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.site-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.site-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-card-title:hover .site-name {
+  color: var(--primary);
+}
+
+.site-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.6rem;
+  background: var(--primary-soft);
+  border-radius: 12px;
+}
+
+.site-name {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.site-description {
+  color: var(--muted);
+}
+
+.site-card .chip-list {
+  margin: auto 0 0;
+}
+
+.feature-grid h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
