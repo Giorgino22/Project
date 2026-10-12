@@ -15,10 +15,10 @@
 
 export const network = {
   /** Name of the whole network (hub page, footers). */
-  name: 'Practical Tools',
+  name: 'Tool-Tin',
 
   /** Your central domain WITHOUT "https://" (e.g. 'practical-tools.com'). Each site becomes a subdomain. */
-  domain: 'example.com',
+  domain: 'toolstin.com',
 
   /** Who runs the sites – required by law in many countries (legal notice + privacy policy). */
   owner: {
