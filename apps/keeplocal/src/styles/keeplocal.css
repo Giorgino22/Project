@@ -24,6 +24,7 @@
 
   /* A smaller animation on phones, so the list of tools comes sooner. */
   .home-hero .merge-demo {
+    justify-self: center;
     width: 100%;
     max-width: 300px;
   }
