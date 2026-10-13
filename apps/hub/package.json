@@ -11,7 +11,7 @@
     "check": "astro check",
     "test": "npm run test:e2e",
     "test:e2e": "playwright test",
-    "images": "node ../../packages/shared/scripts/og-image.mjs \"Toolstin\" \"A tin of handy tools for everyday jobs.\" \"\""
+    "images": "node ../../packages/shared/scripts/og-image.mjs \"Tool-Tin\" \"A tin of handy tools for everyday jobs.\" \"\""
   },
   "dependencies": {
     "@tools/shared": "*",

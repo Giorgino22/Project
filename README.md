@@ -1,4 +1,4 @@
-# Practical Tools – a network of free, private tool websites
+# Tool-Tin – a network of free, private tool websites
 
 One central domain, and one website per topic on its own subdomain. Every tool runs **inside the
 visitor's browser**: nothing is uploaded, and there is no server or database. Hosting is free and

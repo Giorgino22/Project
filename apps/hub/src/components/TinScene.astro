@@ -7,6 +7,8 @@
  * key is pressed once. That's all: it plays ONCE and then stays still. The normal CSS of every
  * part is its END state, so people who switched off animations just see the finished picture.
  */
+import { network } from '@tools/shared/network';
+
 // The same segment colours as the wheel site (apps/wheel/src/lib/wheel.ts).
 const COLORS = ['#ffd400', '#1d1e20', '#8ec5ff', '#1a7a43', '#f28b30', '#2d5be3', '#d8d6cf', '#c8381f'];
 
@@ -78,7 +80,7 @@ const slices = COLORS.map((color, i) => {
   <rect x="60" y="262" width="880" height="168" rx="24" fill="#ffd400"></rect>
   <rect x="60" y="262" width="880" height="12" rx="6" fill="#ffe352"></rect>
   <rect x="330" y="300" width="340" height="96" rx="12" fill="none" stroke="#1d1e20" stroke-width="3"></rect>
-  <text class="label" x="500" y="363" text-anchor="middle">Toolstin</text>
+  <text class="label" x="500" y="363" text-anchor="middle">{network.name}</text>
   <circle cx="100" cy="306" r="6" fill="#e2b900"></circle>
   <circle cx="900" cy="306" r="6" fill="#e2b900"></circle>
   <circle cx="100" cy="392" r="6" fill="#e2b900"></circle>

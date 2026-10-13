@@ -36,7 +36,7 @@ The code was pushed to the branch `claude/epic-maxwell-ons3xd`.
 - Then, in `network.ts`:
   - `name` → your brand name (shown on the hub and in every footer)
   - `domain` → your domain **without** `https://`, e.g. `'quicktools.app'`
-- Re-create the hub's social-media preview image with your name: change "Practical Tools" in
+- Re-create the hub's social-media preview image with your name: change the name in
   the `images` script of `apps/hub/package.json`, then run `npm run images -w apps/hub`
   (or ask Claude to do it).
 
