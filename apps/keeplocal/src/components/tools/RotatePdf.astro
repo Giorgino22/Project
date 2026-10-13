@@ -1,6 +1,7 @@
 ---
 import { t, type Lang } from '../../i18n';
 import type { ToolDefinition } from '../../tools/registry';
+import Icon from '@tools/shared/components/Icon.astro';
 import FileDrop from '../FileDrop.astro';
 import PageSelector from '../PageSelector.astro';
 import PasswordPrompt from '../PasswordPrompt.astro';
@@ -25,8 +26,8 @@ const text = t(lang).components.RotatePdf;
     <fieldset class="field">
       <legend>{text.directionLabel}</legend>
       <div class="segmented">
-        <label><input type="radio" name="angle" value="90" checked /><span>↻ {text.right}</span></label>
-        <label><input type="radio" name="angle" value="270" /><span>↺ {text.left}</span></label>
+        <label><input type="radio" name="angle" value="90" checked /><span><Icon name="rotate-cw" /> {text.right}</span></label>
+        <label><input type="radio" name="angle" value="270" /><span><Icon name="rotate-ccw" /> {text.left}</span></label>
         <label><input type="radio" name="angle" value="180" /><span>{text.flip}</span></label>
       </div>
     </fieldset>
@@ -96,7 +97,7 @@ const text = t(lang).components.RotatePdf;
       try {
         const doc = await openPdfFile(file, prompt, t);
         current = { file, doc };
-        fileInfo.textContent = `${file.name} · ${pagesLabel(doc.getPageCount(), t)} · ${formatBytes(file.size, lang)}`;
+        fileInfo.textContent = `${file.name}, ${pagesLabel(doc.getPageCount(), t)}, ${formatBytes(file.size, lang)}`;
         setLoaded(true);
       } catch (error) {
         status.set(describeError(error, t), 'error');

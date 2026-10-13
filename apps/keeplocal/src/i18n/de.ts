@@ -44,23 +44,13 @@ export const de: Dictionary = {
     title: '{site} – Kostenlose PDF- & Bild-Tools ohne Upload',
     description:
       'PDFs zusammenfügen und teilen, Bilder komprimieren und umwandeln, QR-Codes und Passwörter erstellen. Kostenlos, ohne Anmeldung – alles läuft im Browser, nichts wird hochgeladen.',
-    h1: 'Kostenlose PDF- & Bild-Tools, die Ihre Dateien nie hochladen',
-    lead: 'PDFs zusammenfügen, Fotos komprimieren, QR-Codes erstellen und mehr. Jedes Tool läuft direkt in Ihrem Browser – Ihre Dateien bleiben auf Ihrem Gerät. Immer.',
-    cta: 'Tool auswählen',
-    features: [
-      {
-        title: 'Privat durch Technik',
-        text: 'Ihre Dateien werden auf Ihrem eigenen Gerät verarbeitet. Sie werden nie hochgeladen, gespeichert oder von jemandem gesehen – auch nicht von uns.',
-      },
-      {
-        title: 'Kostenlos & unbegrenzt',
-        text: 'Keine Anmeldung, keine Wasserzeichen, keine Tageslimits. Nutzen Sie jedes Tool so oft Sie möchten.',
-      },
-      {
-        title: 'Schnell',
-        text: 'Kein Warten auf Uploads und Downloads. Die meisten Aufgaben sind in einer Sekunde erledigt – nach dem Laden der Seite sogar offline.',
-      },
-    ],
+    h1: 'PDF- & Bild-Tools, die Ihre Dateien nie hochladen',
+    lead: 'PDFs zusammenfügen, Fotos komprimieren, QR-Codes erstellen und mehr. Die Tools laufen in Ihrem Browser, Ihre Dateien bleiben also auf Ihrem Computer oder Handy. Kostenlos, ohne Konto und ohne Wasserzeichen.',
+    demo: {
+      files: ['vertrag.pdf', 'rechnung.pdf', 'scan.jpg'],
+      result: 'zusammengefuegt.pdf',
+      uploaded: 'Auf einen Server hochgeladen: 0 Bytes',
+    },
     verifyTitle: 'Vertrauen Sie uns nicht – prüfen Sie es selbst',
     verifyText:
       'Öffnen Sie die Entwicklertools Ihres Browsers (auf den meisten Computern mit F12), wechseln Sie zum Tab „Netzwerk“ und verwenden Sie ein beliebiges Tool. Sie werden sehen: Ihre Datei wird nirgendwohin gesendet.',
@@ -104,7 +94,7 @@ export const de: Dictionary = {
 
   ads: {
     label: 'Anzeige',
-    affiliateLabel: 'Anzeige · Empfehlung',
+    affiliateLabel: 'Anzeige: unsere Empfehlung',
   },
 
   notFound: {

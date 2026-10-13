@@ -6,8 +6,10 @@ import { fill } from '../lib/format';
 import { absoluteUrl, homePath, toolPath, toolText } from '../site/pages';
 import { faqSchema, websiteSchema } from '../site/seo';
 import { categories, tools } from '../tools/registry';
-import Icon from './Icon.astro';
+import Icon from '@tools/shared/components/Icon.astro';
+import MergeDemo from './MergeDemo.astro';
 import ToolCard from './ToolCard.astro';
+import '../styles/keeplocal.css';
 
 interface Props {
   lang: Lang;
@@ -16,7 +18,6 @@ interface Props {
 const { lang } = Astro.props;
 const dict = t(lang);
 const path = homePath(lang);
-const featureIcons = ['lock', 'heart-handshake', 'wand-sparkles'] as const;
 const converterPages = tools.filter((tool) => 'convert' in tool);
 ---
 
@@ -29,17 +30,19 @@ const converterPages = tools.filter((tool) => 'convert' in tool);
   jsonLd={[websiteSchema(absoluteUrl(path), dict.home.description, lang), faqSchema(dict.home.faq)]}
 >
   <div class="container">
-    <section class="page-intro">
-      <h1>{dict.home.h1}</h1>
-      <p class="lead">{dict.home.lead}</p>
-      <span class="badge"><Icon name="lock" /> {dict.badge}</span>
+    <section class="home-hero">
+      <div>
+        <h1 class="display">{dict.home.h1}</h1>
+        <p class="lead">{dict.home.lead}</p>
+      </div>
+      <MergeDemo lang={lang} />
     </section>
 
     {
       categories.map((category) => (
-        <section id={category}>
+        <section id={category} class="tool-section">
           <h2>{dict.categories[category]}</h2>
-          <p>{dict.categoryIntros[category]}</p>
+          <p class="section-intro">{dict.categoryIntros[category]}</p>
           <ul class="tool-grid">
             {tools
               .filter((tool) => tool.category === category && !('convert' in tool))
@@ -62,24 +65,10 @@ const converterPages = tools.filter((tool) => 'convert' in tool);
       ))
     }
 
-    <div class="feature-grid">
-      {
-        dict.home.features.map((feature, index) => (
-          <div class="card">
-            <h3>
-              <Icon name={featureIcons[index] ?? 'check'} />
-              {feature.title}
-            </h3>
-            <p>{feature.text}</p>
-          </div>
-        ))
-      }
-    </div>
-
     <section class="callout">
       <Icon name="eye" />
       <div>
-        <h2 style="margin: 0 0 4px; font-size: 1.05rem">{dict.home.verifyTitle}</h2>
+        <h2>{dict.home.verifyTitle}</h2>
         <p>{dict.home.verifyText}</p>
       </div>
     </section>

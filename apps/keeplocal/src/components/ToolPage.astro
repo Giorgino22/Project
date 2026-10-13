@@ -12,7 +12,7 @@ import { breadcrumbSchema, faqSchema, webApplicationSchema } from '../site/seo';
 import { getTool, tools, type ToolId } from '../tools/registry';
 import AdSlot from './AdSlot.astro';
 import AffiliateBox from './AffiliateBox.astro';
-import Icon from './Icon.astro';
+import Icon from '@tools/shared/components/Icon.astro';
 import ToolCard from './ToolCard.astro';
 import { toolComponents } from './tools';
 
@@ -73,7 +73,8 @@ const jsonLd = [
       </nav>
       <h1>{text.h1}</h1>
       <p class="lead">{text.lead}</p>
-      <span class="badge"><Icon name="lock" /> {dict.badge}</span>
+      {/* The promise, unless the intro above already says exactly that */}
+      {!text.lead.includes(dict.badge) && <p class="note"><Icon name="lock" /> {dict.badge}</p>}
     </section>
 
     <Tool lang={lang} tool={tool} />
@@ -111,7 +112,7 @@ const jsonLd = [
     <section class="callout">
       <Icon name="shield-check" />
       <div>
-        <h2 style="margin: 0 0 4px; font-size: 1.05rem">{dict.toolPage.privacyTitle}</h2>
+        <h2>{dict.toolPage.privacyTitle}</h2>
         <p>{dict.toolPage.privacyText}</p>
       </div>
     </section>

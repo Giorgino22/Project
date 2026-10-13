@@ -8,6 +8,10 @@
     "./network": "./src/network.ts",
     "./components/*": "./src/components/*",
     "./lib/*": "./src/lib/*.ts",
-    "./styles/*": "./src/styles/*"
+    "./styles/*": "./src/styles/*",
+    "./icons/*": "./src/icons/*.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "5.3.0"
   }
 }

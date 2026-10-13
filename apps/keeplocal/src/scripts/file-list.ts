@@ -2,12 +2,12 @@
  * A list of chosen files that the visitor can reorder and remove
  * (used by "Merge PDF" and "JPG to PDF", where the order matters).
  */
-import { iconSvg } from '../icons/svg';
+import { iconSvg } from '@tools/shared/icons/svg';
 import type { CommonTexts } from './ui';
 
 export interface ListItem {
   file: File;
-  /** Small grey text under the name, e.g. "3 pages · 1.2 MB" */
+  /** Small grey text under the name, e.g. "3 pages, 1.2 MB" */
   meta: string;
   /** Optional preview image (an object URL created with URL.createObjectURL) */
   thumbnail?: string;

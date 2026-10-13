@@ -75,7 +75,7 @@ const text = t(lang).components.RemoveExif;
     const date = data.DateTimeOriginal ?? data.CreateDate;
     add(['DateTimeOriginal', 'CreateDate'], t.date, date instanceof Date ? date.toLocaleString(lang) : text(date));
     add(['Software'], t.software, text(data.Software));
-    add(['Artist', 'Copyright', 'creator'], t.author, [data.Artist, data.Copyright, data.creator].map(text).filter(Boolean).join(' · '));
+    add(['Artist', 'Copyright', 'creator'], t.author, [data.Artist, data.Copyright, data.creator].map(text).filter(Boolean).join(', '));
 
     const others = Object.keys(data).filter((key) => !used.has(key)).length;
     if (others > 0) findings.push({ label: fill(t.otherFields, { count: others }), value: '' });

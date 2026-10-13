@@ -1,24 +1,11 @@
-/* Typing site: blue brand colour + the layout of the typing test and the keyboard tester. */
-:root {
-  --primary: #1d4ed8;
-  --primary-hover: #1e40af;
-  --primary-soft: #e8efff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #60a5fa;
-    --primary-hover: #93c5fd;
-    --primary-soft: #172554;
-    --on-primary: #0b1530;
-  }
-}
+/* Typing Test: layout of the typing test and the keyboard tester.
+   Colours, type and buttons come from the shared design (packages/shared/src/styles/base.css). */
 
 /* ---------- Typing test ---------- */
 
 .typing {
-  padding: 20px;
-  margin: 8px 0 24px;
+  margin: 8px 0 40px;
+  padding: 28px;
 }
 
 /* Test length (or lesson) on the left, the clock on the right */
@@ -26,80 +13,77 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 12px 16px;
+  margin-bottom: 18px;
 }
 
 .typing-lesson {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .typing-lesson select {
+  width: auto;
   min-width: 0;
-  max-width: 260px;
-  padding: 6px 10px;
-  font: inherit;
-  font-weight: 400;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-small);
+  max-width: 280px;
 }
 
+/* The clock: condensed digits, read at a glance like a stopwatch. */
 .typing-timer {
   margin-left: auto;
-  font-size: 1.7rem;
+  font-size: 2.5rem;
   font-weight: 700;
+  font-stretch: 75%;
   font-variant-numeric: tabular-nums;
-  color: var(--primary);
+  line-height: 1;
 }
 
 /* The words: three lines are visible, and the box moves on one line at a time (see the script). */
 .typing-words {
-  --line: 2.2em;
+  --line: 2.1em;
   position: relative; /* the script measures the words' positions from this box */
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  column-gap: 0.3em;
-  height: calc(3 * var(--line) + 24px);
-  padding: 12px 14px;
+  column-gap: 0.32em;
+  height: calc(3 * var(--line) + 32px);
+  padding: 16px 18px;
   overflow: hidden;
-  font-size: 1.5rem;
+  border-radius: 12px;
+  background: var(--sheet);
+  font-size: 1.625rem;
   line-height: var(--line);
-  background: var(--surface-2);
-  border-radius: var(--radius);
   cursor: text;
   user-select: none;
 }
 
 .typing-words span {
-  padding: 0 0.2em;
-  border-radius: 6px;
+  padding: 0 0.12em;
+  border-radius: 4px;
 }
 
+/* The word to type now: marked like with a highlighter. */
 .typing-words .current {
-  background: var(--primary-soft);
-  box-shadow: inset 0 -3px 0 var(--primary);
+  background: linear-gradient(var(--marker), var(--marker)) left 85% / 100% 55% no-repeat;
 }
 
 .typing-words .typo {
-  color: var(--danger);
-  background: var(--danger-soft);
-  box-shadow: inset 0 -3px 0 var(--danger);
+  color: var(--stop);
+  background: linear-gradient(var(--stop-soft), var(--stop-soft)) left 85% / 100% 55% no-repeat;
 }
 
 .typing-words .right {
-  color: var(--success);
+  color: var(--go);
 }
 
 .typing-words .wrong {
-  color: var(--danger);
+  color: var(--stop);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 
 .typing-entry {
@@ -111,104 +95,105 @@
 .typing-entry input {
   flex: 1;
   min-width: 0;
-  padding: 12px 14px;
-  font: inherit;
-  font-size: 1.3rem;
-  color: var(--text);
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-small);
-}
-
-.typing-entry input:focus {
-  border-color: var(--primary);
-  outline: none;
+  min-height: 56px;
+  font-size: 1.375rem;
 }
 
 .typing-best {
   min-height: 1.5em;
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 0.95rem;
+  margin: 12px 0 0;
+  color: var(--pencil);
+  font-size: 0.9375rem;
 }
 
 /* Kids page: bigger letters */
 .typing-large .typing-words {
-  font-size: 2rem;
+  font-size: 2.125rem;
 }
 
 .typing-large .typing-entry input {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
 }
 
 @media (max-width: 560px) {
   .typing {
-    padding: 14px;
+    padding: 16px;
+  }
+
+  .typing-timer {
+    font-size: 2rem;
   }
 
   .typing-words {
-    font-size: 1.25rem;
+    font-size: 1.3125rem;
   }
 
   .typing-large .typing-words {
-    font-size: 1.6rem;
+    font-size: 1.625rem;
   }
 }
 
 /* Result */
 .typing-result {
-  padding: 8px 0;
-  text-align: center;
+  padding: 8px 0 4px;
 }
 
 .typing-result:focus {
   outline: none;
 }
 
+/* "64 words per minute": the number is the result, so it is the biggest thing on the page. */
 .result-speed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
   margin: 0;
 }
 
 .result-speed strong {
-  display: block;
-  font-size: clamp(3.5rem, 12vw, 5.5rem);
-  line-height: 1.05;
-  color: var(--primary);
+  font-size: clamp(5rem, 16vw, 8.5rem);
+  font-weight: 750;
+  font-stretch: 75%;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
 }
 
 .result-speed span {
-  color: var(--muted);
-  font-size: 1.1rem;
+  font-size: 1.375rem;
+  font-weight: 600;
 }
 
 .result-rating {
-  margin: 12px 0 18px;
-  font-size: 1.15rem;
-  font-weight: 600;
+  max-width: 50ch;
+  margin: 14px 0 24px;
+  font-size: 1.1875rem;
 }
 
 .result-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0 0 16px;
+  gap: 20px;
+  margin: 0 0 8px;
 }
 
 .result-stats div {
-  padding: 10px 6px;
-  background: var(--surface-2);
-  border-radius: var(--radius-small);
+  padding-top: 10px;
+  border-top: 2px solid var(--ink);
 }
 
 .result-stats dt {
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--pencil);
+  font-size: 0.875rem;
 }
 
 .result-stats dd {
   margin: 2px 0 0;
-  font-size: 1.3rem;
+  font-size: 1.75rem;
   font-weight: 700;
+  font-stretch: 80%;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 560px) {
@@ -218,52 +203,54 @@
 }
 
 .result-mistakes {
-  color: var(--muted);
-}
-
-.typing-result .actions {
-  justify-content: center;
+  margin-top: 16px;
+  color: var(--pencil);
 }
 
 /* ---------- Keyboard test ---------- */
 
 .keytest {
-  padding: 20px;
-  margin: 8px 0 24px;
+  margin: 8px 0 40px;
+  padding: 28px;
 }
 
 .keytest-info {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 24px;
-  margin-bottom: 14px;
+  gap: 8px 28px;
+  margin-bottom: 18px;
 }
 
 .keytest-info p {
   margin: 0;
 }
 
+.keytest-info strong {
+  font-variant-numeric: tabular-nums;
+}
+
 .keytest-info .btn {
   margin-left: auto;
 }
 
-/* The keyboard picture: main block (15 key units wide) + arrow block (3 units). */
+/* The keyboard: a dark board with light keycaps, in light and dark mode alike.
+   Main block (15 key units wide) + arrow block (3 units). */
 .keyboard {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 15fr) minmax(0, 3fr);
   column-gap: 2.5%;
-  padding: 10px;
+  padding: 14px;
   container-type: inline-size; /* lets the key labels grow and shrink with the keyboard */
-  background: var(--surface-2);
-  border-radius: var(--radius);
+  border-radius: 14px;
+  background: #1d1e20;
   user-select: none;
 }
 
 .keyboard:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--primary);
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px #1d1e20;
 }
 
 /* Each block is a grid with 4 columns per key unit and 6 rows. */
@@ -287,32 +274,34 @@
   display: contents; /* the rows only group the keys in the HTML; the grid places them */
 }
 
+/* A keycap: light top with a darker bottom edge, so it looks pressable. */
 .key {
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 0;
-  margin: 2px;
+  margin: 2.5px;
   overflow: hidden;
+  border-radius: 5px;
+  background: #f3f3f0;
+  box-shadow: inset 0 -3px 0 #c4c6c0;
+  color: #1d1e20;
+  font-size: clamp(7px, 1.25cqi, 13px);
+  font-weight: 550;
   white-space: nowrap;
-  font-size: clamp(7px, 1.3cqi, 14px);
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom-width: 3px;
-  border-radius: 6px;
 }
 
+/* Keys that worked at least once: marked yellow. */
 .key.tested {
-  color: var(--success);
-  background: var(--success-soft);
-  border-color: var(--success);
+  background: var(--marker);
+  box-shadow: inset 0 -3px 0 var(--marker-deep);
 }
 
+/* A key that is held down right now: pressed in. */
 .key.down {
-  color: var(--on-primary);
-  background: var(--primary);
-  border-color: var(--primary);
+  transform: translateY(2px);
+  background: #ffffff;
+  box-shadow: none;
 }
 
 /* "Click here" layer, shown while the keyboard isn't listening */
@@ -323,13 +312,29 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
-  border-radius: var(--radius);
+  border-radius: 14px;
+  background: rgb(29 30 32 / 0.72);
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 650;
   cursor: pointer;
 }
 
 .keyboard:focus .keytest-paused {
   display: none;
+}
+
+@media (max-width: 560px) {
+  .keytest {
+    padding: 16px;
+  }
+
+  .keyboard {
+    padding: 8px;
+  }
+
+  .key {
+    margin: 1.5px;
+    border-radius: 3px;
+  }
 }

@@ -2,7 +2,7 @@
  * Shows the files a tool created, with download buttons, an optional
  * "Download all (ZIP)" button and "Start over". Markup: Results.astro.
  */
-import { iconSvg } from '../icons/svg';
+import { iconSvg } from '@tools/shared/icons/svg';
 import { formatBytes } from '../lib/format';
 import { $, type CommonTexts } from './ui';
 
@@ -56,7 +56,7 @@ export class Results {
       row.querySelector('.result-name')!.textContent = file.name;
       row.querySelector('.result-meta')!.textContent = [formatBytes(file.blob.size, this.lang), file.note]
         .filter(Boolean)
-        .join(' · ');
+        .join(', ');
       const link = row.querySelector('a')!;
       link.href = url;
       link.download = file.name; // the "download" attribute makes the browser save instead of open

@@ -18,16 +18,13 @@ interface Props {
   jsonLd?: Record<string, unknown>[];
   /** true = search engines should not index this page (404 page) */
   noindex?: boolean;
-  /** Brand colour for the browser UI on phones */
-  themeColor?: string;
   /** Links shown in the header (other pages of this site) */
   nav?: { href: string; label: string }[];
   /** true = never load ad code on this page (e.g. pages made for children) */
   noAds?: boolean;
 }
 
-const { site, title, description, path, jsonLd = [], noindex = false, themeColor = '#0f766e', nav = [], noAds = false } =
-  Astro.props;
+const { site, title, description, path, jsonLd = [], noindex = false, nav = [], noAds = false } = Astro.props;
 const current = sites.find((s) => s.id === site)!;
 const base = siteUrl(site);
 const hub = site === 'hub' ? '' : siteUrl('hub');
@@ -52,7 +49,9 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
     <meta property="og:url" content={base + path} />
     <meta property="og:image" content={`${base}/og-image.jpg`} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content={themeColor} />
+    {/* The browser's own bars take the page colour (light and dark mode) */}
+    <meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141516" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     {jsonLd.map((data) => <script is:inline type="application/ld+json" set:html={toJson(data)} />)}
@@ -95,7 +94,18 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
             <h2>{current.name}</h2>
             <p>{current.description}</p>
             {
-              nav.length > 0 && (
+              site === 'hub' && (
+                <ul>
+                  <li><a href="/privacy/">Privacy policy</a></li>
+                  <li><a href="/imprint/">Legal notice</a></li>
+                </ul>
+              )
+            }
+          </div>
+          {
+            nav.length > 0 && (
+              <nav aria-label={`${current.name} pages`}>
+                <h2>Tools on this site</h2>
                 <ul>
                   {nav.map((link) => (
                     <li>
@@ -103,35 +113,39 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
                     </li>
                   ))}
                 </ul>
-              )
-            }
-          </div>
+              </nav>
+            )
+          }
           {
             others.length > 0 && (
               <nav aria-label="More free tools">
-                <h2>More free tools</h2>
+                <h2>More from {network.name}</h2>
                 <ul>
                   {others.map((other) => (
                     <li>
-                      <a href={siteUrl(other.id)}>{other.name}</a>
+                      <a href={`${siteUrl(other.id)}/`}>{other.name}</a>
                     </li>
                   ))}
                 </ul>
               </nav>
             )
           }
-          <div>
-            <h2>{network.name}</h2>
-            <ul>
-              <li><a href={`${hub}/`}>All our tools</a></li>
-              <li><a href={`${hub}/privacy/`}>Privacy policy</a></li>
-              <li><a href={`${hub}/imprint/`}>Legal notice</a></li>
-            </ul>
-          </div>
+          {
+            site !== 'hub' && (
+              <div>
+                <h2>{network.name}</h2>
+                <ul>
+                  <li><a href={`${hub}/`}>All our tools</a></li>
+                  <li><a href={`${hub}/privacy/`}>Privacy policy</a></li>
+                  <li><a href={`${hub}/imprint/`}>Legal notice</a></li>
+                </ul>
+              </div>
+            )
+          }
         </div>
         <div class="footer-bottom">
           <span>© {year} {network.name}</span>
-          <span>Free · No sign-up · Runs in your browser</span>
+          <span>Everything runs in your browser. Nothing is uploaded.</span>
         </div>
       </div>
     </footer>

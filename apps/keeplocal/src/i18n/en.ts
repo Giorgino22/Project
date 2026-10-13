@@ -67,23 +67,13 @@ export const en = {
     title: '{site} – Free PDF & Image Tools Without Uploads',
     description:
       'Merge and split PDFs, compress and convert images, create QR codes and passwords. Free, no sign-up – everything runs in your browser, nothing is uploaded.',
-    h1: 'Free PDF & image tools that never upload your files',
-    lead: 'Merge PDFs, compress photos, create QR codes and more. Every tool runs directly in your browser – so your files stay on your device. Always.',
-    cta: 'Choose a tool',
-    features: [
-      {
-        title: 'Private by design',
-        text: 'Your files are processed on your own device. They are never uploaded, stored or seen by anyone – not even by us.',
-      },
-      {
-        title: 'Free & unlimited',
-        text: 'No sign-up, no watermarks, no daily limits. Use every tool as often as you like.',
-      },
-      {
-        title: 'Fast',
-        text: 'No waiting for uploads and downloads. Most tasks are done in a second – it even works offline once the page has loaded.',
-      },
-    ],
+    h1: 'PDF & image tools that never upload your files',
+    lead: 'Merge PDFs, compress photos, create QR codes and more. The tools run in your browser, so your files stay on your computer or phone. Free, with no account and no watermark.',
+    demo: {
+      files: ['contract.pdf', 'invoice.pdf', 'scan.jpg'],
+      result: 'merged.pdf',
+      uploaded: 'Uploaded to a server: 0 bytes',
+    },
     verifyTitle: 'Don’t trust us – check it yourself',
     verifyText:
       'Open your browser’s developer tools (F12 on most computers), switch to the “Network” tab and use any tool. You will see that your file is never sent anywhere.',
@@ -127,7 +117,7 @@ export const en = {
 
   ads: {
     label: 'Advertisement',
-    affiliateLabel: 'Ad · Recommendation',
+    affiliateLabel: 'Ad: our recommendation',
   },
 
   notFound: {

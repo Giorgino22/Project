@@ -1,32 +1,21 @@
-/* Wheel site: purple brand colour + the layout of the wheel tool. */
-:root {
-  --primary: #6d28d9;
-  --primary-hover: #5b21b6;
-  --primary-soft: #f1ebff;
-}
+/* Spin the Wheel: layout of the wheel tool and the team generator.
+   Colours, type and buttons come from the shared design (packages/shared/src/styles/base.css). */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #a78bfa;
-    --primary-hover: #c4b5fd;
-    --primary-soft: #2a1f47;
-    --on-primary: #1a1033;
-  }
-}
-
-/* Wheel on the left, entries on the right; stacked on small screens. */
+/* The wheel on the left, the entries on the right; stacked on small screens. */
 .wheel-tool {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 36px;
   align-items: start;
-  padding: 20px;
-  margin: 8px 0 24px;
+  margin: 8px 0 40px;
+  padding: 32px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 800px) {
   .wheel-tool {
     grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 18px;
   }
 }
 
@@ -34,13 +23,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
 }
 
 .wheel-box {
   position: relative;
   width: 100%;
-  max-width: 540px;
+  max-width: 560px;
   aspect-ratio: 1;
 }
 
@@ -51,19 +40,19 @@
   cursor: pointer;
 }
 
-/* The pointer: a triangle at the top that points down into the wheel. */
+/* The pointer: an ink triangle at the top that points down into the wheel. */
 .wheel-pointer {
   position: absolute;
-  top: -8px;
+  top: -10px;
   left: 50%;
   z-index: 2;
   transform: translateX(-50%);
-  border-left: 18px solid transparent;
-  border-right: 18px solid transparent;
-  border-top: 34px solid var(--text);
-  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3));
+  border-top: 34px solid #1d1e20;
+  border-right: 17px solid transparent;
+  border-left: 17px solid transparent;
 }
 
+/* The SPIN button in the middle: the network's yellow key with an ink rim. */
 .wheel-spin {
   position: absolute;
   top: 50%;
@@ -71,20 +60,23 @@
   width: 22%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  border: 4px solid #fff;
+  border: 4px solid #1d1e20;
   border-radius: 50%;
-  background: var(--surface);
-  color: var(--text);
+  background: var(--marker);
+  color: #1d1e20;
   font: inherit;
-  font-size: clamp(0.85rem, 2.4vw, 1.35rem);
+  font-size: clamp(1rem, 2.6vw, 1.5rem);
   font-weight: 800;
-  letter-spacing: 0.05em;
-  box-shadow: 0 2px 12px rgb(0 0 0 / 0.3);
+  font-stretch: 90%;
   cursor: pointer;
 }
 
 .wheel-spin:hover:not(:disabled) {
-  transform: translate(-50%, -50%) scale(1.06);
+  background: #ffdd33;
+}
+
+.wheel-spin:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.96);
 }
 
 .wheel-spin:disabled {
@@ -106,30 +98,29 @@
 .wheel-speed {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.92rem;
+  gap: 8px;
+  font-size: 0.9375rem;
+  font-weight: 550;
 }
 
 .wheel-speed select {
   width: auto;
-  min-height: 36px;
-  padding: 4px 8px;
+  min-height: 44px;
+  padding: 6px 10px;
 }
 
 .wheel-panel textarea {
-  min-height: 280px;
-  margin-top: 6px;
-  font-size: 1rem;
-  line-height: 1.5;
+  min-height: 300px;
+  margin-top: 8px;
 }
 
 .wheel-actions {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .entry-count {
-  color: var(--muted);
-  font-weight: 400;
+  color: var(--pencil);
+  font-weight: 450;
 }
 
 .number-range {
@@ -137,7 +128,7 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .number-range .field {
@@ -145,21 +136,21 @@
 }
 
 .history-title {
-  margin: 16px 0 6px;
+  margin: 22px 0 8px;
   font-size: 1rem;
 }
 
 .history {
   margin: 0;
   padding-left: 1.4em;
-  color: var(--muted);
+  color: var(--pencil);
 }
 
-/* Fullscreen (projector) mode: just the wheel, as big as the screen allows. */
+/* Full screen (projector) mode: just the wheel, as big as the screen allows. */
 .wheel-stage:fullscreen {
   justify-content: center;
   padding: 24px;
-  background: var(--bg);
+  background: var(--paper);
 }
 
 .wheel-stage:fullscreen .wheel-box {
@@ -168,18 +159,17 @@
 
 /* Result window */
 .wheel-dialog {
-  width: min(92vw, 480px);
-  padding: 28px 24px;
+  width: min(92vw, 500px);
+  padding: 32px 28px 28px;
   border: none;
-  border-radius: 18px;
-  background: var(--surface);
-  color: var(--text);
+  border-radius: var(--radius-surface);
+  background: var(--paper);
+  color: var(--ink);
   text-align: center;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
 }
 
 .wheel-dialog::backdrop {
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(29 30 32 / 0.6);
 }
 
 .wheel-dialog .actions {
@@ -188,16 +178,27 @@
 
 .winner-label {
   margin: 0;
-  color: var(--muted);
+  color: var(--pencil);
 }
 
+/* The winner's name, set like a label on yellow tape. */
 .winner-name {
-  margin: 6px 0 18px;
-  color: var(--primary);
-  font-size: clamp(1.8rem, 7vw, 3rem);
+  display: inline-block;
+  max-width: 100%;
+  margin: 10px 0 0;
+  padding: 0.04em 0.2em;
+  background: var(--marker);
+  color: #1d1e20;
+  font-size: clamp(2rem, 8vw, 3.25rem);
   font-weight: 800;
-  line-height: 1.15;
+  font-stretch: 112%;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
+}
+
+.wheel-dialog .actions {
+  margin-top: 26px;
 }
 
 .confetti {
@@ -208,16 +209,23 @@
   pointer-events: none;
 }
 
-/* Team generator */
+/* ---------- Team generator ---------- */
+
 .teams-tool {
-  padding: 20px;
-  margin: 8px 0 24px;
+  margin: 8px 0 40px;
+  padding: 28px;
+}
+
+@media (max-width: 560px) {
+  .teams-tool {
+    padding: 16px;
+  }
 }
 
 .teams-form {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: 28px;
 }
 
 @media (max-width: 680px) {
@@ -229,25 +237,40 @@
 .teams-options {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .team-card {
-  padding: 14px 16px;
-  border-radius: var(--radius-small);
-  background: var(--primary-soft);
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--sheet);
 }
 
+/* Each team gets a coloured bar from the wheel's palette, like a sports bib. */
 .team-card h3 {
-  margin: 0 0 6px;
-  color: var(--primary);
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 4px solid var(--marker);
+  font-size: 1.125rem;
+}
+
+.team-card:nth-child(4n + 2) h3 {
+  border-color: #2d5be3;
+}
+
+.team-card:nth-child(4n + 3) h3 {
+  border-color: #1a7a43;
+}
+
+.team-card:nth-child(4n + 4) h3 {
+  border-color: #c8381f;
 }
 
 .team-card ul {

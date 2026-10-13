@@ -1,0 +1,241 @@
+---
+/**
+ * The animation on the home page: three files land on the desk, slide together and become
+ * one merged PDF – while the line below says that nothing was uploaded.
+ *
+ * It plays ONCE when the page opens and then stays still. How it works: every part has CSS
+ * "keyframes" (snapshots in time) and the browser fills in the movement between them. The
+ * normal CSS of each part is its END state, so visitors who switched off animations
+ * (prefers-reduced-motion) simply see the finished picture.
+ */
+import Icon from '@tools/shared/components/Icon.astro';
+import { t, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const demo = t(Astro.props.lang).home.demo;
+// Where each loose sheet lies on the desk before it is merged (x, y in px, tilt in degrees).
+const sheets = [
+  { name: demo.files[0], x: 30, y: 36, tilt: -8 },
+  { name: demo.files[1], x: 376, y: 48, tilt: 7 },
+  { name: demo.files[2], x: 196, y: 214, tilt: -3 },
+];
+---
+
+<figure class="merge-demo" aria-hidden="true">
+  <svg viewBox="0 0 520 380" role="presentation">
+    <rect class="desk" width="520" height="380" rx="22"></rect>
+
+    {
+      sheets.map((sheet, index) => (
+        <g class="sheet" style={`--x: ${sheet.x}px; --y: ${sheet.y}px; --tilt: ${sheet.tilt}deg; --i: ${index}`}>
+          <path class="paper" d="M0 0h82l28 28v112H0z" />
+          <path class="fold" d="M82 0v28h28" />
+          <rect class="text-line" x="14" y="44" width="80" height="5" rx="2.5" />
+          <rect class="text-line" x="14" y="58" width="68" height="5" rx="2.5" />
+          <rect class="text-line" x="14" y="72" width="80" height="5" rx="2.5" />
+          <rect class="text-line" x="14" y="86" width="48" height="5" rx="2.5" />
+          <text x="14" y="124">{sheet.name}</text>
+        </g>
+      ))
+    }
+
+    <g transform="translate(185 64)">
+      <g class="result">
+        <!-- two outlines behind the page show that it has several pages now -->
+        <rect class="paper back" x="12" y="12" width="150" height="196" rx="4" />
+        <rect class="paper back" x="6" y="6" width="150" height="196" rx="4" />
+        <rect class="paper" width="150" height="196" rx="4" />
+        <rect class="text-line" x="18" y="58" width="114" height="6" rx="3" />
+        <rect class="text-line" x="18" y="74" width="98" height="6" rx="3" />
+        <rect class="text-line" x="18" y="90" width="114" height="6" rx="3" />
+        <rect class="text-line" x="18" y="106" width="76" height="6" rx="3" />
+        <rect class="text-line" x="18" y="130" width="114" height="6" rx="3" />
+        <rect class="text-line" x="18" y="146" width="90" height="6" rx="3" />
+        <rect class="tag" x="18" y="18" width="114" height="24" rx="3" />
+        <text class="tag-text" x="26" y="35">{demo.result}</text>
+      </g>
+      <g class="check" transform="translate(150 0)">
+        <circle r="20" />
+        <path d="M-8 0.5l5.5 5.5 11-12" />
+      </g>
+    </g>
+  </svg>
+  <figcaption>
+    <Icon name="lock" />
+    <span class="mark">{demo.uploaded}</span>
+  </figcaption>
+</figure>
+
+<style>
+  .merge-demo {
+    margin: 0;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* The drawing keeps fixed colours in light and dark mode, like a printed picture. */
+  .desk {
+    fill: var(--desk);
+  }
+
+  .paper {
+    fill: #ffffff;
+    stroke: #1d1e20;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .fold {
+    fill: none;
+    stroke: #1d1e20;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .text-line {
+    fill: #c9cbc6;
+  }
+
+  .sheet text {
+    font-size: 12px;
+    font-weight: 600;
+    fill: #1d1e20;
+  }
+
+  .tag {
+    fill: var(--marker);
+  }
+
+  .tag-text {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1d1e20;
+  }
+
+  .check circle {
+    fill: #13804b;
+  }
+
+  .check path {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-weight: 600;
+  }
+
+  figcaption :global(.icon) {
+    color: var(--go);
+  }
+
+  /* The highlighter stroke behind "0 bytes" – drawn at the end of the animation. */
+  .mark {
+    padding: 0 2px;
+    background: linear-gradient(var(--marker), var(--marker)) left 88% / 100% 40% no-repeat;
+  }
+
+  /* ---------- The animation (end states above, movement below) ---------- */
+
+  /* Loose sheets: placed on the desk, then slide into the result and disappear. */
+  .sheet {
+    opacity: 0;
+    transform: translate(205px, 84px);
+    animation: sheet-merge 3.4s cubic-bezier(0.3, 0.7, 0.2, 1) calc(var(--i) * 0.14s) both;
+  }
+
+  @keyframes sheet-merge {
+    0% {
+      opacity: 0;
+      transform: translate(var(--x), calc(var(--y) - 22px)) rotate(var(--tilt));
+    }
+    14% {
+      opacity: 1;
+      transform: translate(var(--x), var(--y)) rotate(var(--tilt));
+    }
+    48% {
+      opacity: 1;
+      transform: translate(var(--x), var(--y)) rotate(var(--tilt));
+    }
+    76% {
+      opacity: 1;
+      transform: translate(205px, 84px) rotate(0deg);
+    }
+    86%,
+    100% {
+      opacity: 0;
+      transform: translate(205px, 84px) rotate(0deg);
+    }
+  }
+
+  /* The merged document appears where the sheets met. */
+  .result {
+    animation: result-in 3.4s ease-out both;
+  }
+
+  @keyframes result-in {
+    0%,
+    72% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    86%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The check mark pops in last. */
+  .check circle,
+  .check path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: check-in 3.4s ease-out both;
+  }
+
+  @keyframes check-in {
+    0%,
+    84% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    93% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .mark {
+    animation: mark-draw 3.9s ease-out both;
+  }
+
+  @keyframes mark-draw {
+    0%,
+    88% {
+      background-size: 0% 40%;
+    }
+    100% {
+      background-size: 100% 40%;
+    }
+  }
+</style>

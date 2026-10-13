@@ -1,74 +1,121 @@
-/* Hub: indigo brand colour + the site cards on the front page. */
-:root {
-  --primary: #4338ca;
-  --primary-hover: #3730a3;
-  --primary-soft: #eef0ff;
+/* Hub: the front page of the network. Colours, type and buttons come from the shared design
+   (packages/shared/src/styles/base.css). */
+
+.hub-hero {
+  max-width: 900px;
+  padding: 72px 0 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #a5b4fc;
-    --primary-hover: #c7d2fe;
-    --primary-soft: #1e1b4b;
-    --on-primary: #14123a;
+.hub-hero .display {
+  margin-bottom: 22px;
+}
+
+@media (max-width: 560px) {
+  .hub-hero {
+    padding-top: 40px;
+  }
+
+  .tin-scene {
+    margin-top: 24px;
   }
 }
 
-.site-grid {
+.tin-scene {
+  margin-top: 40px;
+}
+
+/* One column per site, each lined up under its tool in the tin picture. */
+.site-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin: 8px 0 32px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  max-width: 980px;
+  margin: 28px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.site-list h2 {
+  margin: 0 0 8px;
+  font-size: 1.625rem;
+  font-stretch: 108%;
+}
+
+.site-list h2 a {
+  text-decoration: none;
+}
+
+.site-list h2 a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--marker);
+}
+
+.site-list p {
+  max-width: 30ch;
+  margin: 0 auto 14px;
+  color: var(--pencil);
+}
+
+.site-list ul {
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.site-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
+.site-list li li {
+  margin: 4px 0;
 }
 
-.site-card-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  color: var(--text);
-  text-decoration: none;
+.site-list li li a {
+  font-weight: 550;
 }
 
-.site-card-title:hover .site-name {
-  color: var(--primary);
+@media (max-width: 760px) {
+  .site-list {
+    grid-template-columns: 1fr;
+    gap: 0;
+    text-align: left;
+  }
+
+  .site-list > li {
+    padding: 22px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .site-list p {
+    margin-left: 0;
+  }
 }
 
-.site-icon {
+/* "How can it be free?" and "Check it yourself" side by side. */
+.hub-about {
   display: grid;
-  flex: none;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  font-size: 1.6rem;
-  background: var(--primary-soft);
-  border-radius: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+  margin-top: 96px;
 }
 
-.site-name {
-  display: block;
-  margin-bottom: 2px;
-  font-size: 1.2rem;
-  font-weight: 700;
+.hub-about h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
 }
 
-.site-description {
-  color: var(--muted);
+.hub-about p {
+  color: var(--pencil);
 }
 
-.site-card .chip-list {
-  margin: auto 0 0;
+.hub-about .callout {
+  margin: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
-.feature-grid h2 {
-  margin: 0 0 6px;
-  font-size: 1.1rem;
+@media (max-width: 760px) {
+  .hub-about {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 64px;
+  }
 }

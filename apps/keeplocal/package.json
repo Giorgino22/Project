@@ -17,7 +17,7 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "images": "node scripts/generate-images.mjs"
+    "images": "node ../../packages/shared/scripts/og-image.mjs \"KeepLocal\" \"PDF & image tools that never upload your files.\" \"keeplocal\""
   },
   "dependencies": {
     "@cantoo/pdf-lib": "2.11.1",

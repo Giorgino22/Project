@@ -53,8 +53,16 @@ export function easeOut(t: number): number {
   return 1 - (1 - t) ** 4;
 }
 
-/** Bright segment colours, all dark enough for white text. */
-export const COLORS = ['#7c3aed', '#db2777', '#ea580c', '#b45309', '#15803d', '#0891b2', '#2563eb', '#dc2626'];
+/**
+ * Segment colours: the network's yellow and ink plus a few clear, flat colours.
+ * Light and dark colours take turns, so neighbouring segments are easy to tell apart.
+ */
+export const COLORS = ['#ffd400', '#1d1e20', '#8ec5ff', '#1a7a43', '#f28b30', '#2d5be3', '#d8d6cf', '#c8381f'];
+
+/** Text colour for the label on a segment: ink on light colours, white on dark ones (at least 4.5:1 contrast). */
+export function labelColor(segment: string): string {
+  return ['#ffd400', '#8ec5ff', '#f28b30', '#d8d6cf'].includes(segment) ? '#1d1e20' : '#ffffff';
+}
 
 /**
  * Colour of segment i. Colours repeat around the wheel, but on a wheel the last segment also

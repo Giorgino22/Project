@@ -36,7 +36,7 @@ test('shares a wheel with a link', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
   await page.locator('[data-entries]').fill('Pizza\nSushi\nTacos');
-  await page.getByRole('button', { name: '🔗 Share link' }).click();
+  await page.getByRole('button', { name: 'Copy share link' }).click();
   await expect(page.locator('[data-status]')).toContainText('Link copied');
   const link = await page.evaluate(() => navigator.clipboard.readText());
   expect(link).toContain('#entries=');

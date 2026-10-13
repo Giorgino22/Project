@@ -13,6 +13,8 @@ export interface ToolPageData {
   path: string;
   /** Short name for menus and "more tools" links */
   name: string;
+  /** One line under the name in "more tools" lists, e.g. "Spin for a random yes or no." */
+  short?: string;
   /** Browser tab / Google headline (≤ ~60 characters) */
   title: string;
   /** Google snippet (≤ ~160 characters) */
@@ -28,14 +30,13 @@ interface Props {
   page: ToolPageData;
   /** All pages of the site, for the header menu and the "more tools" section */
   allPages: ToolPageData[];
-  themeColor?: string;
   /** AdSense slot IDs for this site (empty = no ad) */
   adSlots?: { afterTool?: string; beforeFaq?: string };
   /** true = no ads at all on this page. Use it for pages aimed at children: ads there need special rules. */
   noAds?: boolean;
 }
 
-const { site, page, allPages, themeColor, noAds = false } = Astro.props;
+const { site, page, allPages, noAds = false } = Astro.props;
 const adSlots = noAds ? {} : (Astro.props.adSlots ?? {});
 const url = siteUrl(site) + page.path;
 const nav = allPages.map((p) => ({ href: p.path, label: p.name }));
@@ -47,7 +48,6 @@ const related = allPages.filter((p) => p.path !== page.path);
   title={page.title}
   description={page.description}
   path={page.path}
-  themeColor={themeColor}
   nav={nav}
   noAds={noAds}
   jsonLd={[webApplicationSchema(page.name, page.description, url), faqSchema(page.faq)]}
@@ -85,10 +85,13 @@ const related = allPages.filter((p) => p.path !== page.path);
       related.length > 0 && (
         <section>
           <h2>More free tools</h2>
-          <ul class="chip-list">
+          <ul class="link-list">
             {related.map((other) => (
               <li>
-                <a href={other.path}>{other.name}</a>
+                <a href={other.path}>
+                  <strong>{other.name}</strong>
+                  {other.short && <span>{other.short}</span>}
+                </a>
               </li>
             ))}
           </ul>

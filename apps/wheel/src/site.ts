@@ -7,7 +7,6 @@ import type { ToolPageData } from '@tools/shared/components/ToolPage.astro';
 
 export const site = {
   id: 'wheel' as const,
-  themeColor: '#6d28d9',
   /** AdSense ad unit IDs for this site (empty = no ad). The publisher ID is in network.ts. */
   adSlots: { afterTool: '', beforeFaq: '' },
 };
@@ -25,6 +24,7 @@ export const pages = {
   home: {
     path: '/',
     name: 'Spin the Wheel',
+    short: 'Type names, spin, get a random winner.',
     title: 'Spin the Wheel – Free Random Name Picker Wheel',
     description:
       'Type names or options, spin the wheel and get a random winner. Free, no sign-up, works on phones and projectors – share your wheel with one link.',
@@ -62,6 +62,7 @@ export const pages = {
   yesNo: {
     path: '/yes-or-no-wheel/',
     name: 'Yes or No Wheel',
+    short: 'Spin for a random yes or no.',
     title: 'Yes or No Wheel – Spin to Decide (Free & Random)',
     description:
       'Can’t decide? Spin the yes or no wheel for a random answer. Add "Maybe" or any other option. Free, instant and works on any device.',
@@ -88,6 +89,7 @@ export const pages = {
   numbers: {
     path: '/random-number-wheel/',
     name: 'Number Wheel',
+    short: 'Pick a random number in any range.',
     title: 'Random Number Wheel – Spin a Number (1–100 or Any Range)',
     description:
       'Spin a wheel of numbers and get a random number. Pick any range like 1–10 or 1–100. Free number picker for games, raffles and classrooms.',
@@ -111,6 +113,7 @@ export const pages = {
   letters: {
     path: '/letter-wheel/',
     name: 'Letter Wheel',
+    short: 'Spin a random letter from A to Z.',
     title: 'Letter Wheel – Spin a Random Letter from A to Z',
     description:
       'Spin the alphabet wheel to pick a random letter from A to Z. Great for word games, quizzes and classroom activities. Free and instant.',
@@ -134,6 +137,7 @@ export const pages = {
   teams: {
     path: '/random-team-generator/',
     name: 'Team Generator',
+    short: 'Split a list of names into fair teams.',
     title: 'Random Team Generator – Split Names into Fair Teams',
     description:
       'Paste a list of names and split them into random teams in one click. Choose the number of teams or people per team. Free, fast and private.',

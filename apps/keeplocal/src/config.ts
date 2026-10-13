@@ -31,7 +31,7 @@ export const config = {
   legalUpdated: network.legalUpdated,
   hosting: network.hosting,
 
-  /** 💰 Google AdSense. The publisher ID comes from the network settings. */
+  /** Money: Google AdSense. The publisher ID comes from the network settings. */
   ads: {
     adsenseClient: network.adsenseClient,
     /** Ad unit IDs (only digits) for the two ad places on every tool page. Empty = no ad there. */
@@ -44,7 +44,7 @@ export const config = {
   supportUrl: network.supportUrl,
 
   /**
-   * 💰 Affiliate recommendations, shown on matching tool pages and marked as ads.
+   * Money: affiliate recommendations, shown on matching tool pages and marked as ads.
    * Example – a password manager on the password generator page:
    *
    * {
@@ -58,7 +58,7 @@ export const config = {
    */
   affiliates: [] as AffiliateOffer[],
 
-  /** 📈 Cloudflare Web Analytics: cookie-free visitor statistics. */
+  /** Statistics: Cloudflare Web Analytics: cookie-free visitor statistics. */
   analytics: {
     cloudflare: network.analytics,
     /** Only needed if Cloudflare can't add the script automatically (see docs/LAUNCH-CHECKLIST.md). */

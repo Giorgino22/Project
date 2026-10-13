@@ -122,7 +122,7 @@ const text = t(lang).components.PdfToImages;
       try {
         const pdf = await openPdfForRendering(file, prompt, t);
         current = { file, pdf };
-        fileInfo.textContent = `${file.name} · ${pagesLabel(pdf.numPages, t)} · ${formatBytes(file.size, lang)}`;
+        fileInfo.textContent = `${file.name}, ${pagesLabel(pdf.numPages, t)}, ${formatBytes(file.size, lang)}`;
         fileInfo.hidden = false;
         options.hidden = false;
         button.disabled = false;

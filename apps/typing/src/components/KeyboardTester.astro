@@ -3,6 +3,7 @@
  * Keyboard tester: draws a keyboard and lights up every key the visitor presses.
  * Behaviour: <script> below. The layout is in src/lib/keyboard.ts.
  */
+import Icon from '@tools/shared/components/Icon.astro';
 import { mainBlock, navBlock, type Key } from '../lib/keyboard';
 
 const blocks: { name: string; rows: Key[][] }[] = [
@@ -17,7 +18,7 @@ const span = (key: Key) => `grid-column: span ${key.width * 4}`;
   <div class="keytest-info">
     <p class="keytest-last" aria-live="polite">Last key: <strong data-last>–</strong></p>
     <p class="keytest-count">Keys tested: <strong data-count>0</strong></p>
-    <button type="button" class="btn btn-secondary btn-small" data-reset>↺ Reset</button>
+    <button type="button" class="btn btn-secondary btn-small" data-reset><Icon name="rotate-ccw" /> Reset</button>
   </div>
   <div
     class="keyboard"

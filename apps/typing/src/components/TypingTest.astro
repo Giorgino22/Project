@@ -4,6 +4,7 @@
  * presses the space bar after each word. The timer starts with the first key.
  * Behaviour: <script> below. Scoring (WPM, accuracy) lives in src/lib/typing.ts.
  */
+import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
 import { durationLabel, LESSONS, type TestOptions } from '../lib/typing';
 
@@ -55,7 +56,7 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
         spellcheck="false"
         enterkeyhint="next"
       />
-      <button type="button" class="btn btn-secondary" data-restart title="Restart (Esc)">↻ Restart</button>
+      <button type="button" class="btn btn-secondary" data-restart title="Restart (Esc)"><Icon name="rotate-ccw" /> Restart</button>
     </div>
     <p class="typing-best" data-best></p>
   </div>
@@ -71,8 +72,8 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
     </dl>
     <p class="result-mistakes" data-mistakes hidden></p>
     <div class="actions">
-      <button type="button" class="btn btn-primary" data-again>↻ Try again</button>
-      <button type="button" class="btn btn-secondary" data-share>📣 Share result</button>
+      <button type="button" class="btn btn-primary" data-again><Icon name="rotate-ccw" /> Try again</button>
+      <button type="button" class="btn btn-secondary" data-share><Icon name="share-2" /> Share result</button>
     </div>
     <p class="status" data-status role="status" aria-live="polite"></p>
     <SupportBox />
@@ -196,7 +197,7 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
       lastScore = score;
 
       find('[data-wpm]').textContent = String(score.wpm);
-      find('[data-rating]').textContent = (best > 0 && score.wpm > best ? '🎉 New personal best! ' : '') + rating(score.wpm);
+      find('[data-rating]').textContent = (best > 0 && score.wpm > best ? 'New personal best. ' : '') + rating(score.wpm);
       find('[data-accuracy]').textContent = `${score.accuracy} %`;
       find('[data-correct]').textContent = String(score.correctWords);
       find('[data-wrong]').textContent = String(score.wrongWords);

@@ -64,7 +64,7 @@ const text = t(lang).components.MergePdf;
       for (const file of files) {
         try {
           const doc = await openPdfFile(file, prompt, t);
-          list.add([{ file, doc, meta: `${pagesLabel(doc.getPageCount(), t)} · ${formatBytes(file.size, lang)}` }]);
+          list.add([{ file, doc, meta: `${pagesLabel(doc.getPageCount(), t)}, ${formatBytes(file.size, lang)}` }]);
         } catch (error) {
           status.set(describeError(error, t), 'error');
         }
