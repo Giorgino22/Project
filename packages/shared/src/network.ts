@@ -44,7 +44,7 @@ export const network = {
   supportUrl: '',
 
   /** Statistics: set to true after turning on Cloudflare Web Analytics for your domain (cookie-free statistics). */
-  analytics: false,
+  analytics: true,
 };
 
 /** The IDs of all sites. To add a site, add its ID here AND an entry to `sites` below. */
