@@ -55,9 +55,10 @@ Add `-w apps/<site>` to run a command for one site only. The browser tests need 
 ```
 packages/shared/            ← code all sites share ("@tools/shared")
 ├── src/network.ts          ← THE settings file + the list of sites
-├── src/components/         ← page layout, tool page template, ad slot, tip box
+├── src/components/         ← page layout, tool page template, icons, ad slot, tip box
+├── src/icons/              ← the icon shapes (Lucide) used by every site
 ├── src/lib/                ← search-engine data, sitemap/robots/ads.txt, storage, fair random numbers
-├── src/styles/base.css     ← the shared design (each site sets its own colour)
+├── src/styles/base.css     ← the design of all sites: colours, the Archivo typeface, buttons, fields
 └── scripts/og-image.mjs    ← creates a site's social-media preview image
 apps/
 ├── hub/                    ← example.com

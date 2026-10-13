@@ -37,13 +37,13 @@ export const network = {
     privacyUrl: 'https://www.cloudflare.com/privacypolicy/',
   },
 
-  /** 💰 Google AdSense publisher ID (one account for all sites), looks like 'ca-pub-1234567890123456'. */
+  /** Money: Google AdSense publisher ID (one account for all sites), looks like 'ca-pub-1234567890123456'. */
   adsenseClient: '',
 
-  /** 💰 Tip jar (Ko-fi, Buy Me a Coffee…). Empty = no tip box. */
+  /** Money: tip jar (Ko-fi, Buy Me a Coffee…). Empty = no tip box. */
   supportUrl: '',
 
-  /** 📈 Set to true after turning on Cloudflare Web Analytics for your domain (cookie-free statistics). */
+  /** Statistics: set to true after turning on Cloudflare Web Analytics for your domain (cookie-free statistics). */
   analytics: false,
 };
 
@@ -55,8 +55,6 @@ export interface Site {
   /** '' = the central domain itself (only the hub) */
   subdomain: string;
   name: string;
-  /** Emoji shown on the hub page */
-  icon: string;
   /** One sentence for footers and the hub page */
   description: string;
   /** Most popular pages of the site, linked from the hub page */
@@ -72,7 +70,6 @@ export const sites: Site[] = [
     id: 'hub',
     subdomain: '',
     name: network.name,
-    icon: '🧰',
     description: 'Free online tools that are fast, simple and respect your privacy.',
     links: [],
   },
@@ -80,7 +77,6 @@ export const sites: Site[] = [
     id: 'keeplocal',
     subdomain: 'keeplocal',
     name: 'KeepLocal',
-    icon: '📄',
     description: 'PDF & image tools that never upload your files.',
     links: [
       { path: '/merge-pdf/', label: 'Merge PDF' },
@@ -94,7 +90,6 @@ export const sites: Site[] = [
     id: 'wheel',
     subdomain: 'wheel',
     name: 'Spin the Wheel',
-    icon: '🎡',
     description: 'Random name picker wheel for classrooms, games and decisions.',
     links: [
       { path: '/', label: 'Spin the wheel' },
@@ -106,7 +101,6 @@ export const sites: Site[] = [
     id: 'typing',
     subdomain: 'typing',
     name: 'Typing Test',
-    icon: '⌨️',
     description: 'Typing speed test, typing practice and a keyboard tester.',
     links: [
       { path: '/', label: 'Typing speed test' },

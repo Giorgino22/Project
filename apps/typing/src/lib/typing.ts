@@ -106,12 +106,12 @@ export function scoreTest(
 
 /** A friendly verdict for a speed. Most adults type around 40 words per minute. */
 export function rating(wpm: number): string {
-  if (wpm >= 90) return 'Pro level – faster than almost everyone! 🏆';
-  if (wpm >= 70) return 'Very fast – much faster than most people. 🚀';
-  if (wpm >= 50) return 'Fast – above average. 👍';
-  if (wpm >= 35) return 'Average – about as fast as most people.';
-  if (wpm >= 20) return 'Getting there – a few minutes of practice a day will speed you up quickly.';
-  return 'Beginner – everyone starts here. Keep practising!';
+  if (wpm >= 90) return 'Pro level. Faster than almost everyone.';
+  if (wpm >= 70) return 'Very fast. Much faster than most people.';
+  if (wpm >= 50) return 'Fast. Above average.';
+  if (wpm >= 35) return 'Average. About as fast as most people.';
+  if (wpm >= 20) return 'Getting there. A few minutes of practice a day will speed you up quickly.';
+  return 'Beginner. Everyone starts here, so keep practising.';
 }
 
 /** 75 → "1:15" */

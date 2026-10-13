@@ -82,6 +82,29 @@ From now on, every change you push to `main` goes live automatically within a fe
 > To save build minutes, open the Worker → *Settings → Build → Build watch paths* and enter
 > e.g. `apps/wheel/*` and `packages/shared/*`.
 
+## 3a. Make every visit secure – no "not secure" warnings (5 minutes)
+
+Browsers warn ("Not secure", "Your connection is not private") when a page isn't served over a working
+`https://` connection. Cloudflare provides the certificates for free; these settings make sure they are used.
+In the Cloudflare dashboard, open **toolstin.com** (your domain), then:
+
+1. **SSL/TLS → Edge Certificates:** the certificate list should show status **Active**. Right after the
+   domain was added it can say *Pending* for up to 24 hours – warnings during that time are normal.
+2. Same page: switch on **Always Use HTTPS** (sends `http://` visitors to `https://`) and
+   **Automatic HTTPS Rewrites**.
+3. **SSL/TLS → Overview:** set the encryption mode to **Full (strict)**.
+4. Open each site with `https://` in a private window. The padlock should appear without a warning.
+
+The sites also send an HSTS header (in each `public/_headers`): after one secure visit, browsers use
+`https://` for that site automatically.
+
+**A red full-page warning instead** ("Deceptive site ahead", "Dangerous site") comes from Google Safe
+Browsing, which sometimes flags brand-new domains by mistake. Check the domain at
+[transparencyreport.google.com/safe-browsing/search](https://transparencyreport.google.com/safe-browsing/search).
+If it is listed: Google Search Console → **Security & Manual Actions → Security issues → Request review**,
+and explain that the sites are free browser tools that collect no data, have no logins and offer no
+downloads. Reviews usually take a few days.
+
 ## 4. Tell search engines about the sites (15 minutes)
 
 1. [Google Search Console](https://search.google.com/search-console) → *Add property* →

@@ -12,7 +12,7 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "images": "node ../../packages/shared/scripts/og-image.mjs \"Typing Test\" \"How fast do you type? Free typing speed test in words per minute.\" \"#1d4ed8\""
+    "images": "node ../../packages/shared/scripts/og-image.mjs \"Typing Test\" \"How fast do you type? Find out in one minute.\" \"typing\""
   },
   "dependencies": {
     "@tools/shared": "*",

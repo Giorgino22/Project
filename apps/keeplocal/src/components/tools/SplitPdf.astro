@@ -81,7 +81,7 @@ const text = t(lang).components.SplitPdf;
       try {
         const doc = await openPdfFile(file, prompt, t);
         current = { file, doc };
-        fileInfo.textContent = `${file.name} · ${pagesLabel(doc.getPageCount(), t)} · ${formatBytes(file.size, lang)}`;
+        fileInfo.textContent = `${file.name}, ${pagesLabel(doc.getPageCount(), t)}, ${formatBytes(file.size, lang)}`;
         fileInfo.hidden = false;
         options.hidden = false;
         button.disabled = false;

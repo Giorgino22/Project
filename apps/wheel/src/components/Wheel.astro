@@ -3,6 +3,7 @@
  * The wheel tool: a canvas wheel with a SPIN button, the entries box, and a result dialog.
  * The behaviour is in the <script> at the bottom – it runs in the visitor's browser.
  */
+import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
 
 interface Props {
@@ -22,11 +23,14 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     <div class="wheel-box" data-box>
       <canvas data-canvas aria-hidden="true"></canvas>
       <div class="wheel-pointer" aria-hidden="true"></div>
-      <button type="button" class="wheel-spin" data-spin aria-label="Spin the wheel">SPIN</button>
+      <button type="button" class="wheel-spin" data-spin aria-label="Spin the wheel">Spin</button>
     </div>
     <div class="wheel-toolbar">
-      <button type="button" class="btn btn-secondary btn-small" data-fullscreen>⛶ Fullscreen</button>
-      <button type="button" class="btn btn-secondary btn-small" data-sound aria-pressed="true">🔊 Sound on</button>
+      <button type="button" class="btn btn-secondary btn-small" data-fullscreen><Icon name="maximize" /> Full screen</button>
+      <button type="button" class="btn btn-secondary btn-small" data-sound aria-pressed="true">
+        <span data-sound-on><Icon name="volume-2" /> Sound on</span>
+        <span data-sound-off hidden><Icon name="volume-x" /> Sound off</span>
+      </button>
       <label class="wheel-speed">
         Spin time
         <select data-duration>
@@ -57,10 +61,10 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     <label class="field-label" for="entries">Entries <span class="entry-count" data-count></span></label>
     <textarea id="entries" data-entries rows="10" spellcheck="false" placeholder="One name or option per line"></textarea>
     <div class="wheel-actions">
-      <button type="button" class="btn btn-secondary btn-small" data-shuffle>🔀 Shuffle</button>
-      <button type="button" class="btn btn-secondary btn-small" data-sort>A–Z Sort</button>
-      <button type="button" class="btn btn-secondary btn-small" data-clear>✕ Clear</button>
-      <button type="button" class="btn btn-secondary btn-small" data-share>🔗 Share link</button>
+      <button type="button" class="btn btn-secondary btn-small" data-shuffle><Icon name="shuffle" /> Shuffle</button>
+      <button type="button" class="btn btn-secondary btn-small" data-sort><Icon name="arrow-down-a-z" /> Sort A–Z</button>
+      <button type="button" class="btn btn-secondary btn-small" data-clear><Icon name="eraser" /> Clear</button>
+      <button type="button" class="btn btn-secondary btn-small" data-share><Icon name="link" /> Copy share link</button>
     </div>
     <p class="status" data-status role="status" aria-live="polite"></p>
     <div data-history-box hidden>
@@ -88,6 +92,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
   import {
     COLORS,
     easeOut,
+    labelColor,
     entriesFromHash,
     entriesToHash,
     normalize,
@@ -135,8 +140,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
       if (!context) return;
       const size = canvas.width;
       const radius = size / 2;
-      const ring = size * 0.012; // white border around the wheel
-      const labels = entries.length > 0 ? entries : ['Add entries →'];
+      const ring = size * 0.014; // dark rim around the wheel
+      const labels = entries.length > 0 ? entries : ['Add names to start'];
       const count = labels.length;
       const segment = (2 * Math.PI) / count;
 
@@ -148,10 +153,11 @@ const { preset, storageKey, numberRange = false } = Astro.props;
         context.moveTo(radius, radius);
         context.arc(radius, radius, radius - ring, start, start + segment);
         context.closePath();
-        context.fillStyle = entries.length > 0 ? segmentColor(i, count) : '#94a3b8';
+        const fill = entries.length > 0 ? segmentColor(i, count) : '#d8d6cf';
+        context.fillStyle = fill;
         context.fill();
         if (count > 1) {
-          context.strokeStyle = 'rgba(255,255,255,0.6)';
+          context.strokeStyle = '#ffffff';
           context.lineWidth = Math.max(1, size * 0.002);
           context.stroke();
         }
@@ -162,8 +168,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
         context.rotate(start + segment / 2);
         const room = segment * radius * 0.62; // height available for the text near its middle
         const fontSize = Math.max(9, Math.min(radius * 0.085, room * 0.75));
-        context.font = `700 ${fontSize}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
-        context.fillStyle = '#ffffff';
+        context.font = `650 ${fontSize}px 'Archivo Variable', system-ui, sans-serif`;
+        context.fillStyle = labelColor(fill);
         context.textAlign = 'right';
         context.textBaseline = 'middle';
         context.fillText(fitText(context, labels[i]!, radius * 0.68), radius - radius * 0.08, 0);
@@ -172,7 +178,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
       context.beginPath();
       context.arc(radius, radius, radius - ring / 2, 0, 2 * Math.PI);
       context.lineWidth = ring;
-      context.strokeStyle = '#ffffff';
+      context.strokeStyle = '#1d1e20';
       context.stroke();
     }
 
@@ -185,6 +191,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
         draw();
       }
     }).observe(box);
+    // The labels use the site's typeface; draw again once it has loaded.
+    document.fonts.ready.then(draw);
 
     // ---------------------------------------------------------------- entries
 
@@ -233,7 +241,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     let soundOn = load('wheel:sound', true);
     const soundButton = find<HTMLButtonElement>('[data-sound]');
     const showSound = () => {
-      soundButton.textContent = soundOn ? '🔊 Sound on' : '🔇 Sound off';
+      find('[data-sound-on]').hidden = !soundOn;
+      find('[data-sound-off]').hidden = soundOn;
       soundButton.setAttribute('aria-pressed', String(soundOn));
     };
     showSound();

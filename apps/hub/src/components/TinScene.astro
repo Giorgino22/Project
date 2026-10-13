@@ -1,0 +1,178 @@
+---
+/**
+ * The picture at the top of the hub: a yellow tin with one tool for each site sticking out –
+ * paper sheets (KeepLocal), a wheel (Spin the Wheel) and a keycap (Typing Test).
+ *
+ * When the page opens, the three tools rise out of the tin, the wheel gives one spin and the
+ * key is pressed once. That's all: it plays ONCE and then stays still. The normal CSS of every
+ * part is its END state, so people who switched off animations just see the finished picture.
+ */
+// The same segment colours as the wheel site (apps/wheel/src/lib/wheel.ts).
+const COLORS = ['#ffd400', '#1d1e20', '#8ec5ff', '#1a7a43', '#f28b30', '#2d5be3', '#d8d6cf', '#c8381f'];
+
+// The wheel: 8 segments drawn as pie slices around the centre (0, 0), starting at the top.
+const radius = 104;
+const slices = COLORS.map((color, i) => {
+  const a1 = ((i / COLORS.length) * 2 - 0.5) * Math.PI;
+  const a2 = (((i + 1) / COLORS.length) * 2 - 0.5) * Math.PI;
+  const point = (a: number) => `${(Math.cos(a) * radius).toFixed(1)} ${(Math.sin(a) * radius).toFixed(1)}`;
+  return { color, d: `M0 0L${point(a1)}A${radius} ${radius} 0 0 1 ${point(a2)}Z` };
+});
+---
+
+<svg class="tin-scene" viewBox="0 0 1000 440" aria-hidden="true">
+  <defs>
+    <!-- Everything below the tin's bottom edge stays invisible while the tools rise. -->
+    <clipPath id="inside-tin"><rect width="1000" height="430"></rect></clipPath>
+  </defs>
+
+  <!-- The inside of the tin (its back wall, darker because it is in the shade) -->
+  <rect x="84" y="226" width="832" height="70" rx="18" fill="#d4ad00"></rect>
+
+  <g clip-path="url(#inside-tin)">
+    <!-- KeepLocal: a few sheets of paper -->
+    <g transform="translate(180 168)">
+      <g class="rise" style="--delay: 0.25s">
+        <g transform="rotate(-9)">
+          <path class="paper" d="M-75 -95h112l38 38v170H-75z"></path>
+        </g>
+        <g transform="rotate(5)">
+          <path class="paper" d="M-75 -95h112l38 38v170H-75z"></path>
+        </g>
+        <path class="paper" d="M-75 -95h112l38 38v170H-75z"></path>
+        <path class="fold" d="M37 -95v38h38"></path>
+        <rect x="-55" y="-75" width="44" height="22" rx="3" fill="#ffd400"></rect>
+        <text class="tag" x="-48" y="-59">PDF</text>
+        <rect class="line" x="-55" y="-34" width="110" height="7" rx="3.5"></rect>
+        <rect class="line" x="-55" y="-17" width="96" height="7" rx="3.5"></rect>
+        <rect class="line" x="-55" y="0" width="110" height="7" rx="3.5"></rect>
+        <rect class="line" x="-55" y="17" width="70" height="7" rx="3.5"></rect>
+      </g>
+    </g>
+
+    <!-- Spin the Wheel: the wheel with its pointer -->
+    <g transform="translate(500 178)">
+      <g class="rise" style="--delay: 0.4s">
+        <g class="spin">
+          {slices.map((slice) => <path d={slice.d} fill={slice.color} stroke="#ffffff" stroke-width="2"></path>)}
+        </g>
+        <circle r={radius} fill="none" stroke="#1d1e20" stroke-width="6"></circle>
+        <circle r="18" fill="#1d1e20"></circle>
+        <path d="M-16 -126h32l-16 30z" fill="#1d1e20"></path>
+      </g>
+    </g>
+
+    <!-- Typing Test: one big keycap -->
+    <g transform="translate(820 192)">
+      <g class="rise" style="--delay: 0.55s">
+        <g class="press">
+          <rect x="-86" y="-78" width="172" height="156" rx="22" fill="#d6d7d2" stroke="#1d1e20" stroke-width="3"></rect>
+          <rect x="-70" y="-74" width="140" height="122" rx="16" fill="#f8f8f6" stroke="#1d1e20" stroke-width="2"></rect>
+          <text class="legend" x="-52" y="-18">A</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- The front of the tin, with its printed label and four rivets -->
+  <rect x="60" y="262" width="880" height="168" rx="24" fill="#ffd400"></rect>
+  <rect x="60" y="262" width="880" height="12" rx="6" fill="#ffe352"></rect>
+  <rect x="330" y="300" width="340" height="96" rx="12" fill="none" stroke="#1d1e20" stroke-width="3"></rect>
+  <text class="label" x="500" y="363" text-anchor="middle">Toolstin</text>
+  <circle cx="100" cy="306" r="6" fill="#e2b900"></circle>
+  <circle cx="900" cy="306" r="6" fill="#e2b900"></circle>
+  <circle cx="100" cy="392" r="6" fill="#e2b900"></circle>
+  <circle cx="900" cy="392" r="6" fill="#e2b900"></circle>
+</svg>
+
+<style>
+  .tin-scene {
+    display: block;
+    width: 100%;
+    max-width: 980px;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  /* The drawing keeps the same colours in light and dark mode, like a printed picture. */
+  .paper {
+    fill: #ffffff;
+    stroke: #1d1e20;
+    stroke-width: 3;
+    stroke-linejoin: round;
+  }
+
+  .fold {
+    fill: none;
+    stroke: #1d1e20;
+    stroke-width: 3;
+    stroke-linejoin: round;
+  }
+
+  .line {
+    fill: #c9cbc6;
+  }
+
+  .tag {
+    fill: #1d1e20;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .legend {
+    fill: #1d1e20;
+    font-size: 54px;
+    font-weight: 700;
+  }
+
+  .label {
+    fill: #1d1e20;
+    font-size: 46px;
+    font-weight: 800;
+    font-stretch: 115%;
+    letter-spacing: -1px;
+  }
+
+  /* ---------- The animation (end states above, movement below) ---------- */
+
+  /* 1. The tools rise out of the tin, overshoot a little and settle. */
+  .rise {
+    animation: rise 0.9s cubic-bezier(0.25, 0.8, 0.3, 1.15) var(--delay) both;
+  }
+
+  @keyframes rise {
+    from {
+      transform: translateY(240px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* 2. The wheel spins once and slows down like a real one. */
+  .spin {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spin 2.2s cubic-bezier(0.15, 0.6, 0.2, 1) 1s both;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(-300deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+
+  /* 3. The key is pressed once. */
+  .press {
+    animation: press 0.32s ease-in-out 1.7s both;
+  }
+
+  @keyframes press {
+    50% {
+      transform: translateY(7px);
+    }
+  }
+</style>

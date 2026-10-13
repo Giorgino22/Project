@@ -4,9 +4,9 @@ import { expect, test } from '@playwright/test';
 test('the front page links to every site and its popular tools', async ({ page }) => {
   await page.goto('/');
   for (const subdomain of ['keeplocal', 'wheel', 'typing']) {
-    const card = page.locator('.site-card', { has: page.locator(`a[href^="https://${subdomain}."]`) });
-    await expect(card, subdomain).toHaveCount(1);
-    expect(await card.locator('.chip-list a').count(), subdomain).toBeGreaterThan(1);
+    const column = page.locator('.site-list > li', { has: page.locator(`h2 a[href^="https://${subdomain}."]`) });
+    await expect(column, subdomain).toHaveCount(1);
+    expect(await column.locator('li a').count(), subdomain).toBeGreaterThan(1);
   }
   await expect(page.locator('a[href^="https://keeplocal."][href$="/merge-pdf/"]').first()).toBeVisible();
 });

@@ -103,7 +103,7 @@ const text = t(lang).components.ResizeImage;
       for (const file of files) {
         // Read the size of each image so the visitor sees it in the list.
         const image = await decodeImage(file).catch(() => undefined);
-        const meta = image ? `${image.width} × ${image.height} px · ${formatBytes(file.size, lang)}` : formatBytes(file.size, lang);
+        const meta = image ? `${image.width} × ${image.height} px, ${formatBytes(file.size, lang)}` : formatBytes(file.size, lang);
         if (image && !widthInput.placeholder) {
           widthInput.placeholder = String(image.width);
           heightInput.placeholder = String(image.height);

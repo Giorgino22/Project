@@ -1,5 +1,6 @@
 ---
 /** Random team generator: names in, fair random teams out. Behaviour: <script> below. */
+import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
 
 interface Props {
@@ -34,8 +35,8 @@ const { preset } = Astro.props;
   <div data-results hidden>
     <div class="team-grid" data-grid></div>
     <div class="actions">
-      <button type="button" class="btn btn-secondary" data-again>🔀 Shuffle again</button>
-      <button type="button" class="btn btn-secondary" data-copy>📋 Copy teams</button>
+      <button type="button" class="btn btn-secondary" data-again><Icon name="shuffle" /> Shuffle again</button>
+      <button type="button" class="btn btn-secondary" data-copy><Icon name="copy" /> Copy teams</button>
     </div>
     <SupportBox />
   </div>

@@ -8,7 +8,6 @@ import type { TestOptions } from './lib/typing';
 
 export const site = {
   id: 'typing' as const,
-  themeColor: '#1d4ed8',
   /** AdSense ad unit IDs for this site (empty = no ad). The publisher ID is in network.ts. */
   adSlots: { afterTool: '', beforeFaq: '' },
 };
@@ -30,6 +29,7 @@ export const pages = {
   home: {
     path: '/',
     name: 'Typing Test',
+    short: 'Your typing speed in one minute.',
     title: 'Typing Test – Free 1-Minute Typing Speed Test (WPM)',
     description:
       'How fast do you type? Take a free 1-minute typing test and see your words per minute (WPM) and accuracy. No sign-up, tests from 30 seconds to 5 minutes.',
@@ -63,6 +63,7 @@ export const pages = {
   threeMinutes: {
     path: '/3-minute-typing-test/',
     name: '3-Minute Test',
+    short: 'A longer test for your steady speed.',
     title: '3 Minute Typing Test – Check Your Real Typing Speed',
     description:
       'Take a free 3-minute typing test and get your real, steady speed in words per minute (WPM) and accuracy. Good practice for typing tests in job applications.',
@@ -88,6 +89,7 @@ export const pages = {
   fiveMinutes: {
     path: '/5-minute-typing-test/',
     name: '5-Minute Test',
+    short: 'The classic length for job typing tests.',
     title: '5 Minute Typing Test – Free WPM Test with Accuracy',
     description:
       'Take a free 5-minute typing test, the classic length for job typing tests. See your words per minute (WPM), your accuracy and the words you got wrong.',
@@ -113,6 +115,7 @@ export const pages = {
   practice: {
     path: '/typing-practice/',
     name: 'Typing Practice',
+    short: 'Short lessons for every row of keys.',
     title: 'Typing Practice – Free Lessons for Every Row of Keys',
     description:
       'Free typing practice with short lessons: home row, top row, bottom row, numbers and punctuation. No time limit – type at your own pace and see your speed.',
@@ -142,6 +145,7 @@ export const pages = {
   kids: {
     path: '/typing-test-for-kids/',
     name: 'Kids Typing Test',
+    short: 'Short words in big letters.',
     title: 'Typing Test for Kids – Easy Words & Big Letters',
     description:
       'A free typing test for kids with short, easy words and big letters. See words per minute and accuracy and beat your own record. No sign-up and no ads.',
@@ -172,24 +176,25 @@ export const pages = {
   keyboard: {
     path: '/keyboard-test/',
     name: 'Keyboard Test',
+    short: 'Check that every key works.',
     title: 'Keyboard Test – Check Every Key Online (Free Key Tester)',
     description:
-      'Test your keyboard online: press any key and watch it light up on the screen. Find broken, stuck or ghosting keys in seconds. Free, nothing to install.',
+      'Test your keyboard online: press any key and watch it change on the screen. Find broken, stuck or ghosting keys in seconds. Free, nothing to install.',
     h1: 'Keyboard Test',
-    lead: 'Press the keys on your keyboard one by one. Every key that works lights up – keys that stay dark may be broken.',
+    lead: 'Press the keys on your keyboard one by one. Every key that works turns yellow. Keys that stay white may be broken.',
     steps: [
       'Click the keyboard picture (on most computers it is already active).',
-      'Press every key you want to test. Working keys turn green, and keys you hold down are highlighted.',
-      'Keys that don’t light up may be broken – or missing on your keyboard. "Reset" starts over.',
+      'Press every key you want to test. Working keys turn yellow, and a key you hold down looks pressed.',
+      'Keys that stay white may be broken – or missing on your keyboard. "Reset" starts over.',
     ],
     faq: [
       {
-        q: 'Why doesn’t a key light up?',
+        q: 'Why doesn’t a key turn yellow?',
         a: 'The key may be broken, or the computer may use it for something else – keys like Print Screen or the Windows key are often taken by the system. Keys that aren’t in the picture still show up under "Last key".',
       },
       {
         q: 'How do I test for key ghosting?',
-        a: 'Hold several keys at the same time. Every key you hold should be highlighted. If one stays dark, your keyboard can’t register that many keys at once.',
+        a: 'Hold several keys at the same time. Every key you hold should look pressed. If one doesn’t, your keyboard can’t register that many keys at once.',
       },
       {
         q: 'Does it work with laptop and wireless keyboards?',
@@ -197,7 +202,7 @@ export const pages = {
       },
       {
         q: 'My keyboard has a different layout. Does the test work?',
-        a: 'Yes. The picture shows a US layout, but the test checks the physical keys – the key in the same place lights up, whatever is printed on it.',
+        a: 'Yes. The picture shows a US layout, but the test checks the physical keys – the key in the same place turns yellow, whatever is printed on it.',
       },
     ],
   },

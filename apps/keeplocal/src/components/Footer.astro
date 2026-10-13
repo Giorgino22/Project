@@ -60,19 +60,15 @@ const sisterSites = sites.filter((site) => site.id !== 'keeplocal' && site.id !=
     </div>
     <div class="footer-bottom">
       <span>© {year} {config.siteName}</span>
-      <span>
-        {dict.footer.languages}:{' '}
+      <nav class="footer-languages" aria-label={dict.footer.languages}>
         {
-          alternatesOf(pageKey).map((version, index) => (
-            <>
-              {index > 0 && ' · '}
-              <a href={version.path} hreflang={version.lang} lang={version.lang}>
-                {t(version.lang).name}
-              </a>
-            </>
+          alternatesOf(pageKey).map((version) => (
+            <a href={version.path} hreflang={version.lang} lang={version.lang}>
+              {t(version.lang).name}
+            </a>
           ))
         }
-      </span>
+      </nav>
     </div>
   </div>
 </footer>

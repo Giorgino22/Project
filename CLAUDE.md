@@ -27,6 +27,21 @@ explain complex parts, and value usability.
 - Load heavy libraries with dynamic `import()` inside handlers.
 - Meta descriptions ≤ 170 characters; one `<h1>` per page; canonical + sitemap per site.
 
+## Design system (all sites)
+
+- One stylesheet for all sites: `packages/shared/src/styles/base.css` (tokens at the top). Site CSS files only
+  add layout for their own tools. Concept: "a tin of tools" – flat surfaces, ink type, one signal colour.
+- Colours: paper `#fbfbf9`, desk `#efefeb` (tool surface, `.card`), ink `#1d1e20`, pencil `#5e6166`,
+  edge `#85888c` (input borders, 3:1), marker `#ffd400` (ONLY main actions, current state, highlights).
+- Type: Archivo variable, self-hosted via `@fontsource-variable/archivo` (never Google Fonts). Expanded
+  (`font-stretch` ~115%) for big headlines (`.display`), normal for text, condensed (75%) for numbers.
+- Icons: Lucide shapes in `packages/shared/src/icons/icons.ts`, rendered with `<Icon name="…" />`.
+- Never: emojis, tinted cards with shadows, pill chips, all-caps labels, "A · B · C" chains, "→" on links,
+  one-word accents in headlines. Numbers only for real sequences (how-to steps).
+- Motion: at most one orchestrated animation per page, plays once; the element's normal CSS is the END
+  state, so `prefers-reduced-motion` (disabled globally in base.css) shows the finished picture.
+- Social images: `npm run images -w apps/<site>` (packages/shared/scripts/og-image.mjs).
+
 ## KeepLocal specifics (apps/keeplocal)
 
 - `src/tools/registry.ts` lists tools; texts live in `src/i18n/{en,de}.ts` (`Dictionary = typeof en`).

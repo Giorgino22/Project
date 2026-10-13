@@ -1,8 +1,13 @@
 ---
-/** Front page of the central domain: one card per site with its most popular tools. */
+/**
+ * Front page of the central domain. The tin picture shows one tool per site; below it, each
+ * site gets a column (lined up under its tool) with its most popular pages.
+ */
+import Icon from '@tools/shared/components/Icon.astro';
 import SiteLayout from '@tools/shared/components/SiteLayout.astro';
 import { websiteSchema } from '@tools/shared/lib/seo';
-import { network, sites, siteUrl } from '@tools/shared/network';
+import { features, network, sites, siteUrl } from '@tools/shared/network';
+import TinScene from '../components/TinScene.astro';
 import '../styles/hub.css';
 
 const title = `${network.name} – Free Online Tools for PDF, Typing and More`;
@@ -11,37 +16,27 @@ const description =
 const toolSites = sites.filter((site) => site.id !== 'hub');
 ---
 
-<SiteLayout
-  site="hub"
-  title={title}
-  description={description}
-  path="/"
-  themeColor="#4338ca"
-  jsonLd={[websiteSchema(network.name, `${siteUrl('hub')}/`, description)]}
->
+<SiteLayout site="hub" title={title} description={description} path="/" jsonLd={[websiteSchema(network.name, `${siteUrl('hub')}/`, description)]}>
   <div class="container">
-    <section class="page-intro">
-      <h1>Free online tools that just work</h1>
+    <section class="hub-hero">
+      <h1 class="display">A tin of handy tools for everyday jobs.</h1>
       <p class="lead">
-        No sign-up, no uploads, no clutter. Every tool runs right in your browser, so your files and texts never leave your
-        device.
+        Merge a PDF, pick a random name for class or check how fast you type. Everything runs in your browser, so your
+        files and texts never leave your computer.
       </p>
     </section>
 
-    <ul class="site-grid">
+    <TinScene />
+
+    <ul class="site-list">
       {
         toolSites.map((site) => (
-          <li class="card site-card">
-            <a class="site-card-title" href={`${siteUrl(site.id)}/`}>
-              <span class="site-icon" aria-hidden="true">
-                {site.icon}
-              </span>
-              <span>
-                <span class="site-name">{site.name}</span>
-                <span class="site-description">{site.description}</span>
-              </span>
-            </a>
-            <ul class="chip-list">
+          <li>
+            <h2>
+              <a href={`${siteUrl(site.id)}/`}>{site.name}</a>
+            </h2>
+            <p>{site.description}</p>
+            <ul>
               {site.links.map((link) => (
                 <li>
                   <a href={siteUrl(site.id) + link.path}>{link.label}</a>
@@ -53,18 +48,23 @@ const toolSites = sites.filter((site) => site.id !== 'hub');
       }
     </ul>
 
-    <section class="feature-grid" aria-label="Why our tools">
-      <div class="card">
-        <h2>🔒 Private by design</h2>
-        <p>Your files, names and texts are processed on your own device. Nothing is uploaded and nothing is stored on a server.</p>
+    <section class="hub-about">
+      <div>
+        <h2>How can it be free?</h2>
+        <p>
+          Your own browser does the work, so the sites need no servers and cost almost nothing to run.
+          {features.ads && ' A few ads pay for the rest.'} You never need an account, and there is no paid version.
+        </p>
       </div>
-      <div class="card">
-        <h2>⚡ Fast and simple</h2>
-        <p>No accounts, no installs, no waiting for uploads. Open a tool and use it straight away.</p>
-      </div>
-      <div class="card">
-        <h2>💸 Free</h2>
-        <p>All tools are free to use – on your computer, tablet or phone.</p>
+      <div class="callout">
+        <Icon name="eye" />
+        <div>
+          <h2>Check it yourself</h2>
+          <p>
+            Open your browser’s developer tools (F12 on most computers), switch to the Network tab and use any tool.
+            You’ll see that your files are never sent anywhere.
+          </p>
+        </div>
       </div>
     </section>
   </div>

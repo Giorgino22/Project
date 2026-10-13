@@ -8,7 +8,7 @@
  *      src/components/tools/index.ts.
  * See docs/ADDING-TOOLS.md for a step-by-step guide.
  */
-import type { IconName } from '../icons/icons';
+import type { IconName } from '@tools/shared/icons/icons';
 import type { ImageFormat } from '../lib/formats';
 
 export type Category = 'pdf' | 'image' | 'generator';
