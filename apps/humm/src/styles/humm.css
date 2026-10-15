@@ -400,3 +400,25 @@
     flex: 1 1 100%;
   }
 }
+
+/* Spotify's or YouTube's own player, shown in the row when Apple has no preview */
+.guess-player {
+  margin-top: 14px;
+}
+
+.guess-player iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+
+.guess-player .spotify-player {
+  height: 80px;
+}
+
+.guess-player .youtube-player {
+  max-width: 560px;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}

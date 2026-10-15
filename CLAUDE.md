@@ -68,12 +68,17 @@ explain complex parts, and value usability.
   prompt) – never replay model turns (Gemini 3 thought signatures).
 - Google requires showing `searchEntryPoint.renderedContent` next to answers that used Google Search: it is shown in
   a sandboxed `<iframe srcdoc>` (no scripts).
-- Previews: the BROWSER asks Apple's iTunes Search API via JSONP (`src/scripts/itunes.ts`, Apple's documented way for
-  web pages) only when "Play preview" is tapped – Apple refuses requests from Cloudflare Workers. A result is used
-  only when title AND artist match (`pickBestMatch` in `src/lib/songs.ts`). This on-tap script from itunes.apple.com
-  is a deliberate exception to "no third-party requests" (disclosed in the privacy policy).
-- Spotify/YouTube links: DuckDuckGo "\" search (jumps to the first result), `songLink()` in `src/lib/songs.ts`. No
-  Spotify API (2026 dev mode forbids business use), no song.link (public API closed), no Deezer (non-commercial).
+- Song IDs: after Gemini answers, the Worker looks every song up in Wikidata (`src/worker/songids.ts`: search title →
+  items whose name = title and whose description/performer names the artist → Spotify P2207, YouTube P1651, Apple Music
+  P10110) and adds `ids` to the guess. Wikidata is CC0, free, no key; Wikimedia wants a User-Agent.
+- Links (`src/lib/songs.ts`): direct `open.spotify.com/track/ID` / `youtube.com/watch?v=ID` / `music.apple.com/song/ID`
+  when known (phones open the apps), otherwise honest "Search on Spotify/YouTube" links. IDs are validated by regex.
+- Previews, only on tap: Apple's preview by ID via JSONP `itunes.apple.com/lookup` in the BROWSER (`src/scripts/itunes.ts`;
+  Apple refuses Cloudflare Workers and its /search answered 404 in 2026), else Spotify's embed player (30 s preview,
+  full song when logged in), else YouTube's (youtube-nocookie.com). These on-tap loads are deliberate exceptions to
+  "no third-party requests" (disclosed in the privacy policy).
+- Not used: Spotify Web API (2026 dev mode: Premium owner, no business use; preview_url gone since 2024), song.link
+  (public API closed), Deezer (non-commercial), DuckDuckGo "\" (showed result pages, not the song).
 - The melody line: `detectPitch` (src/lib/pitch.ts) ~30×/s, smoothed by `melodyLine` (src/lib/melody.ts: median,
   bridge pauses, drop scraps, moving average), drawn as quadratic curves. Pauses (`silences()`) are drawn as red
   dashes (`--stop`) with a legend, so a gap reads as "silence", not as a bug.

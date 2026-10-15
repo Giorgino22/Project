@@ -19,6 +19,16 @@ export interface Round {
   feedback: string;
 }
 
+/** The song's IDs on other services, from Wikidata (src/worker/songids.ts). Missing = not known. */
+export interface SongIds {
+  /** e.g. "0pQskrTITgmCMyr85tb9qq" → open.spotify.com/track/… */
+  spotify?: string;
+  /** e.g. "tRcPA7Fzebw" → youtube.com/watch?v=… */
+  youtube?: string;
+  /** Apple Music track number, e.g. "1440939938" */
+  apple?: string;
+}
+
 /** Found by the page itself when the visitor taps "Play preview" (src/scripts/itunes.ts). */
 export interface Preview {
   /** The 30-second preview (an audio file on Apple's servers) */
@@ -36,6 +46,8 @@ export interface Guess {
   confidence: number;
   /** One sentence: why this song matches */
   why: string;
+  /** Added by the Worker when Wikidata knows the song */
+  ids?: SongIds;
 }
 
 /** What /api/identify answers. */

@@ -129,11 +129,13 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         </button>
         <button type="button" class="btn btn-secondary btn-small" data-pick><Icon name="check" /> That’s it</button>
         <ul class="chip-list guess-links">
-          <li><a data-youtube target="_blank" rel="noopener">YouTube</a></li>
           <li><a data-spotify target="_blank" rel="noopener">Spotify</a></li>
+          <li><a data-youtube target="_blank" rel="noopener">YouTube</a></li>
           <li data-apple-item hidden><a data-apple target="_blank" rel="noopener">Apple Music</a></li>
         </ul>
       </div>
+      <!-- The Spotify or YouTube player appears here when there is no Apple preview -->
+      <div class="guess-player" data-player hidden></div>
     </li>
   </template>
 </div>
@@ -144,9 +146,9 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
   import { detectPitch, frequencyToNote } from '../lib/pitch';
   import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
   import type { Answer, Guess, IdentifyRequest, Preview, Round } from '../lib/types';
-  import { songLink } from '../lib/songs';
+  import { appleMusicLink, isSpotifyId, isYoutubeId, spotifyLink, youtubeLink } from '../lib/songs';
   import { bytesToBase64, encodeWav } from '../lib/wav';
-  import { findPreview } from '../scripts/itunes';
+  import { applePreview } from '../scripts/itunes';
   import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-humm]')) setupHumm(root);
@@ -633,35 +635,79 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       part('[data-meter]').style.width = `${confidence}%`;
       part('[data-why]').textContent = guess.why;
 
-      part<HTMLAnchorElement>('[data-youtube]').href = songLink('youtube', guess.title, guess.artist);
-      part<HTMLAnchorElement>('[data-spotify]').href = songLink('spotify', guess.title, guess.artist);
+      // Links: straight to the song when Wikidata knew its IDs, otherwise a search on that service.
+      const spotify = spotifyLink(guess.ids, guess.title, guess.artist);
+      const youtube = youtubeLink(guess.ids, guess.title, guess.artist);
+      const spotifyAnchor = part<HTMLAnchorElement>('[data-spotify]');
+      const youtubeAnchor = part<HTMLAnchorElement>('[data-youtube]');
+      spotifyAnchor.href = spotify.href;
+      spotifyAnchor.textContent = spotify.direct ? 'Spotify' : 'Search on Spotify';
+      youtubeAnchor.href = youtube.href;
+      youtubeAnchor.textContent = youtube.direct ? 'YouTube' : 'Search on YouTube';
+      const apple = appleMusicLink(guess.ids);
+      if (apple) {
+        part<HTMLAnchorElement>('[data-apple]').href = apple;
+        part('[data-apple-item]').hidden = false;
+      }
 
-      // The preview is looked up at Apple only when the visitor asks for it (src/scripts/itunes.ts).
-      let preview: Preview | undefined;
+      // Preview, best first: Apple's 30-second preview (plays right here), else the Spotify
+      // player, else the YouTube video. Nothing is loaded from them until the visitor taps.
       const play = part<HTMLButtonElement>('[data-play]');
       const label = part('[data-play-label]');
+      const appleId = guess.ids?.apple;
+      const canEmbed = isSpotifyId(guess.ids?.spotify) || isYoutubeId(guess.ids?.youtube);
+      play.hidden = !appleId && !canEmbed; // no source at all: no button
+      let preview: Preview | undefined;
+      let triedApple = false;
       play.addEventListener('click', async () => {
-        if (!preview) {
+        if (!preview && appleId && !triedApple) {
+          triedApple = true;
           unlockSound();
           play.disabled = true;
           label.textContent = 'Loading …';
-          preview = await findPreview(guess.title, guess.artist);
+          preview = await applePreview(appleId);
           play.disabled = false;
           label.textContent = 'Play preview';
-          if (!preview) {
-            play.disabled = true;
-            play.dataset.unavailable = 'true';
-            label.textContent = 'No preview';
-            return;
-          }
-          // Now we also know the song's page on Apple Music.
-          part<HTMLAnchorElement>('[data-apple]').href = preview.appleUrl;
-          part('[data-apple-item]').hidden = false;
         }
-        togglePreview(play, preview.audioUrl);
+        if (preview) {
+          togglePreview(play, preview.audioUrl);
+        } else if (showPlayer(part('[data-player]'), guess)) {
+          play.hidden = true; // the embedded player has its own play button
+        } else {
+          play.disabled = true;
+          play.dataset.unavailable = 'true';
+          label.textContent = 'No preview';
+        }
       });
       part('[data-pick]').addEventListener('click', () => markFound(row, guess));
       return row;
+    }
+
+    /**
+     * Shows Spotify's (or else YouTube's) own player for the song inside the result row. Spotify's
+     * player plays a 30-second preview (the whole song if you are logged in to Spotify). The IDs
+     * were checked by isSpotifyId/isYoutubeId, so only real IDs end up in the address.
+     */
+    function showPlayer(box: HTMLElement, guess: Guess): boolean {
+      const frame = document.createElement('iframe');
+      frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+      frame.loading = 'lazy';
+      if (isSpotifyId(guess.ids?.spotify)) {
+        frame.src = `https://open.spotify.com/embed/track/${guess.ids.spotify}`;
+        frame.title = `${guess.title} on Spotify`;
+        frame.className = 'spotify-player';
+      } else if (isYoutubeId(guess.ids?.youtube)) {
+        // youtube-nocookie.com: YouTube's privacy-friendlier player
+        frame.src = `https://www.youtube-nocookie.com/embed/${guess.ids.youtube}?autoplay=1&playsinline=1`;
+        frame.title = `${guess.title} on YouTube`;
+        frame.className = 'youtube-player';
+      } else {
+        return false;
+      }
+      previewPlayer.pause();
+      box.replaceChildren(frame);
+      box.hidden = false;
+      return true;
     }
 
     /**

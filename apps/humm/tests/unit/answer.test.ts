@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickBestMatch, sameSong, simplify, songLink } from '../../src/lib/songs';
+import { sameSong, simplify } from '../../src/lib/songs';
 import { MAX_AUDIO_CHARACTERS, buildPrompt, cleanAnswer, extractJson, readRequest } from '../../src/worker/answer';
 
 describe('what we ask the AI', () => {
@@ -83,44 +83,5 @@ describe('reading the AI’s answer', () => {
   it('compares songs without case, accents or punctuation', () => {
     expect(simplify('Lo Que Pasó, Pasó')).toBe('lo que paso paso');
     expect(sameSong({ title: 'Lo Que Pasó, Pasó', artist: 'Daddy Yankee' }, { title: 'lo que paso paso', artist: 'DADDY YANKEE' })).toBe(true);
-  });
-});
-
-describe('choosing the preview', () => {
-  const track = (trackName: string, artistName: string) => ({
-    trackName,
-    artistName,
-    previewUrl: `https://audio.example/${trackName}.m4a`,
-    trackViewUrl: 'https://music.apple.com/x',
-  });
-
-  it('takes the version whose title and artist match', () => {
-    const results = [
-      track('El Taxi (Karaoke Version)', 'Karaoke Stars'),
-      track('Taxi Driver', 'Someone Else'),
-      track('El Taxi (feat. Pitbull & Sensato)', 'Osmani García "La Voz"'),
-    ];
-    expect(pickBestMatch(results, 'El Taxi', 'Osmani García, Pitbull & Sensato')?.trackName).toBe('El Taxi (feat. Pitbull & Sensato)');
-  });
-
-  it('rather shows no preview than a wrong song', () => {
-    expect(pickBestMatch([track('Hey Ya!', 'Outkast')], 'El Taxi', 'Osmani García')).toBeNull();
-    expect(pickBestMatch([{ trackName: 'El Taxi', artistName: 'Osmani García' }], 'El Taxi', 'Osmani García')).toBeNull(); // no preview file
-  });
-});
-
-describe('Spotify and YouTube links', () => {
-  it('jump straight to the first result on DuckDuckGo', () => {
-    const spotify = new URL(songLink('spotify', 'Starman', 'David Bowie'));
-    expect(spotify.origin).toBe('https://duckduckgo.com');
-    expect(spotify.searchParams.get('q')).toBe('\\Starman David Bowie song site:open.spotify.com');
-    expect(new URL(songLink('youtube', 'La Gozadera', 'Gente de Zona')).searchParams.get('q')).toBe(
-      '\\La Gozadera Gente de Zona site:youtube.com',
-    );
-  });
-
-  it('keep special characters intact', () => {
-    const link = new URL(songLink('youtube', 'Rock & Roll #1', 'AC/DC'));
-    expect(link.searchParams.get('q')).toBe('\\Rock & Roll #1 AC/DC site:youtube.com');
   });
 });

@@ -1,7 +1,8 @@
 /**
  * Comparing songs and building links to them. Used by the Worker (to drop songs the visitor
- * already rejected) and by the page (to pick the right Apple preview and to open Spotify/YouTube).
+ * already rejected, and to find songs in Wikidata) and by the page (links and previews).
  */
+import type { SongIds } from './types';
 
 /** Lower case, no accents, no punctuation, single spaces: "Lo Que Pasó, Pasó" → "lo que paso paso". */
 export function simplify(value: string): string {
@@ -18,52 +19,16 @@ export function sameSong(a: { title: string; artist: string }, b: { title: strin
   return simplify(a.title) === simplify(b.title) && simplify(a.artist) === simplify(b.artist);
 }
 
-// ---------------------------------------------------------------- Apple previews
-
-/** The fields of an Apple (iTunes Search API) result that we use. */
-export interface ItunesTrack {
-  trackName?: string;
-  artistName?: string;
-  previewUrl?: string;
-  trackViewUrl?: string;
-}
-
-/** Versions nobody is looking for, unless the AI suggested exactly that. */
-const UNWANTED = /\b(karaoke|tribute|instrumental|made famous|cover|8 bit|lullaby)\b/;
-
-/**
- * Apple's result whose title AND artist match the suggested song best, or null if none matches
- * well enough – a wrong preview (or a karaoke version) would be worse than none.
- */
-export function pickBestMatch(tracks: ItunesTrack[], title: string, artist: string): ItunesTrack | null {
-  const wantsUnusual = UNWANTED.test(simplify(title));
-  let best: ItunesTrack | null = null;
-  let bestScore = 0;
-  for (const track of tracks) {
-    if (!track.previewUrl || !track.trackName || !track.artistName) continue;
-    if (!wantsUnusual && UNWANTED.test(simplify(track.trackName))) continue;
-    const titleMatch = overlap(withoutExtras(track.trackName), withoutExtras(title));
-    const artistMatch = overlap(track.artistName, artist);
-    if (titleMatch < 0.6 || artistMatch < 0.3) continue;
-    const score = 2 * titleMatch + artistMatch;
-    if (score > bestScore) {
-      best = track;
-      bestScore = score;
-    }
-  }
-  return best;
-}
-
-/** "El Taxi (feat. Pitbull & Sensato) [Remix]" → "El Taxi" */
-function withoutExtras(title: string): string {
+/** "El Taxi (feat. Pitbull & Sensato) [Remix]" → "El Taxi";  "Starman - 2012 Remaster" → "Starman" */
+export function withoutExtras(title: string): string {
   return title.replace(/\s*[([].*?[)\]]/g, '').replace(/\s+-\s+.*$/, '');
 }
 
 /**
- * How many words two names share, compared to the shorter one (0 … 1).
- * "Osmani García" vs "Osmani García, Pitbull & Sensato" → 1, because the shorter one is fully inside.
+ * How many words two texts share, compared to the shorter one (0 … 1).
+ * "David Bowie" vs "1972 single by David Bowie" → 1, because the shorter one is fully inside.
  */
-function overlap(a: string, b: string): number {
+export function wordMatch(a: string, b: string): number {
   const wordsA = new Set(simplify(a).split(' ').filter(Boolean));
   const wordsB = new Set(simplify(b).split(' ').filter(Boolean));
   if (wordsA.size === 0 || wordsB.size === 0) return 0;
@@ -72,18 +37,50 @@ function overlap(a: string, b: string): number {
   return shared / Math.min(wordsA.size, wordsB.size);
 }
 
-// ---------------------------------------------------------------- Spotify and YouTube
+/** Same title, ignoring extras like "(Remastered)": "Starman" = "Starman (2012 Remaster)", but not "Starman Jones". */
+export function sameTitle(a: string, b: string): boolean {
+  const wordsA = simplify(withoutExtras(a)).split(' ').filter(Boolean);
+  const wordsB = simplify(withoutExtras(b)).split(' ').filter(Boolean);
+  if (wordsA.length === 0 || wordsB.length === 0) return false;
+  const shared = wordsA.filter((word) => wordsB.includes(word)).length;
+  return shared / Math.max(wordsA.length, wordsB.length) >= 0.8;
+}
 
-/**
- * A link that opens the song on Spotify or YouTube.
- *
- * Finding the song's own page there needs Spotify's or YouTube's API (with keys and limits that
- * don't fit a free public site). Instead the link asks DuckDuckGo: a search that starts with "\"
- * jumps straight to the first result ("I'm feeling ducky"), which is almost always the song.
- * If not, the visitor simply lands on the search results.
- */
-export function songLink(service: 'spotify' | 'youtube', title: string, artist: string): string {
-  // Spotify's song pages are called "… – song and lyrics by …", so "song" helps find the song page.
-  const query = service === 'spotify' ? `\\${title} ${artist} song site:open.spotify.com` : `\\${title} ${artist} site:youtube.com`;
-  return `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+/** Little words that say nothing about who the artist is ("The Killers" vs "song by The Weeknd"). */
+const FILLER = new Set(['the', 'a', 'an', 'and', 'by', 'of', 'feat', 'ft', 'featuring', 'with', 'de', 'la', 'el', 'los', 'las', 'y', 'und', 'der', 'die', 'das', 'song', 'single']);
+
+/** Does `text` (a Wikidata description or performer) name this artist? Filler words don't count. */
+export function namesArtist(text: string, artist: string): boolean {
+  const keep = (value: string) => simplify(value).split(' ').filter((word) => word && !FILLER.has(word)).join(' ');
+  return wordMatch(keep(artist), keep(text)) >= 0.5;
+}
+
+// ---------------------------------------------------------------- IDs and links
+
+/** IDs come from outside (Wikidata), so they are checked before they go into a link or player. */
+export const isSpotifyId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9]{22}$/.test(id);
+export const isYoutubeId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);
+export const isAppleId = (id: unknown): id is string => typeof id === 'string' && /^\d{4,15}$/.test(id);
+
+export interface SongLink {
+  href: string;
+  /** true = straight to the song; false = a search on that service */
+  direct: boolean;
+}
+
+/** The song on Spotify. With its ID, phones open it right in the Spotify app. */
+export function spotifyLink(ids: SongIds | undefined, title: string, artist: string): SongLink {
+  if (isSpotifyId(ids?.spotify)) return { href: `https://open.spotify.com/track/${ids.spotify}`, direct: true };
+  return { href: `https://open.spotify.com/search/${encodeURIComponent(`${title} ${artist}`)}`, direct: false };
+}
+
+/** The song's video on YouTube (or a YouTube search). */
+export function youtubeLink(ids: SongIds | undefined, title: string, artist: string): SongLink {
+  if (isYoutubeId(ids?.youtube)) return { href: `https://www.youtube.com/watch?v=${ids.youtube}`, direct: true };
+  return { href: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`, direct: false };
+}
+
+/** The song on Apple Music – only when its ID is known (Apple's search is unreliable). */
+export function appleMusicLink(ids: SongIds | undefined): string | null {
+  return isAppleId(ids?.apple) ? `https://music.apple.com/song/${ids.apple}` : null;
 }

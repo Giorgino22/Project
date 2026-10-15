@@ -88,9 +88,10 @@ Each small site follows the same pattern:
 ## Humm, the song finder
 
 Humm records a tune in the browser (and draws the melody on a staff while you hum, silence in red),
-then sends it to its Worker at `/api/identify`. The Worker asks Google's Gemini AI and answers. When
-the visitor taps "Play preview", the browser gets a 30-second preview from Apple's free iTunes Search
-API; the Spotify and YouTube links open DuckDuckGo's first result for the song. "Search again" sends the songs
+then sends it to its Worker at `/api/identify`. The Worker asks Google's Gemini AI, then looks each
+song up in Wikidata (the free database behind Wikipedia) for its Spotify, YouTube and Apple Music IDs.
+So the links open the song itself (on phones: in the app), and "Play preview" plays Apple's 30-second
+preview or shows Spotify's or YouTube's player. Songs Wikidata doesn't know get search links. "Search again" sends the songs
 that were wrong plus the visitor's feedback, and from then on Gemini may also **search Google** for
 the words it heard.
 
@@ -98,7 +99,8 @@ the words it heard.
 | --- | --- |
 | `src/components/SongFinder.astro` | The tool: record key, melody staff, waiting circle, results, "That's it" |
 | `src/lib/` | Pure logic, unit-tested: WAV file, note detection, smooth melody line with silences, time estimate, song matching and links, shared types |
-| `src/scripts/itunes.ts` | Asks Apple for a preview from the visitor's browser (only when "Play preview" is tapped) |
+| `src/scripts/itunes.ts` | Asks Apple for a preview by ID from the visitor's browser (only when "Play preview" is tapped) |
+| `src/worker/songids.ts` | Finds each song's Spotify, YouTube and Apple Music IDs in Wikidata |
 | `src/worker/index.ts` | The Worker: `/api/identify` (+ rate limit); everything else comes from `dist/` |
 | `src/worker/gemini.ts` | Asks Gemini: models in turn, time limits, web search from the second try |
 | `src/worker/answer.ts` | The AI's instructions and safe reading of its answer |

@@ -63,11 +63,16 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
     </p>
     <p>
       To keep the service free and prevent abuse, Cloudflare counts how many searches come from your IP address within one
-      minute; the count is not kept any longer. When you tap “Play preview”, your browser asks Apple (Apple Inc., One Apple
-      Park Way, Cupertino, CA 95014, USA) for that song and loads its 30-second preview from Apple’s servers; Apple receives
-      the song’s title and artist and your IP address. If Humm searched the web, it shows Google’s search suggestions;
-      clicking one opens Google Search. The Spotify and YouTube links open DuckDuckGo’s first search result for the song;
-      they, like the Apple Music link, only open those websites when you click them.
+      minute; the count is not kept any longer. To link to the suggested songs, our server looks up their titles in
+      Wikidata, the free database of the Wikimedia Foundation – this contains nothing about you.
+    </p>
+    <p>
+      Previews are only loaded when you tap “Play preview”: your browser then gets the 30-second preview from Apple (Apple
+      Inc., One Apple Park Way, Cupertino, CA 95014, USA) or shows Spotify’s player (Spotify AB, Regeringsgatan 19, 111 53
+      Stockholm, Sweden) or YouTube’s player in its privacy-enhanced mode (Google Ireland Limited, Gordon House, Barrow
+      Street, Dublin 4, Ireland). That service receives your IP address and the song, and its player may set cookies. If
+      Humm searched the web, it shows Google’s search suggestions; clicking one opens Google Search. The Spotify, YouTube
+      and Apple Music links only open those websites or apps when you click them.
     </p>
 
     <h2>Data saved in your browser</h2>

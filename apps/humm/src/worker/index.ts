@@ -2,13 +2,14 @@
  * The Cloudflare Worker of Humm – the only server code in the whole network.
  *
  * It exists because the AI needs a secret key, which must never be in the page itself.
- * /api/identify: the page sends the recording + notes → we ask Gemini → answer.
- * (Previews come straight from Apple to the visitor's browser – see src/scripts/itunes.ts.)
+ * /api/identify: the page sends the recording + notes → we ask Gemini → we look the songs up in
+ * Wikidata (their Spotify, YouTube and Apple Music IDs) → answer.
  * Every other address (the pages, images, …) is served from dist/ without this code running
  * (see "run_worker_first" in wrangler.jsonc).
  */
 import { readRequest } from './answer';
 import { identify, type GeminiSettings } from './gemini';
+import { addSongIds } from './songids';
 
 export interface Env extends GeminiSettings {
   /** The built site (dist/) */
@@ -41,6 +42,8 @@ export async function handleIdentify(request: Request, env: Env): Promise<Respon
 
   const result = await identify(input, env);
   if ('error' in result) return json({ error: result.error }, result.status);
+  // Direct links and previews need each song's IDs (at most 4 more seconds, usually well under 1).
+  await addSongIds(result.answer.guesses);
   return json(result.answer);
 }
 

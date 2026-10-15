@@ -176,13 +176,25 @@ describe('the Worker', () => {
     expect(limiter.limit).toHaveBeenCalledWith({ key: '203.0.113.1' });
   });
 
-  it('answers with the songs – and asks nobody but Gemini', async () => {
-    const calls = fakeInternet(() => json(geminiReply(goodAnswer)));
+  it('answers with the songs and their IDs from Wikidata', async () => {
+    const calls = fakeInternet((url) => {
+      if (url.includes('generativelanguage')) return json(geminiReply(goodAnswer));
+      const params = new URL(url).searchParams;
+      if (params.get('action') === 'wbsearchentities') return json({ search: [{ id: 'Q9', label: 'El Taxi', description: 'song by Osmani García' }] });
+      return json({ entities: { Q9: { claims: { P2207: [{ mainsnak: { datavalue: { value: '1234567890abcdefghijkl' } } }] } } } });
+    });
     const response = await worker.fetch(post({ hint: 'la' }), env());
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.json()).toMatchObject({ guesses: [{ title: 'El Taxi', artist: 'Osmani García' }] });
-    // Previews are looked up by the visitor's browser, not by the Worker
-    expect(calls.every((call) => call.url.startsWith('https://generativelanguage.googleapis.com/'))).toBe(true);
+    expect(await response.json()).toMatchObject({ guesses: [{ title: 'El Taxi', ids: { spotify: '1234567890abcdefghijkl' } }] });
+    // Only Gemini and Wikidata are asked – never Apple (it refuses Cloudflare's servers)
+    expect(calls.every((call) => /^https:\/\/(generativelanguage\.googleapis\.com|www\.wikidata\.org)\//.test(call.url))).toBe(true);
+  });
+
+  it('still answers when Wikidata fails', async () => {
+    fakeInternet((url) => (url.includes('generativelanguage') ? json(geminiReply(goodAnswer)) : json({}, 503)));
+    const answer = await (await worker.fetch(post({ hint: 'la' }), env())).json();
+    expect(answer.guesses[0].title).toBe('El Taxi');
+    expect(answer.guesses[0].ids).toBeUndefined();
   });
 });
