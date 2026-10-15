@@ -62,7 +62,7 @@ export interface Site {
   links: { path: string; label: string }[];
   /**
    * Only for a site that sends something to a server (Humm): one honest sentence that replaces
-   * "Everything runs in your browser. Nothing is uploaded." at the bottom of its pages and on the hub.
+   * "Everything runs in your browser. Nothing is uploaded." at the bottom of the site's pages.
    */
   dataNote?: string;
 }
