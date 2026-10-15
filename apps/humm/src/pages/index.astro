@@ -1,0 +1,12 @@
+---
+import ToolPage from '@tools/shared/components/ToolPage.astro';
+import SongFinder from '../components/SongFinder.astro';
+import { allPages, pages, site } from '../site';
+import '../styles/humm.css';
+
+const page = pages.home;
+---
+
+<ToolPage site={site.id} page={page} allPages={allPages} adSlots={site.adSlots}>
+  <SongFinder />
+</ToolPage>

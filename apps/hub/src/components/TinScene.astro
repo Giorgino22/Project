@@ -1,11 +1,13 @@
 ---
 /**
  * The picture at the top of the hub: a yellow tin with one tool for each site sticking out –
- * paper sheets (KeepLocal), a wheel (Spin the Wheel) and a keycap (Typing Test).
+ * paper sheets (KeepLocal), a wheel (Spin the Wheel), a keycap (Typing Test) and a microphone (Humm).
+ * The tools stand where the site columns below them are (hub.css: .site-list), in the same order.
  *
- * When the page opens, the three tools rise out of the tin, the wheel gives one spin and the
- * key is pressed once. That's all: it plays ONCE and then stays still. The normal CSS of every
- * part is its END state, so people who switched off animations just see the finished picture.
+ * When the page opens, the four tools rise out of the tin, the wheel gives one spin, the key is
+ * pressed once and the microphone sends out two sound waves. That's all: it plays ONCE and then
+ * stays still. The normal CSS of every part is its END state, so people who switched off
+ * animations just see the finished picture.
  */
 import { network } from '@tools/shared/network';
 
@@ -33,7 +35,7 @@ const slices = COLORS.map((color, i) => {
 
   <g clip-path="url(#inside-tin)">
     <!-- KeepLocal: a few sheets of paper -->
-    <g transform="translate(180 168)">
+    <g transform="translate(158 168)">
       <g class="rise" style="--delay: 0.25s">
         <g transform="rotate(-9)">
           <path class="paper" d="M-75 -95h112l38 38v170H-75z"></path>
@@ -53,7 +55,7 @@ const slices = COLORS.map((color, i) => {
     </g>
 
     <!-- Spin the Wheel: the wheel with its pointer -->
-    <g transform="translate(500 178)">
+    <g transform="translate(386 178)">
       <g class="rise" style="--delay: 0.4s">
         <g class="spin">
           {slices.map((slice) => <path d={slice.d} fill={slice.color} stroke="#ffffff" stroke-width="2"></path>)}
@@ -65,12 +67,30 @@ const slices = COLORS.map((color, i) => {
     </g>
 
     <!-- Typing Test: one big keycap -->
-    <g transform="translate(820 192)">
+    <g transform="translate(614 192)">
       <g class="rise" style="--delay: 0.55s">
         <g class="press">
           <rect x="-86" y="-78" width="172" height="156" rx="22" fill="#d6d7d2" stroke="#1d1e20" stroke-width="3"></rect>
           <rect x="-70" y="-74" width="140" height="122" rx="16" fill="#f8f8f6" stroke="#1d1e20" stroke-width="2"></rect>
           <text class="legend" x="-52" y="-18">A</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Humm: a microphone on its holder, with two sound waves -->
+    <g transform="translate(842 186)">
+      <g class="rise" style="--delay: 0.7s">
+        <path d="M-58 -26v6a58 58 0 0 0 116 0v-6" fill="none" stroke="#1d1e20" stroke-width="7" stroke-linecap="round"></path>
+        <rect x="-5" y="36" width="10" height="80" fill="#1d1e20"></rect>
+        <rect x="-40" y="-122" width="80" height="140" rx="40" fill="#ffffff" stroke="#1d1e20" stroke-width="3"></rect>
+        <rect class="line" x="-24" y="-100" width="48" height="6" rx="3"></rect>
+        <rect class="line" x="-28" y="-84" width="56" height="6" rx="3"></rect>
+        <rect class="line" x="-28" y="-68" width="56" height="6" rx="3"></rect>
+        <rect class="line" x="-28" y="-52" width="56" height="6" rx="3"></rect>
+        <rect x="-40" y="-38" width="80" height="14" fill="#ffd400" stroke="#1d1e20" stroke-width="3"></rect>
+        <g class="sing">
+          <path d="M56 -92a36 36 0 0 1 0 52" fill="none" stroke="#1d1e20" stroke-width="5" stroke-linecap="round"></path>
+          <path d="M72 -106a58 58 0 0 1 0 80" fill="none" stroke="#1d1e20" stroke-width="5" stroke-linecap="round"></path>
         </g>
       </g>
     </g>
@@ -175,6 +195,18 @@ const slices = COLORS.map((color, i) => {
   @keyframes press {
     50% {
       transform: translateY(7px);
+    }
+  }
+
+  /* 4. The microphone's sound waves appear. */
+  .sing {
+    animation: sing 0.5s ease-out 2.1s both;
+  }
+
+  @keyframes sing {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
     }
   }
 </style>

@@ -171,6 +171,25 @@ make up for it like this:
    (75–200 MB) and only the newest browsers, so later.
 5. German-speaking niches: Swiss QR-bill, invoices, cancellation letters.
 
+## Update (October 2026): Humm, a deliberate exception
+
+Humm (find a song by humming) breaks two rules from above on purpose: it is an AI tool, and every
+search costs a little money. It came from the owner's own problem – a melody in your head and no
+idea of its name – which Shazam can't solve (it needs the original recording) and which Google
+only solves inside its own app.
+
+How the risk is kept small:
+
+| Risk | Answer |
+| --- | --- |
+| Every search costs money | Fast "Flash" models with little thinking: well under one cent per search. Google Search (the expensive part, ~$14 per 1,000 after 5,000 free per month) is only used when the visitor asks to search again. |
+| Abuse could run up a bill | 6 searches per minute per IP address (Cloudflare), plus a daily request quota and a budget alert at Google (launch checklist, step 3b). |
+| It breaks the "nothing is uploaded" promise | Said plainly on the page, in its footer, on the hub and in the privacy policy. All other sites stay browser-only. |
+| Legal (Switzerland/EU/UK) | Google allows only the paid Gemini API for such apps, so billing must be on; then Google doesn't train on the recordings. |
+
+If the costs ever outgrow the ad income, the cheapest switch is to turn off the web search in
+`apps/humm/src/worker/gemini.ts` – or to take Humm off the network.
+
 ## Sources
 
 - Photopea revenue: [Indie Hackers – "Making $3M+ per year with a free product"](https://www.indiehackers.com/post/making-3m-per-year-with-a-free-product-axW4u1vB6C8f91Z3Lxu5), [AIN.ua (2021)](https://en.ain.ua/2021/04/15/photopea-history)

@@ -28,7 +28,9 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
 
     <p>
       <strong>In short:</strong> our tools run entirely in your web browser. Files and texts you use in them are never
-      uploaded to us or to anyone else. Below we explain which other data is processed when you visit our websites.
+      uploaded to us or to anyone else. The one exception is the song finder Humm: to recognise a tune, it sends your
+      recording to Google’s AI (see <a href="#song-finder">Song finder</a>). Below we explain which other data is processed
+      when you visit our websites.
     </p>
     <p>This privacy policy applies to these websites: {domains.join(', ')}.</p>
 
@@ -40,13 +42,37 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
     <p>
       Files you open with our tools (for example PDFs and images) and anything you type into a tool (for example the names on
       a wheel or the words of a typing test) are processed only on your device, inside your browser. They are not
-      transmitted to our servers or to third parties, and we cannot see them.
+      transmitted to our servers or to third parties, and we cannot see them. The song finder is the only exception, as
+      described in the next section.
+    </p>
+
+    <h2 id="song-finder">Song finder (Humm)</h2>
+    <p>
+      Humm uses your microphone only after you tap the record key, and only until you stop. The recording stays in your
+      browser until you tap “Find the song”. Then your recording, what you typed and – when you search again – the songs
+      Humm suggested before are sent through our server (a Cloudflare Worker) to Google’s Gemini API, a service of Google
+      LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. Google’s AI listens to the recording and suggests songs;
+      from the second try on it may also search Google for the words it heard.
+    </p>
+    <p>
+      We do not store your recordings or notes, and our server logs only which AI model answered and how long it took. We
+      use Google’s paid Gemini service: according to Google’s terms, Google does not use the data to improve its products and
+      keeps it only for a limited time to detect misuse. Data may be processed in the USA. The legal basis is your request
+      to identify a song (Art. 6(1)(b) GDPR). More information:
+      <a href="https://ai.google.dev/gemini-api/terms">https://ai.google.dev/gemini-api/terms</a>
+    </p>
+    <p>
+      To keep the service free and prevent abuse, Cloudflare counts how many searches come from your IP address within one
+      minute; the count is not kept any longer. When you play a song preview, your browser loads the 30-second audio file
+      directly from Apple (Apple Inc., One Apple Park Way, Cupertino, CA 95014, USA), which receives your IP address. If
+      Humm searched the web, it shows Google’s search suggestions; clicking one opens Google Search. The YouTube, Spotify
+      and Apple Music links only open those websites when you click them.
     </p>
 
     <h2>Data saved in your browser</h2>
     <p>
-      Some tools remember things for you – for example the entries of a wheel, your typing test personal best or your
-      settings. This is stored in your browser's local storage on your device only and is never sent to us. You can delete it
+      Some tools remember things for you – for example the entries of a wheel, your typing test personal best, your
+      settings or how long the song finder’s last searches took (to estimate the waiting time). This is stored in your browser's local storage on your device only and is never sent to us. You can delete it
       at any time by clearing the site data in your browser. If you share a link to a wheel, its entries are part of that
       link.
     </p>

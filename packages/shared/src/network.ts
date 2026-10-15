@@ -8,6 +8,7 @@
  *   keeplocal.example.com  → PDF & image tools
  *   wheel.example.com      → spin the wheel
  *   typing.example.com     → typing test
+ *   humm.example.com       → find a song by humming
  *
  * Money features stay OFF while their value is empty ('').
  * Where to get each value: docs/LAUNCH-CHECKLIST.md
@@ -28,7 +29,7 @@ export const network = {
   },
 
   /** Date shown on the privacy policies. Update it whenever you switch ads, statistics or tips on/off. */
-  legalUpdated: '2026-10-12',
+  legalUpdated: '2026-10-15',
 
   /** Where the sites are hosted (named in the privacy policies). */
   hosting: {
@@ -48,7 +49,7 @@ export const network = {
 };
 
 /** The IDs of all sites. To add a site, add its ID here AND an entry to `sites` below. */
-export type SiteId = 'hub' | 'keeplocal' | 'wheel' | 'typing';
+export type SiteId = 'hub' | 'keeplocal' | 'wheel' | 'typing' | 'humm';
 
 export interface Site {
   id: SiteId;
@@ -59,6 +60,11 @@ export interface Site {
   description: string;
   /** Most popular pages of the site, linked from the hub page */
   links: { path: string; label: string }[];
+  /**
+   * Only for a site that sends something to a server (Humm): one honest sentence that replaces
+   * "Everything runs in your browser. Nothing is uploaded." at the bottom of the site's pages.
+   */
+  dataNote?: string;
 }
 
 /**
@@ -107,6 +113,14 @@ export const sites: Site[] = [
       { path: '/typing-practice/', label: 'Typing practice' },
       { path: '/keyboard-test/', label: 'Keyboard test' },
     ],
+  },
+  {
+    id: 'humm',
+    subdomain: 'humm',
+    name: 'Humm',
+    description: 'Hum, sing or whistle a tune and find out which song it is.',
+    links: [{ path: '/', label: 'Find a song by humming' }],
+    dataNote: 'To find the song, your recording is sent to Google’s AI. We don’t keep it.',
   },
 ];
 

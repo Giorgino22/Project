@@ -1,0 +1,21 @@
+{
+  "name": "humm",
+  "description": "Humm – find a song by humming, singing or whistling it (uses Google's Gemini AI through a small Cloudflare Worker).",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4325",
+    "build": "astro build",
+    "preview": "astro preview --port 4325",
+    "check": "astro check",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "images": "node ../../packages/shared/scripts/og-image.mjs \"Humm\" \"Hum it. Find the song.\" \"humm\""
+  },
+  "dependencies": {
+    "@tools/shared": "*",
+    "astro": "7.3.8"
+  }
+}

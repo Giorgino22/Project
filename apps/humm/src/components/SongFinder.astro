@@ -1,0 +1,677 @@
+---
+/**
+ * The song finder: record a tune (the melody is drawn on a staff while you hum), add what you
+ * remember, get up to five songs with previews, and search again until it's the right one.
+ * The behaviour is in the <script> at the bottom – it runs in the visitor's browser and talks
+ * to our Worker (src/worker/) at /api/identify.
+ */
+import Icon from '@tools/shared/components/Icon.astro';
+import SupportBox from '@tools/shared/components/SupportBox.astro';
+import { siteUrl } from '@tools/shared/network';
+import { MAX_SECONDS } from '../scripts/recording';
+
+const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
+---
+
+<div class="humm card" data-humm>
+  <div class="humm-top">
+    <div class="humm-stage">
+      <!-- The staff: the melody is drawn here while recording. It's a picture only, so screen readers skip it. -->
+      <canvas class="staff" data-staff aria-hidden="true"></canvas>
+      <div class="record-row">
+        <button type="button" class="record-key" data-record aria-pressed="false" aria-label="Start recording">
+          <span data-mic-icon><Icon name="mic" /></span>
+          <span data-stop-icon hidden><Icon name="square" /></span>
+        </button>
+        <div>
+          <p class="record-time readout" aria-hidden="true">
+            <span data-time>0:00</span><span class="record-limit"> / 0:{MAX_SECONDS}</span>
+          </p>
+          <p class="record-hint" data-record-hint>Tap the key and hum</p>
+        </div>
+      </div>
+      <div class="take" data-take hidden>
+        <audio controls preload="metadata" data-take-player aria-label="Your recording"></audio>
+        <button type="button" class="icon-button" data-discard aria-label="Delete recording"><Icon name="trash-2" /></button>
+      </div>
+    </div>
+
+    <div class="humm-form">
+      <label class="field">
+        <span class="field-label">What do you remember? (optional)</span>
+        <textarea data-hint rows="3" maxlength="500" placeholder="e.g. with Pitbull, in Spanish, sounds like “que loquera”"></textarea>
+        <span class="field-help">A few words, the singer, the language, where or when you heard it.</span>
+      </label>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" data-find disabled><Icon name="search" /> Find the song</button>
+      </div>
+      <p class="humm-note">
+        <Icon name="info" />
+        <span>
+          To find the song, your recording and notes are sent to Google’s Gemini AI. We don’t keep them.{' '}
+          <a href={privacyUrl}>How your data is handled</a>
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <p class="status" data-status role="status" aria-live="polite"></p>
+
+  <section class="humm-results results" data-results aria-label="Results" hidden>
+    <div class="progress" data-progress hidden>
+      <svg class="progress-ring" viewBox="0 0 48 48" aria-hidden="true">
+        <circle class="progress-track" cx="24" cy="24" r="20"></circle>
+        <circle class="progress-arc" cx="24" cy="24" r="20" data-arc></circle>
+      </svg>
+      <div>
+        <p class="progress-title" data-progress-title role="status">Finding your song</p>
+        <p class="progress-time" data-progress-time></p>
+      </div>
+    </div>
+
+    <div data-answer hidden>
+      <p class="heard" data-heard></p>
+      <ul class="guess-list" data-guesses></ul>
+      <p class="humm-question" data-question hidden></p>
+
+      <!-- Google requires its search suggestions to be shown next to every answer that used Google Search. -->
+      <div class="web-search" data-web hidden>
+        <p class="web-label">Humm searched the web for this:</p>
+        <iframe
+          class="search-suggestions"
+          data-suggestions
+          title="Google search suggestions"
+          sandbox="allow-popups allow-popups-to-escape-sandbox"
+          hidden></iframe>
+        <p class="sources" data-sources hidden></p>
+      </div>
+
+      <form class="follow-up" data-follow-up>
+        <label class="field">
+          <span class="field-label">None of these? Tell Humm more (optional)</span>
+          <input type="text" data-feedback maxlength="300" placeholder="e.g. it’s older, a woman sings, the chorus is faster" />
+        </label>
+        <button type="submit" class="btn btn-primary"><Icon name="refresh-cw" /> Search again</button>
+      </form>
+      <p class="answer-model" data-model></p>
+    </div>
+
+    <div class="found" data-found hidden>
+      <p class="status" data-kind="success" data-found-text></p>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" data-restart><Icon name="mic" /> Find another song</button>
+      </div>
+      <SupportBox />
+    </div>
+  </section>
+
+  <!-- One result row. The script copies it for each song and fills in the texts. -->
+  <template data-guess-template>
+    <li class="guess">
+      <div class="guess-head">
+        <div class="guess-name">
+          <strong data-title></strong>
+          <span data-artist></span>
+        </div>
+        <div class="guess-sure">
+          <span class="readout" data-confidence></span>
+          <span class="guess-sure-label">sure</span>
+        </div>
+      </div>
+      <div class="confidence-meter" aria-hidden="true"><span data-meter></span></div>
+      <p class="guess-why" data-why></p>
+      <div class="guess-actions">
+        <button type="button" class="btn btn-secondary btn-small" data-play aria-pressed="false" hidden>
+          <span data-play-icon><Icon name="play" /></span>
+          <span data-pause-icon hidden><Icon name="pause" /></span>
+          <span data-play-label>Play preview</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" data-pick><Icon name="check" /> That’s it</button>
+        <ul class="chip-list guess-links">
+          <li><a data-youtube target="_blank" rel="noopener">YouTube</a></li>
+          <li><a data-spotify target="_blank" rel="noopener">Spotify</a></li>
+          <li data-apple-item hidden><a data-apple target="_blank" rel="noopener">Apple Music</a></li>
+        </ul>
+      </div>
+    </li>
+  </template>
+</div>
+
+<script>
+  import { load, save } from '@tools/shared/lib/storage';
+  import { detectPitch, frequencyToNote } from '../lib/pitch';
+  import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
+  import type { Answer, Guess, IdentifyRequest, Round } from '../lib/types';
+  import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-humm]')) setupHumm(root);
+
+  function setupHumm(root: HTMLElement): void {
+    const find = <T extends Element = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
+    const staff = find<HTMLCanvasElement>('[data-staff]');
+    const recordKey = find<HTMLButtonElement>('[data-record]');
+    const timeText = find('[data-time]');
+    const recordHint = find('[data-record-hint]');
+    const take = find('[data-take]');
+    const takePlayer = find<HTMLAudioElement>('[data-take-player]');
+    const hintField = find<HTMLTextAreaElement>('[data-hint]');
+    const findButton = find<HTMLButtonElement>('[data-find]');
+    const status = find('[data-status]');
+    const results = find('[data-results]');
+    const progress = find('[data-progress]');
+    const progressTitle = find('[data-progress-title]');
+    const progressTime = find('[data-progress-time]');
+    const arc = find<SVGCircleElement>('[data-arc]');
+    const answerBox = find('[data-answer]');
+    const heard = find('[data-heard]');
+    const guessList = find('[data-guesses]');
+    const question = find('[data-question]');
+    const webBox = find('[data-web]');
+    const suggestions = find<HTMLIFrameElement>('[data-suggestions]');
+    const sources = find('[data-sources]');
+    const followUp = find<HTMLFormElement>('[data-follow-up]');
+    const feedbackField = find<HTMLInputElement>('[data-feedback]');
+    const modelText = find('[data-model]');
+    const found = find('[data-found]');
+    const foundText = find('[data-found-text]');
+    const template = find<HTMLTemplateElement>('[data-guess-template]');
+
+    // ------------------------------------------------------------------ state
+
+    let audio: string | null = null; // the recording as base64 WAV, once it's ready
+    let converting = false; // true while the recording is turned into a WAV
+    let busy = false; // true while Humm is searching
+    let rounds: Round[] = []; // earlier tries of this search (songs that were wrong + feedback)
+    let lastGuesses: Guess[] = [];
+
+    let recorder: MediaRecorder | null = null;
+    let starting = false; // true while the browser asks for the microphone
+    let recordingNumber = 0; // counts recordings, so a slow old one can't replace a newer one
+    let stream: MediaStream | null = null;
+    let listener: AudioContext | null = null; // reads the microphone for the melody line
+    let startedAt = 0;
+    let clock = 0;
+    let frame = 0;
+    /** The melody so far: seconds since the start and the note (null = silence). */
+    let melody: { time: number; note: number | null }[] = [];
+
+    const previewPlayer = new Audio(); // plays the 30-second previews
+    let playingButton: HTMLButtonElement | null = null;
+
+    function updateButtons(): void {
+      const recording = recorder?.state === 'recording';
+      findButton.disabled = busy || converting || recording || (!audio && hintField.value.trim() === '');
+      recordKey.disabled = busy;
+      // Only one yellow button at a time: once songs are shown, "Search again" is the main action.
+      const hasResults = !results.hidden && !answerBox.hidden;
+      findButton.classList.toggle('btn-primary', !hasResults);
+      findButton.classList.toggle('btn-secondary', hasResults);
+    }
+    hintField.addEventListener('input', updateButtons);
+
+    function showStatus(message: string, kind: 'error' | 'info' = 'info'): void {
+      status.textContent = message;
+      status.dataset.kind = kind;
+    }
+
+    // ------------------------------------------------------------------ recording
+
+    recordKey.addEventListener('click', () => {
+      if (recorder?.state === 'recording') stopRecording();
+      else void startRecording();
+    });
+
+    async function startRecording(): Promise<void> {
+      if (starting) return;
+      showStatus('');
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        showStatus('This browser can’t record sound. Try a recent Chrome, Edge, Firefox or Safari.', 'error');
+        return;
+      }
+      starting = true;
+      try {
+        // Echo and noise filters are made for speech and would swallow parts of a hummed tune.
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
+        });
+      } catch {
+        showStatus('Humm can’t use your microphone. Allow it in your browser’s site settings, then tap the key again.', 'error');
+        return;
+      } finally {
+        starting = false;
+      }
+      previewPlayer.pause();
+      discardRecording(); // a new recording replaces the old one
+
+      const chunks: Blob[] = [];
+      const activeRecorder = new MediaRecorder(stream);
+      const number = ++recordingNumber;
+      recorder = activeRecorder;
+      activeRecorder.addEventListener('dataavailable', (event) => chunks.push(event.data));
+      activeRecorder.addEventListener('stop', () => {
+        void finishRecording(new Blob(chunks, { type: activeRecorder.mimeType || 'audio/webm' }), number);
+      });
+      activeRecorder.start();
+      startedAt = Date.now();
+      melody = [];
+      try {
+        startMelodyLine(stream);
+      } catch {
+        // No melody line in this browser – the recording itself still works.
+      }
+
+      clock = window.setInterval(() => {
+        const seconds = (Date.now() - startedAt) / 1000;
+        timeText.textContent = formatTime(seconds);
+        if (seconds >= MAX_SECONDS) stopRecording();
+      }, 200);
+
+      recordKey.setAttribute('aria-pressed', 'true');
+      recordKey.setAttribute('aria-label', 'Stop recording');
+      find('[data-mic-icon]').hidden = true;
+      find('[data-stop-icon]').hidden = false;
+      recordHint.textContent = 'Recording – tap to stop';
+      updateButtons();
+    }
+
+    function stopRecording(): void {
+      window.clearInterval(clock);
+      cancelAnimationFrame(frame);
+      recorder?.stop();
+      stream?.getTracks().forEach((track) => track.stop()); // switches the microphone off
+      void listener?.close();
+      listener = null;
+      recordKey.style.removeProperty('--level');
+      recordKey.setAttribute('aria-pressed', 'false');
+      recordKey.setAttribute('aria-label', 'Start recording');
+      find('[data-mic-icon]').hidden = false;
+      find('[data-stop-icon]').hidden = true;
+      recordHint.textContent = 'Tap the key to record again';
+      drawStaff(); // once more, without the "you are here" dot
+    }
+
+    async function finishRecording(recording: Blob, number: number): Promise<void> {
+      const seconds = (Date.now() - startedAt) / 1000;
+      if (seconds < MIN_SECONDS) {
+        showStatus('That was very short. Hum for at least a few seconds.', 'error');
+        updateButtons();
+        return;
+      }
+      if (takePlayer.src) URL.revokeObjectURL(takePlayer.src);
+      takePlayer.src = URL.createObjectURL(recording);
+      take.hidden = false;
+      converting = true;
+      updateButtons();
+      let wav: string | null = null;
+      try {
+        wav = await recordingToWavBase64(recording);
+      } catch {
+        showStatus('Humm couldn’t read the recording. Please record again.', 'error');
+      }
+      if (number !== recordingNumber) return; // a newer recording was started meanwhile
+      audio = wav;
+      converting = false;
+      updateButtons();
+    }
+
+    find('[data-discard]').addEventListener('click', discardRecording);
+
+    function discardRecording(): void {
+      audio = null;
+      converting = false;
+      takePlayer.pause();
+      if (takePlayer.src) URL.revokeObjectURL(takePlayer.src);
+      takePlayer.removeAttribute('src');
+      take.hidden = true;
+      melody = [];
+      drawStaff();
+      timeText.textContent = formatTime(0);
+      recordHint.textContent = 'Tap the key and hum';
+      updateButtons();
+    }
+
+    /** 7.4 → "0:07" */
+    function formatTime(seconds: number): string {
+      const whole = Math.min(MAX_SECONDS, Math.floor(seconds));
+      return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    }
+
+    // ------------------------------------------------------------------ the melody line
+
+    /**
+     * While recording, an AnalyserNode lets us read the newest bit of sound 20 times a second.
+     * detectPitch() finds the note in it; drawStaff() draws all notes so far as a line.
+     */
+    function startMelodyLine(microphone: MediaStream): void {
+      listener = new AudioContext();
+      void listener.resume(); // some browsers start it paused
+      const analyser = listener.createAnalyser();
+      analyser.fftSize = 2048;
+      listener.createMediaStreamSource(microphone).connect(analyser);
+      const wave = new Float32Array(analyser.fftSize);
+      const sampleRate = listener.sampleRate;
+      let lastCheck = 0;
+
+      const tick = (now: number) => {
+        if (recorder?.state !== 'recording') return;
+        if (now - lastCheck >= 50) {
+          lastCheck = now;
+          analyser.getFloatTimeDomainData(wave);
+          const hz = detectPitch(wave, sampleRate);
+          melody.push({ time: (Date.now() - startedAt) / 1000, note: hz === null ? null : frequencyToNote(hz) });
+          // The key's yellow ring grows with your voice, so you can see the microphone hears you.
+          let loudness = 0;
+          for (const value of wave) loudness += value * value;
+          recordKey.style.setProperty('--level', String(Math.min(1, Math.sqrt(loudness / wave.length) * 8)));
+          drawStaff();
+        }
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }
+
+    function drawStaff(): void {
+      const context = staff.getContext('2d');
+      if (!context) return;
+      // Draw sharply on high-resolution screens: more canvas pixels than CSS pixels.
+      const ratio = window.devicePixelRatio || 1;
+      const width = staff.clientWidth;
+      const height = staff.clientHeight;
+      if (staff.width !== Math.round(width * ratio) || staff.height !== Math.round(height * ratio)) {
+        staff.width = Math.round(width * ratio);
+        staff.height = Math.round(height * ratio);
+      }
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+
+      // The colours come from the design (base.css), so light and dark mode both work.
+      const style = getComputedStyle(root);
+      const color = (name: string) => style.getPropertyValue(name).trim();
+
+      // Five staff lines, like music paper.
+      context.strokeStyle = color('--line');
+      context.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const y = Math.round(height * (0.2 + i * 0.15)) + 0.5;
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+
+      const notes = melody.flatMap((point) => (point.note === null ? [] : [point.note]));
+      staff.dataset.notes = String(notes.length); // how many notes were heard (the browser tests check it)
+      if (notes.length === 0) {
+        context.fillStyle = color('--pencil');
+        context.font = `500 15px ${style.fontFamily}`;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        const empty = recorder?.state === 'recording' ? 'Listening …' : 'Your melody appears here';
+        context.fillText(empty, width / 2, height / 2);
+        return;
+      }
+      // Fit the notes sung so far into the height (at least 14 semitones, so a steady note stays in the middle).
+      const lowest = Math.min(...notes);
+      const highest = Math.max(...notes);
+      const span = Math.max(14, highest - lowest + 4);
+      const bottom = (lowest + highest) / 2 - span / 2;
+      // The staff shows at least 8 seconds and grows with the recording, so a short hum isn't squeezed.
+      const shownSeconds = Math.max(8, melody[melody.length - 1]?.time ?? 0);
+      const x = (time: number) => 10 + (time / shownSeconds) * (width - 20);
+      const y = (note: number) => height * 0.9 - ((note - bottom) / span) * height * 0.8;
+
+      context.strokeStyle = color('--ink');
+      context.lineWidth = 3;
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.beginPath();
+      let previous: number | null = null;
+      for (const point of melody) {
+        // Silence or a big jump (a new phrase) lifts the pen.
+        if (point.note === null || previous === null || Math.abs(point.note - previous) > 7) {
+          if (point.note !== null) context.moveTo(x(point.time), y(point.note));
+        } else {
+          context.lineTo(x(point.time), y(point.note));
+        }
+        previous = point.note;
+      }
+      context.stroke();
+
+      // The note you are humming right now: a yellow dot with an ink rim.
+      const last = melody[melody.length - 1];
+      if (recorder?.state === 'recording' && last?.note != null) {
+        context.beginPath();
+        context.arc(x(last.time), y(last.note), 6, 0, 2 * Math.PI);
+        context.fillStyle = color('--marker');
+        context.fill();
+        context.lineWidth = 2;
+        context.stroke();
+      }
+    }
+    drawStaff();
+    window.addEventListener('resize', drawStaff);
+
+    // ------------------------------------------------------------------ searching
+
+    findButton.addEventListener('click', () => {
+      rounds = []; // a new search
+      lastGuesses = [];
+      void search();
+    });
+
+    followUp.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (busy) return;
+      rounds.push({
+        guesses: lastGuesses.map(({ title, artist }) => ({ title, artist })),
+        feedback: feedbackField.value.trim() || 'None of these are right.',
+      });
+      void search();
+    });
+
+    async function search(): Promise<void> {
+      const hint = hintField.value.trim();
+      if (!audio && !hint) return;
+      const webSearch = rounds.length > 0; // from the second try on, Humm also searches the web
+      busy = true;
+      updateButtons();
+      previewPlayer.pause();
+      showStatus('');
+      results.hidden = false;
+      answerBox.hidden = true;
+      found.hidden = true;
+      startProgress(webSearch);
+      const started = performance.now();
+
+      try {
+        const request: IdentifyRequest = { audio: audio ?? undefined, hint, rounds };
+        const response = await fetch('/api/identify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(request),
+          signal: AbortSignal.timeout(100_000), // never wait longer than 100 seconds
+        });
+        const data = (await response.json().catch(() => ({}))) as Partial<Answer> & { error?: string };
+        if (!response.ok) throw new Error(data.error || `Something went wrong (error ${response.status}). Please try again.`);
+        rememberDuration(webSearch, (performance.now() - started) / 1000);
+        feedbackField.value = '';
+        showAnswer(data as Answer);
+      } catch (error) {
+        rounds.pop(); // this try didn't happen – the visitor can send the same feedback again
+        const name = error instanceof Error ? error.name : '';
+        const message =
+          name === 'TimeoutError'
+            ? 'Humm took too long to answer. Please try again.'
+            : name === 'TypeError'
+              ? 'Humm couldn’t be reached. Check your internet connection and try again.'
+              : error instanceof Error
+                ? error.message
+                : 'Something went wrong. Please try again.';
+        showStatus(message, 'error');
+        // After a failed "Search again", the earlier songs stay on screen.
+        answerBox.hidden = lastGuesses.length === 0;
+        results.hidden = answerBox.hidden;
+      } finally {
+        stopProgress();
+        busy = false;
+        updateButtons();
+      }
+    }
+
+    // ------------------------------------------------------------------ the waiting circle
+
+    const circumference = 2 * Math.PI * 20; // the circle's radius is 20 (see the <svg> above)
+    let progressClock = 0;
+    const durationKey = (webSearch: boolean) => `humm:durations:${webSearch ? 'web' : 'quick'}`;
+
+    function startProgress(webSearch: boolean): void {
+      // First visit: a quick try takes about 12 s, a try with web search about 25 s.
+      const estimate = estimateSeconds(load<number[]>(durationKey(webSearch), []), webSearch ? 25 : 12);
+      progressTitle.textContent = webSearch ? 'Searching again, on the web too' : 'Finding your song';
+      progress.hidden = false;
+      const started = performance.now();
+      const update = () => {
+        const elapsed = (performance.now() - started) / 1000;
+        arc.style.strokeDashoffset = String(circumference * (1 - progressFraction(elapsed, estimate)));
+        progressTime.textContent = timeLeftText(elapsed, estimate);
+      };
+      update();
+      progressClock = window.setInterval(update, 250);
+      progress.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function stopProgress(): void {
+      window.clearInterval(progressClock);
+      progress.hidden = true;
+    }
+
+    function rememberDuration(webSearch: boolean, seconds: number): void {
+      const key = durationKey(webSearch);
+      save(key, [...load<number[]>(key, []), Math.round(seconds)].slice(-5));
+    }
+
+    // ------------------------------------------------------------------ showing the answer
+
+    function showAnswer(answer: Answer): void {
+      lastGuesses = answer.guesses ?? [];
+      heard.textContent = [
+        answer.heard ? `Humm heard: ${answer.heard}` : '',
+        answer.words ? `Words: “${answer.words}”` : '',
+        lastGuesses.length === 0 ? 'No song matched. Tell Humm more below and search again.' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      guessList.replaceChildren(...lastGuesses.map(renderGuess));
+      question.textContent = answer.question ?? '';
+      question.hidden = !answer.question;
+
+      // Google's search suggestions: ready-made HTML from Google, shown in a locked-down frame
+      // (no scripts; links open in a new tab).
+      webBox.hidden = !answer.searchSuggestions && !answer.sources?.length;
+      suggestions.hidden = !answer.searchSuggestions;
+      suggestions.srcdoc = answer.searchSuggestions ? `<!doctype html><base target="_blank">${answer.searchSuggestions}` : '';
+      sources.replaceChildren();
+      const links = (answer.sources ?? []).filter((source) => source.url.startsWith('https://'));
+      if (links.length > 0) {
+        sources.append('Sources: ');
+        links.forEach((source, i) => {
+          const link = document.createElement('a');
+          link.href = source.url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = source.title;
+          sources.append(...(i > 0 ? [', ', link] : [link]));
+        });
+      }
+      sources.hidden = links.length === 0;
+
+      modelText.textContent = answer.model ? `Answered by ${answer.model}` : '';
+      followUp.hidden = false;
+      answerBox.hidden = false;
+      updateButtons();
+      results.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+
+    /** Copies the row template and fills in one song. Texts go in with textContent, never as HTML. */
+    function renderGuess(guess: Guess): HTMLLIElement {
+      const row = template.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+      const part = <T extends Element = HTMLElement>(selector: string) => row.querySelector<T>(selector)!;
+      const confidence = Math.max(0, Math.min(100, Math.round(guess.confidence)));
+
+      part('[data-title]').textContent = guess.title;
+      part('[data-artist]').textContent = guess.year ? `${guess.artist}, ${guess.year}` : guess.artist;
+      part('[data-confidence]').textContent = `${confidence} %`;
+      part('[data-meter]').style.width = `${confidence}%`;
+      part('[data-why]').textContent = guess.why;
+
+      const query = encodeURIComponent(`${guess.title} ${guess.artist}`);
+      part<HTMLAnchorElement>('[data-youtube]').href = `https://www.youtube.com/results?search_query=${query}`;
+      part<HTMLAnchorElement>('[data-spotify]').href = `https://open.spotify.com/search/${query}`;
+
+      const preview = guess.preview;
+      if (preview?.audioUrl.startsWith('https://') && preview.appleUrl.startsWith('https://')) {
+        part<HTMLAnchorElement>('[data-apple]').href = preview.appleUrl;
+        part('[data-apple-item]').hidden = false;
+        const play = part<HTMLButtonElement>('[data-play]');
+        play.hidden = false;
+        play.addEventListener('click', () => togglePreview(play, preview.audioUrl));
+      }
+      part('[data-pick]').addEventListener('click', () => markFound(row, guess));
+      return row;
+    }
+
+    // ------------------------------------------------------------------ previews
+
+    function togglePreview(button: HTMLButtonElement, url: string): void {
+      if (playingButton === button && !previewPlayer.paused) {
+        previewPlayer.pause();
+        return;
+      }
+      takePlayer.pause();
+      previewPlayer.src = url;
+      previewPlayer.play().then(
+        () => setPlaying(button),
+        () => showStatus('This preview can’t be played right now. Try the links next to it.', 'error'),
+      );
+    }
+
+    function setPlaying(button: HTMLButtonElement | null): void {
+      for (const other of guessList.querySelectorAll<HTMLButtonElement>('[data-play]')) {
+        const isPlaying = other === button;
+        other.setAttribute('aria-pressed', String(isPlaying));
+        other.querySelector<HTMLElement>('[data-play-icon]')!.hidden = isPlaying;
+        other.querySelector<HTMLElement>('[data-pause-icon]')!.hidden = !isPlaying;
+        other.querySelector('[data-play-label]')!.textContent = isPlaying ? 'Pause' : 'Play preview';
+      }
+      playingButton = button;
+    }
+    previewPlayer.addEventListener('pause', () => setPlaying(null));
+    previewPlayer.addEventListener('ended', () => setPlaying(null));
+
+    // ------------------------------------------------------------------ "That's it"
+
+    function markFound(row: HTMLLIElement, guess: Guess): void {
+      for (const other of guessList.children) (other as HTMLElement).hidden = other !== row;
+      row.classList.add('is-found');
+      row.querySelector<HTMLElement>('[data-pick]')!.hidden = true;
+      question.hidden = true;
+      followUp.hidden = true;
+      foundText.textContent = `Found it: “${guess.title}” by ${guess.artist}.`;
+      found.hidden = false;
+      found.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    find('[data-restart]').addEventListener('click', () => {
+      previewPlayer.pause();
+      rounds = [];
+      lastGuesses = [];
+      hintField.value = '';
+      discardRecording();
+      results.hidden = true;
+      updateButtons();
+      showStatus('');
+      root.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      recordKey.focus({ preventScroll: true });
+    });
+  }
+</script>

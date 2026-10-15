@@ -24,12 +24,15 @@
   margin-top: 40px;
 }
 
-/* One column per site, each lined up under its tool in the tin picture. */
+/* One column per site, each lined up under its tool in the tin picture. The tools stand at
+   15.8 %, 38.6 %, 61.4 % and 84.2 % of the picture's width; a list 88 % as wide as the picture
+   puts the middle of its four columns right under them. */
 .site-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 32px;
-  max-width: 980px;
+  width: 88%;
+  max-width: 862px;
   margin: 28px auto 0;
   padding: 0;
   list-style: none;
@@ -74,6 +77,7 @@
 
 @media (max-width: 760px) {
   .site-list {
+    width: auto;
     grid-template-columns: 1fr;
     gap: 0;
     text-align: left;
