@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_AUDIO_CHARACTERS, buildPrompt, cleanAnswer, extractJson, readRequest, sameSong, simplify } from '../../src/worker/answer';
-import { pickBestMatch } from '../../src/worker/previews';
+import { pickBestMatch, sameSong, simplify, songLink } from '../../src/lib/songs';
+import { MAX_AUDIO_CHARACTERS, buildPrompt, cleanAnswer, extractJson, readRequest } from '../../src/worker/answer';
 
 describe('what we ask the AI', () => {
   it('describes the first try', () => {
@@ -106,5 +106,21 @@ describe('choosing the preview', () => {
   it('rather shows no preview than a wrong song', () => {
     expect(pickBestMatch([track('Hey Ya!', 'Outkast')], 'El Taxi', 'Osmani García')).toBeNull();
     expect(pickBestMatch([{ trackName: 'El Taxi', artistName: 'Osmani García' }], 'El Taxi', 'Osmani García')).toBeNull(); // no preview file
+  });
+});
+
+describe('Spotify and YouTube links', () => {
+  it('jump straight to the first result on DuckDuckGo', () => {
+    const spotify = new URL(songLink('spotify', 'Starman', 'David Bowie'));
+    expect(spotify.origin).toBe('https://duckduckgo.com');
+    expect(spotify.searchParams.get('q')).toBe('\\Starman David Bowie song site:open.spotify.com');
+    expect(new URL(songLink('youtube', 'La Gozadera', 'Gente de Zona')).searchParams.get('q')).toBe(
+      '\\La Gozadera Gente de Zona site:youtube.com',
+    );
+  });
+
+  it('keep special characters intact', () => {
+    const link = new URL(songLink('youtube', 'Rock & Roll #1', 'AC/DC'));
+    expect(link.searchParams.get('q')).toBe('\\Rock & Roll #1 AC/DC site:youtube.com');
   });
 });

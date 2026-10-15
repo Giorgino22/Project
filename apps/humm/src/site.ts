@@ -41,7 +41,7 @@ export const pages = {
       },
       {
         q: 'Where do the previews come from?',
-        a: 'From Apple Music. When you play one, your browser loads the 30-second preview from Apple’s servers. The YouTube, Spotify and Apple Music links open the song there.',
+        a: 'From Apple Music. When you tap “Play preview”, your browser asks Apple for the song and plays its 30-second preview. The Spotify and YouTube links open the song’s first search result there (found with DuckDuckGo).',
       },
       {
         q: 'Is Humm free?',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { melodyLine, type MelodyPoint } from '../../src/lib/melody';
+import { melodyLine, silences, type MelodyPoint } from '../../src/lib/melody';
 
 /** Notes measured 30 times a second, starting at `start` seconds. */
 const at = (start: number, notes: (number | null)[]): MelodyPoint[] => notes.map((note, i) => ({ time: start + i / 30, note }));
@@ -34,5 +34,29 @@ describe('smooth melody line', () => {
   it('starts a new piece at a big jump', () => {
     const line = melodyLine(at(0, [50, 50, 50, 50, 50, 50, 70, 70, 70, 70, 70, 70]));
     expect(line).toHaveLength(2);
+  });
+});
+
+describe('silent stretches (drawn in red)', () => {
+  it('finds the pause between two pieces, and silence before and after', () => {
+    const line = melodyLine([...at(0, [null, null, null, null, null, null, null, null, null, null, null, null, 60, 60, 60, 60, 60, 60]), ...at(1.5, [64, 64, 64, 64, 64, 64])]);
+    const gaps = silences(line, 3);
+    expect(gaps.map((gap) => [Number(gap.start.toFixed(2)), Number(gap.end.toFixed(2))])).toEqual([
+      [0, 0.4], // before the first note
+      [0.57, 1.5], // between the two pieces
+      [1.67, 3], // after the last note until the end of the recording
+    ]);
+    expect(gaps[1]!.fromNote).toBeCloseTo(60, 0);
+    expect(gaps[1]!.toNote).toBeCloseTo(64, 0);
+  });
+
+  it('marks the whole time as silent when no tune was heard', () => {
+    expect(silences([], 2)).toEqual([{ start: 0, end: 2, fromNote: null, toNote: null }]);
+    expect(silences([], 0.1)).toEqual([]);
+  });
+
+  it('shows no red for a tune without real pauses', () => {
+    const line = melodyLine(at(0, Array.from({ length: 30 }, () => 62)));
+    expect(silences(line, 1)).toEqual([]);
   });
 });

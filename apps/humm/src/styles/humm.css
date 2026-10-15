@@ -38,6 +38,22 @@
   background: var(--sheet);
 }
 
+/* Explains the red dashes on the staff: silence, not a mistake. */
+.staff-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: var(--pencil);
+  font-size: 0.875rem;
+}
+
+.staff-legend-mark {
+  flex: none;
+  width: 20px;
+  border-top: 2px dashed var(--stop);
+}
+
 .record-row {
   display: flex;
   align-items: center;

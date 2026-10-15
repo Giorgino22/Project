@@ -18,6 +18,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
     <div class="humm-stage">
       <!-- The staff: the melody is drawn here while recording. It's a picture only, so screen readers skip it. -->
       <canvas class="staff" data-staff aria-hidden="true"></canvas>
+      <p class="staff-legend" data-legend hidden><span class="staff-legend-mark" aria-hidden="true"></span>Red: no tune heard (silence)</p>
       <div class="record-row">
         <button type="button" class="record-key" data-record aria-pressed="false" aria-label="Start recording">
           <span data-mic-icon><Icon name="mic" /></span>
@@ -139,10 +140,13 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
 <script>
   import { load, save } from '@tools/shared/lib/storage';
-  import { melodyLine } from '../lib/melody';
+  import { melodyLine, silences } from '../lib/melody';
   import { detectPitch, frequencyToNote } from '../lib/pitch';
   import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
   import type { Answer, Guess, IdentifyRequest, Preview, Round } from '../lib/types';
+  import { songLink } from '../lib/songs';
+  import { bytesToBase64, encodeWav } from '../lib/wav';
+  import { findPreview } from '../scripts/itunes';
   import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-humm]')) setupHumm(root);
@@ -150,6 +154,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
   function setupHumm(root: HTMLElement): void {
     const find = <T extends Element = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
     const staff = find<HTMLCanvasElement>('[data-staff]');
+    const legend = find('[data-legend]');
     const recordKey = find<HTMLButtonElement>('[data-record]');
     const timeText = find('[data-time]');
     const recordHint = find('[data-record-hint]');
@@ -403,25 +408,43 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       const notes = melody.flatMap((point) => (point.note === null ? [] : [point.note]));
       staff.dataset.notes = String(notes.length); // how many notes were heard (the browser tests check it)
       const line = melodyLine(melody); // the smoothed melody, in pieces (see src/lib/melody.ts)
+      const endTime = melody[melody.length - 1]?.time ?? 0; // how long the recording is so far
+      const gaps = silences(line, endTime);
+      legend.hidden = gaps.length === 0;
+
+      // Fit the melody into the height (at least 14 semitones, so a steady note stays in the middle).
+      const smoothNotes = line.flat().map((point) => point.note);
+      const lowest = smoothNotes.length > 0 ? Math.min(...smoothNotes) : 60;
+      const highest = smoothNotes.length > 0 ? Math.max(...smoothNotes) : 60;
+      const span = Math.max(14, highest - lowest + 4);
+      const bottom = (lowest + highest) / 2 - span / 2;
+      // The staff shows at least 8 seconds and grows with the recording, so a short hum isn't squeezed.
+      const shownSeconds = Math.max(8, endTime);
+      const x = (time: number) => 10 + (time / shownSeconds) * (width - 20);
+      const y = (note: number | null) => (note === null ? height / 2 : height * 0.9 - ((note - bottom) / span) * height * 0.8);
+
+      // Silence: a red dashed line, so a gap in the melody clearly means "nothing heard here".
+      context.strokeStyle = color('--stop');
+      context.lineWidth = 2;
+      context.setLineDash([4, 5]);
+      for (const gap of gaps) {
+        context.beginPath();
+        context.moveTo(x(gap.start), y(gap.fromNote));
+        context.lineTo(x(gap.end), y(gap.toNote));
+        context.stroke();
+      }
+      context.setLineDash([]);
+
       if (line.length === 0) {
         context.fillStyle = color('--pencil');
         context.font = `500 15px ${style.fontFamily}`;
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        const empty = recorder?.state === 'recording' ? 'Listening …' : 'Your melody appears here';
-        context.fillText(empty, width / 2, height / 2);
+        const empty = recorder?.state === 'recording' ? 'Listening …' : endTime > 0 ? 'No tune heard' : 'Your melody appears here';
+        // Above the red line if there is one, otherwise in the middle
+        context.fillText(empty, width / 2, gaps.length > 0 ? height / 2 - 18 : height / 2);
         return;
       }
-      // Fit the melody into the height (at least 14 semitones, so a steady note stays in the middle).
-      const smoothNotes = line.flat().map((point) => point.note);
-      const lowest = Math.min(...smoothNotes);
-      const highest = Math.max(...smoothNotes);
-      const span = Math.max(14, highest - lowest + 4);
-      const bottom = (lowest + highest) / 2 - span / 2;
-      // The staff shows at least 8 seconds and grows with the recording, so a short hum isn't squeezed.
-      const shownSeconds = Math.max(8, melody[melody.length - 1]?.time ?? 0);
-      const x = (time: number) => 10 + (time / shownSeconds) * (width - 20);
-      const y = (note: number) => height * 0.9 - ((note - bottom) / span) * height * 0.8;
 
       context.strokeStyle = color('--ink');
       context.lineWidth = 3;
@@ -610,55 +633,45 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       part('[data-meter]').style.width = `${confidence}%`;
       part('[data-why]').textContent = guess.why;
 
-      const query = encodeURIComponent(`${guess.title} ${guess.artist}`);
-      part<HTMLAnchorElement>('[data-youtube]').href = `https://www.youtube.com/results?search_query=${query}`;
-      part<HTMLAnchorElement>('[data-spotify]').href = `https://open.spotify.com/search/${query}`;
+      part<HTMLAnchorElement>('[data-youtube]').href = songLink('youtube', guess.title, guess.artist);
+      part<HTMLAnchorElement>('[data-spotify]').href = songLink('spotify', guess.title, guess.artist);
 
-      // The Apple Music link appears once we know the song's page there.
-      const showAppleLink = (preview: Preview) => {
-        part<HTMLAnchorElement>('[data-apple]').href = preview.appleUrl;
-        part('[data-apple-item]').hidden = false;
-      };
-      if (isUsable(guess.preview)) showAppleLink(guess.preview);
-
+      // The preview is looked up at Apple only when the visitor asks for it (src/scripts/itunes.ts).
+      let preview: Preview | undefined;
       const play = part<HTMLButtonElement>('[data-play]');
       const label = part('[data-play-label]');
       play.addEventListener('click', async () => {
-        if (!isUsable(guess.preview)) {
-          // The answer came without a preview (Apple may have been busy): ask once more.
+        if (!preview) {
+          unlockSound();
           play.disabled = true;
           label.textContent = 'Loading …';
-          guess.preview = await fetchPreview(guess);
+          preview = await findPreview(guess.title, guess.artist);
           play.disabled = false;
           label.textContent = 'Play preview';
-          if (!isUsable(guess.preview)) {
+          if (!preview) {
             play.disabled = true;
             play.dataset.unavailable = 'true';
             label.textContent = 'No preview';
             return;
           }
-          showAppleLink(guess.preview);
+          // Now we also know the song's page on Apple Music.
+          part<HTMLAnchorElement>('[data-apple]').href = preview.appleUrl;
+          part('[data-apple-item]').hidden = false;
         }
-        togglePreview(play, guess.preview.audioUrl);
+        togglePreview(play, preview.audioUrl);
       });
       part('[data-pick]').addEventListener('click', () => markFound(row, guess));
       return row;
     }
 
-    /** Only previews with safe https:// addresses are used. */
-    function isUsable(preview: Preview | undefined): preview is Preview {
-      return Boolean(preview?.audioUrl.startsWith('https://') && preview.appleUrl.startsWith('https://'));
-    }
-
-    /** Asks our Worker for one song's preview (it asks Apple). undefined = Apple has none. */
-    async function fetchPreview(guess: Guess): Promise<Preview | undefined> {
-      try {
-        const query = new URLSearchParams({ title: guess.title, artist: guess.artist });
-        const response = await fetch(`/api/preview?${query}`, { signal: AbortSignal.timeout(10_000) });
-        return response.ok ? ((await response.json()) as Preview) : undefined;
-      } catch {
-        return undefined;
-      }
+    /**
+     * iPhones only play sound that starts during a tap. Looking up a preview takes a moment, so
+     * during the tap we start a tiny silent sound – after that, the player may play the real preview.
+     */
+    const silentSound = `data:audio/wav;base64,${bytesToBase64(encodeWav(new Float32Array(800)))}`;
+    function unlockSound(): void {
+      previewPlayer.src = silentSound;
+      previewPlayer.play().catch(() => {});
     }
 
     // ------------------------------------------------------------------ previews

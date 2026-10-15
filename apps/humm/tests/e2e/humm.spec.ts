@@ -18,10 +18,37 @@ const answer = {
       year: '2015',
       confidence: 46,
       why: 'The chorus rhythm fits.',
-      preview: { audioUrl: 'https://audio.example/test-preview.wav', appleUrl: 'https://music.apple.com/taxi' },
     },
     { title: 'No Lo Trates', artist: 'Pitbull', year: '2019', confidence: 31, why: 'Same tempo.' },
   ],
+};
+
+/**
+ * Plays Apple's part: answers the iTunes search the page makes when "Play preview" is tapped.
+ * The page asks with a <script> tag ("JSONP"), so the answer is JavaScript that calls the
+ * function named in "callback". Returns the search terms Apple was asked for.
+ */
+async function fakeApple(page: Page, catalogue: { trackName: string; artistName: string; previewUrl: string; trackViewUrl: string }[]) {
+  const asked: string[] = [];
+  await page.route('https://itunes.apple.com/search?*', (route) => {
+    const url = new URL(route.request().url());
+    const term = url.searchParams.get('term') ?? '';
+    asked.push(term);
+    // Like Apple: a song is found when the search contains its title (without "(feat. …)")
+    const results = catalogue.filter((track) => term.includes(track.trackName.replace(/\s*\(.*$/, '')));
+    return route.fulfill({ contentType: 'text/javascript', body: `${url.searchParams.get('callback')}(${JSON.stringify({ results })})` });
+  });
+  // A one-second tone stands in for Apple's preview files.
+  const tone = encodeWav(Float32Array.from({ length: 16_000 }, (_, i) => 0.3 * Math.sin((2 * Math.PI * 440 * i) / 16_000)));
+  await page.route('https://audio.example/**', (route) => route.fulfill({ body: Buffer.from(tone), contentType: 'audio/wav' }));
+  return asked;
+}
+
+const elTaxi = {
+  trackName: 'El Taxi (feat. Pitbull & Sensato)',
+  artistName: 'Osmani García',
+  previewUrl: 'https://audio.example/taxi.wav',
+  trackViewUrl: 'https://music.apple.com/taxi',
 };
 
 /** Records the tune for about three seconds. */
@@ -72,10 +99,13 @@ test('records a tune, draws the melody and shows the songs', async ({ page }) =>
   expect(sent[0].hint).toBe('with Pitbull');
   expect(sent[0].rounds).toEqual([]);
 
-  // Links: the song with a preview also links to Apple Music; every song has a play button
-  await expect(rows.first().getByRole('link', { name: 'YouTube' })).toHaveAttribute('href', /youtube\.com\/results\?search_query=El%20Taxi/);
-  await expect(rows.first().getByRole('link', { name: 'Apple Music' })).toBeVisible();
-  await expect(rows.nth(1).getByRole('link', { name: 'Apple Music' })).toBeHidden();
+  // Links: Spotify and YouTube open the first DuckDuckGo result ("\" = I'm feeling ducky);
+  // Apple Music appears only after the preview was looked up. Every song has a play button.
+  const youtube = new URL((await rows.first().getByRole('link', { name: 'YouTube' }).getAttribute('href'))!);
+  expect(youtube.origin + youtube.pathname).toBe('https://duckduckgo.com/');
+  expect(youtube.searchParams.get('q')).toBe('\\El Taxi Osmani García site:youtube.com');
+  await expect(rows.first().getByRole('link', { name: 'Spotify' })).toHaveAttribute('href', /site%3Aopen\.spotify\.com/);
+  await expect(rows.first().getByRole('link', { name: 'Apple Music' })).toBeHidden();
   await expect(rows.nth(1).getByRole('button', { name: 'Play preview' })).toBeVisible();
   // Only one yellow (main) button: "Search again"
   await expect(page.getByRole('button', { name: 'Find the song' })).not.toHaveClass(/btn-primary/);
@@ -171,21 +201,57 @@ test('a failed "Search again" keeps the earlier songs on screen', async ({ page 
   await expect(page.locator('.guess')).toHaveCount(2);
 });
 
-test('plays and pauses a preview', async ({ page }) => {
-  // A one-second tone stands in for Apple's preview file.
-  const tone = encodeWav(Float32Array.from({ length: 16_000 }, (_, i) => 0.3 * Math.sin((2 * Math.PI * 440 * i) / 16_000)));
-  await page.route('**/test-preview.wav', (route) => route.fulfill({ body: Buffer.from(tone), contentType: 'audio/wav' }));
+test('plays and pauses a preview from Apple, asked only when tapped', async ({ page }) => {
+  const asked = await fakeApple(page, [elTaxi]);
+  await fakeApi(page, () => answer);
+  await page.goto('/');
+  await page.getByLabel('What do you remember? (optional)').fill('la la la');
+  await page.getByRole('button', { name: 'Find the song' }).click();
+  await expect(page.locator('.guess')).toHaveCount(2);
+  expect(asked, 'Apple is not asked before the visitor taps').toEqual([]);
+
+  const first = page.locator('.guess').first();
+  const play = first.locator('[data-play]');
+  await play.click();
+  await expect(play).toHaveAttribute('aria-pressed', 'true');
+  await expect(play).toContainText('Pause');
+  await expect(first.getByRole('link', { name: 'Apple Music' })).toHaveAttribute('href', 'https://music.apple.com/taxi');
+  expect(asked).toEqual(['Osmani García El Taxi']);
+  await play.click();
+  await expect(play).toHaveAttribute('aria-pressed', 'false');
+
+  // Playing again doesn't ask Apple a second time
+  await play.click();
+  await expect(play).toHaveAttribute('aria-pressed', 'true');
+  expect(asked).toHaveLength(1);
+});
+
+test('says "No preview" when Apple doesn’t have the song', async ({ page }) => {
+  await fakeApple(page, [elTaxi]);
   await fakeApi(page, () => answer);
   await page.goto('/');
   await page.getByLabel('What do you remember? (optional)').fill('la la la');
   await page.getByRole('button', { name: 'Find the song' }).click();
 
-  const play = page.locator('.guess').first().locator('[data-play]');
-  await play.click();
-  await expect(play).toHaveAttribute('aria-pressed', 'true');
-  await expect(play).toContainText('Pause');
-  await play.click();
-  await expect(play).toHaveAttribute('aria-pressed', 'false');
+  const second = page.locator('.guess').nth(1); // "No Lo Trates" isn't in the fake catalogue
+  await second.getByRole('button', { name: 'Play preview' }).click();
+  await expect(second.locator('[data-play]')).toHaveText('No preview');
+  await expect(second.locator('[data-play]')).toBeDisabled();
+  await expect(second.getByRole('link', { name: 'Apple Music' })).toBeHidden();
+});
+
+test('silence shows up red on the staff, with an explanation', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-legend]')).toBeHidden();
+  await page.getByRole('button', { name: 'Start recording' }).click();
+  await page.waitForTimeout(3500); // the test tune has a long pause after its fourth note
+  await expect(page.locator('[data-legend]')).toBeVisible();
+  await expect(page.locator('[data-legend]')).toHaveText('Red: no tune heard (silence)');
+  await page.getByRole('button', { name: 'Stop recording' }).click();
+  await expect(page.locator('[data-legend]')).toBeVisible();
+  // Deleting the recording clears the staff and the explanation
+  await page.getByRole('button', { name: 'Delete recording' }).click();
+  await expect(page.locator('[data-legend]')).toBeHidden();
 });
 
 test('a very short recording asks for more', async ({ page }) => {
@@ -194,34 +260,4 @@ test('a very short recording asks for more', async ({ page }) => {
   await page.getByRole('button', { name: 'Stop recording' }).click();
   await expect(page.locator('[data-status]')).toContainText('very short');
   await expect(page.getByRole('button', { name: 'Find the song' })).toBeDisabled();
-});
-
-test('a missing preview is looked up when the visitor taps "Play preview"', async ({ page }) => {
-  const tone = encodeWav(Float32Array.from({ length: 16_000 }, (_, i) => 0.3 * Math.sin((2 * Math.PI * 440 * i) / 16_000)));
-  await page.route('**/late-preview.wav', (route) => route.fulfill({ body: Buffer.from(tone), contentType: 'audio/wav' }));
-  const asked: string[] = [];
-  await page.route('**/api/preview?*', (route) => {
-    const url = new URL(route.request().url());
-    asked.push(url.searchParams.get('title') ?? '');
-    return url.searchParams.get('title') === 'No Lo Trates'
-      ? route.fulfill({ json: { audioUrl: 'https://audio.example/late-preview.wav', appleUrl: 'https://music.apple.com/no-lo-trates' } })
-      : route.fulfill({ status: 404, json: { error: 'Apple Music has no preview of this song.' } });
-  });
-  await fakeApi(page, () => ({ ...answer, guesses: [answer.guesses[1], { ...answer.guesses[1], title: 'Unknown Song' }] }));
-  await page.goto('/');
-  await page.getByLabel('What do you remember? (optional)').fill('la la la');
-  await page.getByRole('button', { name: 'Find the song' }).click();
-
-  // Found on the second try: the Apple Music link appears and the preview plays
-  const first = page.locator('.guess').first();
-  await first.getByRole('button', { name: 'Play preview' }).click();
-  await expect(first.locator('[data-play]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(first.getByRole('link', { name: 'Apple Music' })).toHaveAttribute('href', 'https://music.apple.com/no-lo-trates');
-
-  // Apple has nothing: the button says so
-  const second = page.locator('.guess').nth(1);
-  await second.getByRole('button', { name: 'Play preview' }).click();
-  await expect(second.locator('[data-play]')).toHaveText('No preview');
-  await expect(second.locator('[data-play]')).toBeDisabled();
-  expect(asked).toEqual(['No Lo Trates', 'Unknown Song']);
 });

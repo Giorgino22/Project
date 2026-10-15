@@ -66,3 +66,33 @@ export function melodyLine(points: MelodyPoint[]): Segment[] {
       })
   );
 }
+
+/** A stretch without a tune: drawn in red, so a gap in the line clearly means "silent here". */
+export interface Silence {
+  start: number;
+  end: number;
+  /** Height to draw it at: the note before (or after) the silence; null = no note heard yet */
+  fromNote: number | null;
+  toNote: number | null;
+}
+
+/**
+ * Where the melody line has gaps: before the first piece, between pieces and after the last one,
+ * up to `endTime` (the length of the recording so far). Gaps shorter than BRIDGE_SECONDS were
+ * already bridged by melodyLine(), so every gap here is a real pause.
+ */
+export function silences(line: Segment[], endTime: number): Silence[] {
+  if (line.length === 0) return endTime > BRIDGE_SECONDS ? [{ start: 0, end: endTime, fromNote: null, toNote: null }] : [];
+  const result: Silence[] = [];
+  const first = line[0]![0]!;
+  if (first.time > BRIDGE_SECONDS) result.push({ start: 0, end: first.time, fromNote: first.note, toNote: first.note });
+  for (let i = 1; i < line.length; i++) {
+    const before = line[i - 1]![line[i - 1]!.length - 1]!;
+    const after = line[i]![0]!;
+    if (after.time - before.time > BRIDGE_SECONDS) result.push({ start: before.time, end: after.time, fromNote: before.note, toNote: after.note });
+  }
+  const lastPiece = line[line.length - 1]!;
+  const last = lastPiece[lastPiece.length - 1]!;
+  if (endTime - last.time > BRIDGE_SECONDS) result.push({ start: last.time, end: endTime, fromNote: last.note, toNote: last.note });
+  return result;
+}

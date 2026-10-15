@@ -176,45 +176,13 @@ describe('the Worker', () => {
     expect(limiter.limit).toHaveBeenCalledWith({ key: '203.0.113.1' });
   });
 
-  it('answers with the songs and a preview for each song Apple has', async () => {
-    fakeInternet((url) => {
-      if (url.includes('generativelanguage')) return json(geminiReply(goodAnswer));
-      return json({
-        results: [{ trackName: 'El Taxi', artistName: 'Osmani García', previewUrl: 'https://audio.example/taxi.m4a', trackViewUrl: 'https://music.apple.com/taxi' }],
-      });
-    });
+  it('answers with the songs – and asks nobody but Gemini', async () => {
+    const calls = fakeInternet(() => json(geminiReply(goodAnswer)));
     const response = await worker.fetch(post({ hint: 'la' }), env());
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.json()).toMatchObject({
-      guesses: [{ title: 'El Taxi', preview: { audioUrl: 'https://audio.example/taxi.m4a', appleUrl: 'https://music.apple.com/taxi' } }],
-    });
-  });
-
-  it('looks up one preview again when the visitor taps "Play preview"', async () => {
-    const calls = fakeInternet(() =>
-      json({ results: [{ trackName: 'Starman (2012 Remaster)', artistName: 'David Bowie', previewUrl: 'https://audio.example/starman.m4a', trackViewUrl: 'https://music.apple.com/starman' }] }),
-    );
-    const get = (query: string) => worker.fetch(new Request(`https://humm.example.com/api/preview?${query}`), env());
-    const found = await get('title=Starman&artist=David%20Bowie');
-    expect(found.status).toBe(200);
-    expect(await found.json()).toEqual({ audioUrl: 'https://audio.example/starman.m4a', appleUrl: 'https://music.apple.com/starman' });
-    expect(calls[0]!.url).toContain('itunes.apple.com/search?term=David+Bowie+Starman');
-
-    expect((await get('title=Unknown%20Song&artist=Nobody')).status).toBe(404); // Apple has no match
-    expect((await get('title=Starman')).status).toBe(400); // artist missing
-    expect((await worker.fetch(new Request('https://humm.example.com/api/preview?title=a&artist=b', { method: 'POST' }), env())).status).toBe(405);
-  });
-
-  it('limits preview lookups per visitor', async () => {
-    const limiter = { limit: vi.fn(async () => ({ success: false })) };
-    const response = await worker.fetch(new Request('https://humm.example.com/api/preview?title=a&artist=b'), env({ PREVIEW_LIMIT: limiter }));
-    expect(response.status).toBe(429);
-  });
-
-  it('still answers when Apple’s search fails', async () => {
-    fakeInternet((url) => (url.includes('generativelanguage') ? json(geminiReply(goodAnswer)) : json({}, 403)));
-    const answer = await (await worker.fetch(post({ hint: 'la' }), env())).json();
-    expect(answer.guesses[0].preview).toBeUndefined();
+    expect(await response.json()).toMatchObject({ guesses: [{ title: 'El Taxi', artist: 'Osmani García' }] });
+    // Previews are looked up by the visitor's browser, not by the Worker
+    expect(calls.every((call) => call.url.startsWith('https://generativelanguage.googleapis.com/'))).toBe(true);
   });
 });

@@ -19,6 +19,7 @@ export interface Round {
   feedback: string;
 }
 
+/** Found by the page itself when the visitor taps "Play preview" (src/scripts/itunes.ts). */
 export interface Preview {
   /** The 30-second preview (an audio file on Apple's servers) */
   audioUrl: string;
@@ -35,7 +36,6 @@ export interface Guess {
   confidence: number;
   /** One sentence: why this song matches */
   why: string;
-  preview?: Preview;
 }
 
 /** What /api/identify answers. */

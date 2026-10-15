@@ -4,6 +4,7 @@
  * - checking what the page sent (readRequest)
  * - reading the AI's answer safely (extractJson, cleanAnswer)
  */
+import { sameSong } from '../lib/songs';
 import type { Guess, IdentifyRequest, Round } from '../lib/types';
 
 /** ~30 s of 16 kHz WAV is about 1.3 million base64 characters. A bit more is allowed. */
@@ -155,21 +156,6 @@ export function cleanAnswer(raw: unknown, wrong: Round['guesses'] = []): { heard
     if (guesses.length === 5) break;
   }
   return { heard: text(answer.heard, 300), words: text(answer.words, 200), guesses, question: text(answer.question, 200) };
-}
-
-/** "El Taxi" by "Osmani García" = "el taxi" by "OSMANI GARCIA" (ignores case, accents and punctuation). */
-export function sameSong(a: { title: string; artist: string }, b: { title: string; artist: string }): boolean {
-  return simplify(a.title) === simplify(b.title) && simplify(a.artist) === simplify(b.artist);
-}
-
-/** Lower case, no accents, no punctuation, single spaces: "Lo Que Pasó, Pasó" → "lo que paso paso". */
-export function simplify(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // the accents, which NFD split off from their letters
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
 }
 
 /** A trimmed single-line string of at most `max` characters (anything else becomes ''). */
