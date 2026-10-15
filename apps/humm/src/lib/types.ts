@@ -29,7 +29,7 @@ export interface SongIds {
   apple?: string;
 }
 
-/** Found by the page itself when the visitor taps "Play preview" (src/scripts/itunes.ts). */
+/** Apple's preview of a song, found by the page itself (src/scripts/itunes.ts). */
 export interface Preview {
   /** The 30-second preview (an audio file on Apple's servers) */
   audioUrl: string;

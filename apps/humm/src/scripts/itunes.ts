@@ -1,6 +1,7 @@
 /**
  * Browser helper: gets a song's 30-second preview from Apple, by the song's Apple Music ID
- * (found in Wikidata by our Worker). Only when the visitor taps "Play preview".
+ * (found in Wikidata by our Worker). Used when the songs are shown, for songs whose Spotify ID
+ * is unknown (Spotify's player comes first, see showPreview in SongFinder.astro).
  *
  * Why in the browser? Apple turns away requests from Cloudflare's servers. And why by ID? Apple's
  * search has been unreliable in 2026, but looking a song up by its ID ("lookup") works.

@@ -41,7 +41,7 @@ export const pages = {
       },
       {
         q: 'Where do the previews come from?',
-        a: 'From Apple Music – or, if Apple has none, from Spotify’s or YouTube’s own player, which appears when you tap “Play preview”. Humm finds the songs on these services through Wikidata, the free database behind Wikipedia. If a song isn’t in it yet, the links search for it instead.',
+        a: 'Each song comes with Spotify’s player, which plays a 30-second preview (the whole song if you’re logged in to Spotify). If Spotify isn’t known for a song, you get Apple Music’s preview or the YouTube video instead. Humm finds the songs on these services through Wikidata, the free database behind Wikipedia. If a song isn’t in it yet, there’s no preview and the links search for it instead.',
       },
       {
         q: 'Is Humm free?',

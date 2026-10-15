@@ -46,6 +46,11 @@ describe('note detection', () => {
     }
   });
 
+  it('hears soft humming too – phone microphones are quiet', () => {
+    expect(detectPitch(tone(220, 48_000, 2048, 0.005), 48_000)).toBeCloseTo(220, -1);
+    expect(detectPitch(tone(220, 48_000, 2048, 0.001), 48_000)).toBeNull(); // as quiet as an empty room
+  });
+
   it('returns nothing for silence and for noise', () => {
     expect(detectPitch(new Float32Array(2048), 44_100)).toBeNull();
     let seed = 1;

@@ -401,24 +401,129 @@
   }
 }
 
-/* Spotify's or YouTube's own player, shown in the row when Apple has no preview */
-.guess-player {
+/* ---------- Previews ---------- */
+
+/* The mini-player sits in the song's row, between "why" and the buttons, as wide as the text. */
+.guess-preview {
   margin-top: 14px;
 }
 
-.guess-player iframe {
+.guess-preview iframe {
   display: block;
   width: 100%;
   border: 0;
   border-radius: 12px;
 }
 
-.guess-player .spotify-player {
+/* Spotify's compact player: 80 px is one of the heights it is made for. */
+.guess-preview .spotify-player {
   height: 80px;
 }
 
-.guess-player .youtube-player {
-  max-width: 560px;
+/* YouTube asks for players of at least 200 × 200 pixels. */
+.guess-preview .youtube-player {
+  max-width: 480px;
+  min-height: 200px;
   height: auto;
   aspect-ratio: 16 / 9;
+}
+
+/* Our own player for Apple's mini-player: as tall as Spotify's, a flat strip of desk in the white row. */
+.mini-player {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 80px;
+  padding: 0 18px 0 16px;
+  border-radius: 12px;
+  background: var(--desk);
+}
+
+/* A round key like the record key; it turns marker yellow while playing (the current state). */
+.mini-player-key {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.mini-player-key .icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.mini-player-key[aria-pressed='true'] {
+  background: var(--marker);
+  color: var(--on-marker);
+}
+
+.mini-player-key:active {
+  transform: scale(0.96);
+}
+
+.mini-player-key:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.mini-player-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mini-player-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.mini-player-label {
+  overflow: hidden;
+  color: var(--pencil);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-player-time {
+  flex: none;
+  font-size: 1rem;
+}
+
+.mini-player-length {
+  color: var(--pencil);
+}
+
+/* How far the mini-player has played: a thin ink bar, like the confidence meter */
+.mini-player-track {
+  display: block;
+  height: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.mini-player-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--ink);
+}
+
+@media (max-width: 400px) {
+  .mini-player-length {
+    display: none;
+  }
 }

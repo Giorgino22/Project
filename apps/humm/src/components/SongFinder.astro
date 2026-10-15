@@ -121,12 +121,24 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       </div>
       <div class="confidence-meter" aria-hidden="true"><span data-meter></span></div>
       <p class="guess-why" data-why></p>
+      <!-- The preview, right in the row: Spotify's or YouTube's own player (added by the script),
+           or Apple's 30-second preview in this small player of our own. -->
+      <div class="guess-preview" data-preview hidden>
+        <div class="mini-player" data-apple-player hidden>
+          <button type="button" class="mini-player-key" data-play aria-pressed="false" aria-label="Play preview">
+            <span data-play-icon><Icon name="play" /></span>
+            <span data-pause-icon hidden><Icon name="pause" /></span>
+          </button>
+          <div class="mini-player-body">
+            <p class="mini-player-head">
+              <span class="mini-player-label">Preview from Apple Music</span>
+              <span class="mini-player-time readout"><span data-preview-time>0:00</span><span class="mini-player-length"> / 0:30</span></span>
+            </p>
+            <span class="mini-player-track" aria-hidden="true"><span data-preview-bar></span></span>
+          </div>
+        </div>
+      </div>
       <div class="guess-actions">
-        <button type="button" class="btn btn-secondary btn-small" data-play aria-pressed="false">
-          <span data-play-icon><Icon name="play" /></span>
-          <span data-pause-icon hidden><Icon name="pause" /></span>
-          <span data-play-label>Play preview</span>
-        </button>
         <button type="button" class="btn btn-secondary btn-small" data-pick><Icon name="check" /> That’s it</button>
         <ul class="chip-list guess-links">
           <li><a data-spotify target="_blank" rel="noopener">Spotify</a></li>
@@ -134,20 +146,17 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
           <li data-apple-item hidden><a data-apple target="_blank" rel="noopener">Apple Music</a></li>
         </ul>
       </div>
-      <!-- The Spotify or YouTube player appears here when there is no Apple preview -->
-      <div class="guess-player" data-player hidden></div>
     </li>
   </template>
 </div>
 
 <script>
   import { load, save } from '@tools/shared/lib/storage';
-  import { melodyLine, silences } from '../lib/melody';
-  import { detectPitch, frequencyToNote } from '../lib/pitch';
+  import { melodyLine, silences, type MelodyPoint } from '../lib/melody';
+  import { detectPitch, frequencyToNote, loudness } from '../lib/pitch';
   import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
   import type { Answer, Guess, IdentifyRequest, Preview, Round } from '../lib/types';
-  import { appleMusicLink, isSpotifyId, isYoutubeId, spotifyLink, youtubeLink } from '../lib/songs';
-  import { bytesToBase64, encodeWav } from '../lib/wav';
+  import { appleMusicLink, isAppleId, isSpotifyId, isYoutubeId, spotifyLink, youtubeLink } from '../lib/songs';
   import { applePreview } from '../scripts/itunes';
   import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
 
@@ -200,11 +209,11 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
     let startedAt = 0;
     let clock = 0;
     let frame = 0;
-    /** The melody so far: seconds since the start and the note (null = silence). */
-    let melody: { time: number; note: number | null }[] = [];
+    /** The melody so far: seconds since the start, the note (null = no clear note) and the loudness. */
+    let melody: MelodyPoint[] = [];
 
-    const previewPlayer = new Audio(); // plays the 30-second previews
-    let playingButton: HTMLButtonElement | null = null;
+    const previewPlayer = new Audio(); // plays Apple's 30-second previews
+    let previewKey: HTMLButtonElement | null = null; // the play key of the preview that is loaded in it
 
     function updateButtons(): void {
       const recording = recorder?.state === 'recording';
@@ -248,7 +257,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       } finally {
         starting = false;
       }
-      previewPlayer.pause();
+      stopPreviews(); // so a playing preview doesn't end up in the recording
       discardRecording(); // a new recording replaces the old one
 
       const chunks: Blob[] = [];
@@ -366,11 +375,13 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
           lastCheck = now;
           analyser.getFloatTimeDomainData(wave);
           const hz = detectPitch(wave, sampleRate);
-          melody.push({ time: (Date.now() - startedAt) / 1000, note: hz === null ? null : frequencyToNote(hz) });
+          const level = loudness(wave);
+          melody.push({ time: (Date.now() - startedAt) / 1000, note: hz === null ? null : frequencyToNote(hz), level });
           // The key's yellow ring grows with your voice, so you can see the microphone hears you.
-          let loudness = 0;
-          for (const value of wave) loudness += value * value;
-          recordKey.style.setProperty('--level', String(Math.min(1, Math.sqrt(loudness / wave.length) * 8)));
+          // Measured in decibels (like our ears hear), so soft humming moves it too:
+          // a quiet room (−60 dB) = 0, a loud voice close to the phone (−10 dB) = 1.
+          const decibels = 20 * Math.log10(level + 1e-9);
+          recordKey.style.setProperty('--level', String(Math.min(1, Math.max(0, (decibels + 60) / 50))));
           drawStaff();
         }
         frame = requestAnimationFrame(tick);
@@ -467,10 +478,10 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         context.stroke();
       }
 
-      // The note you are humming right now: a yellow dot with an ink rim at the end of the line.
+      // The note you are humming right now: a yellow dot with an ink rim at the end of the line
+      // (only while the line reaches up to now, i.e. while you sing).
       const lastPoint = line[line.length - 1]![line[line.length - 1]!.length - 1]!;
-      const newest = melody[melody.length - 1];
-      if (recorder?.state === 'recording' && newest?.note != null && newest.time - lastPoint.time < 0.1) {
+      if (recorder?.state === 'recording' && endTime - lastPoint.time < 0.1) {
         context.beginPath();
         context.arc(x(lastPoint.time), y(lastPoint.note), 6, 0, 2 * Math.PI);
         context.fillStyle = color('--marker');
@@ -506,7 +517,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       const webSearch = rounds.length > 0; // from the second try on, Humm also searches the web
       busy = true;
       updateButtons();
-      previewPlayer.pause();
+      stopPreviews();
       showStatus('');
       results.hidden = false;
       answerBox.hidden = true;
@@ -592,6 +603,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       ]
         .filter(Boolean)
         .join(' ');
+      previewKey = null; // the earlier songs and their previews are replaced
       guessList.replaceChildren(...lastGuesses.map(renderGuess));
       question.textContent = answer.question ?? '';
       question.hidden = !answer.question;
@@ -650,113 +662,121 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         part('[data-apple-item]').hidden = false;
       }
 
-      // Preview, best first: Apple's 30-second preview (plays right here), else the Spotify
-      // player, else the YouTube video. Nothing is loaded from them until the visitor taps.
-      const play = part<HTMLButtonElement>('[data-play]');
-      const label = part('[data-play-label]');
-      const appleId = guess.ids?.apple;
-      const canEmbed = isSpotifyId(guess.ids?.spotify) || isYoutubeId(guess.ids?.youtube);
-      play.hidden = !appleId && !canEmbed; // no source at all: no button
-      let preview: Preview | undefined;
-      let triedApple = false;
-      play.addEventListener('click', async () => {
-        if (!preview && appleId && !triedApple) {
-          triedApple = true;
-          unlockSound();
-          play.disabled = true;
-          label.textContent = 'Loading …';
-          preview = await applePreview(appleId);
-          play.disabled = false;
-          label.textContent = 'Play preview';
-        }
-        if (preview) {
-          togglePreview(play, preview.audioUrl);
-        } else if (showPlayer(part('[data-player]'), guess)) {
-          play.hidden = true; // the embedded player has its own play button
-        } else {
-          play.disabled = true;
-          play.dataset.unavailable = 'true';
-          label.textContent = 'No preview';
-        }
-      });
+      showPreview(part('[data-preview]'), guess);
       part('[data-pick]').addEventListener('click', () => markFound(row, guess));
       return row;
     }
 
-    /**
-     * Shows Spotify's (or else YouTube's) own player for the song inside the result row. Spotify's
-     * player plays a 30-second preview (the whole song if you are logged in to Spotify). The IDs
-     * were checked by isSpotifyId/isYoutubeId, so only real IDs end up in the address.
-     */
-    function showPlayer(box: HTMLElement, guess: Guess): boolean {
-      const frame = document.createElement('iframe');
-      frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
-      frame.loading = 'lazy';
-      if (isSpotifyId(guess.ids?.spotify)) {
-        frame.src = `https://open.spotify.com/embed/track/${guess.ids.spotify}`;
-        frame.title = `${guess.title} on Spotify`;
-        frame.className = 'spotify-player';
-      } else if (isYoutubeId(guess.ids?.youtube)) {
-        // youtube-nocookie.com: YouTube's privacy-friendlier player
-        frame.src = `https://www.youtube-nocookie.com/embed/${guess.ids.youtube}?autoplay=1&playsinline=1`;
-        frame.title = `${guess.title} on YouTube`;
-        frame.className = 'youtube-player';
-      } else {
-        return false;
-      }
-      previewPlayer.pause();
-      box.replaceChildren(frame);
-      box.hidden = false;
-      return true;
-    }
-
-    /**
-     * iPhones only play sound that starts during a tap. Looking up a preview takes a moment, so
-     * during the tap we start a tiny silent sound – after that, the player may play the real preview.
-     */
-    const silentSound = `data:audio/wav;base64,${bytesToBase64(encodeWav(new Float32Array(800)))}`;
-    function unlockSound(): void {
-      previewPlayer.src = silentSound;
-      previewPlayer.play().catch(() => {});
-    }
-
     // ------------------------------------------------------------------ previews
 
-    function togglePreview(button: HTMLButtonElement, url: string): void {
-      if (playingButton === button && !previewPlayer.paused) {
+    /**
+     * The song's preview, shown right in its row, best first: Spotify's player (a 30-second preview,
+     * the whole song when you're logged in to Spotify), else Apple's 30-second preview in our own
+     * small player, else the YouTube video. All of them need the song's ID from Wikidata. Without
+     * one there is no preview, and the links search for the song instead.
+     */
+    function showPreview(box: HTMLElement, guess: Guess): void {
+      const ids = guess.ids;
+      if (isSpotifyId(ids?.spotify)) {
+        // theme=0: Spotify's dark player instead of one coloured like the album cover
+        embed(box, `https://open.spotify.com/embed/track/${ids.spotify}?theme=0`, `${guess.title} on Spotify`, 'spotify-player');
+      } else if (isAppleId(ids?.apple)) {
+        // Apple is asked right away, so the preview plays at once when the visitor taps.
+        void applePreview(ids.apple).then((preview) => {
+          if (preview) showApplePlayer(box, preview, guess.title);
+          else if (isYoutubeId(ids.youtube)) embedYoutube(box, ids.youtube, guess.title);
+        });
+      } else if (isYoutubeId(ids?.youtube)) {
+        embedYoutube(box, ids.youtube, guess.title);
+      }
+    }
+
+    /** youtube-nocookie.com is YouTube's privacy-friendlier player; playsinline keeps it in the page on iPhones. */
+    function embedYoutube(box: HTMLElement, id: string, title: string): void {
+      embed(box, `https://www.youtube-nocookie.com/embed/${id}?playsinline=1`, `${title} on YouTube`, 'youtube-player');
+    }
+
+    /** Puts Spotify's or YouTube's own player into the row. Only checked IDs (isSpotifyId …) get here. */
+    function embed(box: HTMLElement, address: string, title: string, className: string): void {
+      const frame = document.createElement('iframe');
+      frame.src = address;
+      frame.title = title;
+      frame.className = className;
+      frame.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+      frame.loading = 'lazy'; // players further down load only when you scroll to them
+      box.replaceChildren(frame);
+      box.hidden = false;
+    }
+
+    function showApplePlayer(box: HTMLElement, preview: Preview, title: string): void {
+      const key = box.querySelector<HTMLButtonElement>('[data-play]')!;
+      key.setAttribute('aria-label', `Play preview of ${title}`); // screen readers can tell the songs apart
+      key.addEventListener('click', () => togglePreview(key, preview.audioUrl));
+      box.querySelector<HTMLElement>('[data-apple-player]')!.hidden = false;
+      box.hidden = false;
+    }
+
+    /** Plays or pauses an Apple preview. Tapping the same one again continues where it stopped. */
+    function togglePreview(key: HTMLButtonElement, url: string): void {
+      if (previewKey === key && !previewPlayer.paused) {
         previewPlayer.pause();
         return;
       }
       takePlayer.pause();
-      previewPlayer.src = url;
-      previewPlayer.play().then(
-        () => setPlaying(button),
-        (error: unknown) => {
-          // iPhones only start sound right after a tap. If the preview had to be loaded first,
-          // the tap is "used up" – then the next tap on the button plays it.
-          if (error instanceof Error && error.name === 'NotAllowedError') return;
-          showStatus('This preview can’t be played right now. Try the links next to it.', 'error');
-        },
-      );
+      if (previewKey !== key) {
+        if (previewKey) showProgress(previewKey, 0); // the other preview starts from the beginning next time
+        previewKey = key;
+        previewPlayer.src = url;
+      }
+      previewPlayer.play().catch((error: unknown) => {
+        // "AbortError": the visitor paused or picked another preview before this one began – no problem.
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        showStatus('This preview can’t be played right now. Try the links next to it.', 'error');
+      });
     }
 
-    function setPlaying(button: HTMLButtonElement | null): void {
-      for (const other of guessList.querySelectorAll<HTMLButtonElement>('[data-play]:not([data-unavailable])')) {
-        const isPlaying = other === button;
-        other.setAttribute('aria-pressed', String(isPlaying));
-        other.querySelector<HTMLElement>('[data-play-icon]')!.hidden = isPlaying;
-        other.querySelector<HTMLElement>('[data-pause-icon]')!.hidden = !isPlaying;
-        other.querySelector('[data-play-label]')!.textContent = isPlaying ? 'Pause' : 'Play preview';
+    // The play keys follow the player: a pause sign on the one that is playing, play signs on the others.
+    function setPlaying(playing: boolean): void {
+      for (const key of guessList.querySelectorAll<HTMLButtonElement>('[data-play]')) {
+        const isPlaying = playing && key === previewKey;
+        key.setAttribute('aria-pressed', String(isPlaying));
+        key.querySelector<HTMLElement>('[data-play-icon]')!.hidden = isPlaying;
+        key.querySelector<HTMLElement>('[data-pause-icon]')!.hidden = !isPlaying;
       }
-      playingButton = button;
     }
-    previewPlayer.addEventListener('pause', () => setPlaying(null));
-    previewPlayer.addEventListener('ended', () => setPlaying(null));
+    previewPlayer.addEventListener('play', () => setPlaying(true));
+    previewPlayer.addEventListener('pause', () => setPlaying(false));
+    previewPlayer.addEventListener('timeupdate', () => {
+      if (previewKey) showProgress(previewKey, previewPlayer.currentTime);
+    });
+    previewPlayer.addEventListener('ended', () => {
+      if (previewKey) showProgress(previewKey, 0);
+    });
+
+    /** Moves the thin bar and the time of a preview player to `seconds`. */
+    function showProgress(key: HTMLButtonElement, seconds: number): void {
+      const player = key.closest('[data-apple-player]')!;
+      const length = Number.isFinite(previewPlayer.duration) ? previewPlayer.duration : 30;
+      player.querySelector<HTMLElement>('[data-preview-bar]')!.style.width = `${Math.min(100, (seconds / length) * 100)}%`;
+      player.querySelector('[data-preview-time]')!.textContent = formatTime(seconds);
+    }
+
+    /**
+     * Stops every preview. Our own player can simply be paused. Spotify's and YouTube's players
+     * live on their own websites and can't be paused from here – but loading them again stops them.
+     */
+    function stopPreviews(rows: Element[] = [...guessList.children]): void {
+      for (const row of rows) {
+        if (previewKey && row.contains(previewKey)) previewPlayer.pause();
+        for (const frame of row.querySelectorAll('iframe')) frame.src = frame.src;
+      }
+    }
 
     // ------------------------------------------------------------------ "That's it"
 
     function markFound(row: HTMLLIElement, guess: Guess): void {
       for (const other of guessList.children) (other as HTMLElement).hidden = other !== row;
+      stopPreviews([...guessList.children].filter((other) => other !== row)); // the hidden songs go quiet
       row.classList.add('is-found');
       row.querySelector<HTMLElement>('[data-pick]')!.hidden = true;
       question.hidden = true;
@@ -768,6 +788,8 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
     find('[data-restart]').addEventListener('click', () => {
       previewPlayer.pause();
+      guessList.replaceChildren(); // removing the songs removes (and stops) their players too
+      previewKey = null;
       rounds = [];
       lastGuesses = [];
       hintField.value = '';

@@ -11,8 +11,13 @@
 export const MIN_HZ = 65;
 export const MAX_HZ = 2100;
 
-/** Quieter than this (average loudness) counts as silence. */
-const SILENCE = 0.01;
+/**
+ * Quieter than this (see loudness) is silence: a quiet room, not even soft humming. Phone
+ * microphones are quiet – soft humming at arm's length is only about 0.005 – so this limit is
+ * low. Whether a sound is loud enough to count as singing is decided relative to the visitor's
+ * own voice (soundLevel in src/lib/melody.ts).
+ */
+export const QUIET = 0.0015;
 /** How well the wave must match itself (0–1) to count as a clear note and not as noise.
  *  A real voice is less regular than a test tone; the occasional wrong note this lets through
  *  is removed again by melodyLine() (src/lib/melody.ts). */
@@ -24,10 +29,7 @@ export function detectPitch(input: Float32Array, inputRate: number): number | nu
   // (averaged with its neighbour); that still covers notes far higher than any whistle.
   const { samples, sampleRate } = inputRate > 24_000 ? halve(input, inputRate) : { samples: input, sampleRate: inputRate };
   const n = samples.length;
-
-  let energy = 0;
-  for (const value of samples) energy += value * value;
-  if (Math.sqrt(energy / n) < SILENCE) return null;
+  if (loudness(samples) < QUIET) return null;
 
   const minLag = Math.max(2, Math.floor(sampleRate / MAX_HZ));
   const maxLag = Math.min(n - 2, Math.ceil(sampleRate / MIN_HZ));
@@ -69,6 +71,13 @@ export function detectPitch(input: Float32Array, inputRate: number): number | nu
     }
   }
   return null;
+}
+
+/** How loud the sound is: the average size of the wave ("RMS"), 0 = silent, about 0.7 = as loud as possible. */
+export function loudness(samples: Float32Array): number {
+  let energy = 0;
+  for (const value of samples) energy += value * value;
+  return samples.length > 0 ? Math.sqrt(energy / samples.length) : 0;
 }
 
 /** 440 Hz → 69 (the note A4). One step = one semitone, so the melody line can be drawn evenly. */

@@ -73,14 +73,20 @@ explain complex parts, and value usability.
   P10110) and adds `ids` to the guess. Wikidata is CC0, free, no key; Wikimedia wants a User-Agent.
 - Links (`src/lib/songs.ts`): direct `open.spotify.com/track/ID` / `youtube.com/watch?v=ID` / `music.apple.com/song/ID`
   when known (phones open the apps), otherwise honest "Search on Spotify/YouTube" links. IDs are validated by regex.
-- Previews, only on tap: Apple's preview by ID via JSONP `itunes.apple.com/lookup` in the BROWSER (`src/scripts/itunes.ts`;
-  Apple refuses Cloudflare Workers and its /search answered 404 in 2026), else Spotify's embed player (30 s preview,
-  full song when logged in), else YouTube's (youtube-nocookie.com). These on-tap loads are deliberate exceptions to
-  "no third-party requests" (disclosed in the privacy policy).
+- Previews are shown right in each result row, no tap needed (`showPreview` in SongFinder.astro): Spotify's embed player
+  (`?theme=0` = dark, 80 px compact; 30 s preview, full song when logged in) when the Spotify ID is known; else Apple's
+  preview by ID via JSONP `itunes.apple.com/lookup` in the BROWSER (`src/scripts/itunes.ts`; Apple refuses Cloudflare
+  Workers and its /search answered 404 in 2026), played by Humm's own `.mini-player`; else YouTube's player
+  (youtube-nocookie.com). Embeds can't be paused from outside, so `stopPreviews()` reloads them (new search, new
+  recording, "That's it"). These loads only happen after the visitor searched: deliberate exceptions to "no third-party
+  requests" (disclosed in the privacy policy). Don't name classes `.preview` – base.css uses it for the QR tool.
 - Not used: Spotify Web API (2026 dev mode: Premium owner, no business use; preview_url gone since 2024), song.link
   (public API closed), Deezer (non-commercial), DuckDuckGo "\" (showed result pages, not the song).
-- The melody line: `detectPitch` (src/lib/pitch.ts) ~30×/s, smoothed by `melodyLine` (src/lib/melody.ts: median,
-  bridge pauses, drop scraps, moving average), drawn as quadratic curves. Pauses (`silences()`) are drawn as red
-  dashes (`--stop`) with a legend, so a gap reads as "silence", not as a bug.
+- The melody line: `detectPitch` (src/lib/pitch.ts) ~30×/s with only a tiny absolute floor (`QUIET`; phone mics are
+  quiet, soft humming ≈ 0.005 RMS – a fixed 0.01 limit once turned soft singing red). `melodyLine` (src/lib/melody.ts):
+  "sound" = louder than a tenth of the visitor's own singing (`soundLevel`); phrases of sound (pauses ≤ 0.3 s bridged)
+  keep the line going through unclear bits; median; moving average; drawn as quadratic curves. Real pauses
+  (`silences()`) are red dashes (`--stop`) with a legend. `tests/unit/voice.ts` makes a realistic "na na na" voice
+  (formants, vibrato, phone mic, noise) for regression tests.
 - Browser tests use Chromium's fake microphone fed with a generated tune (`tests/e2e/melody.ts`) and answer
   `/api/identify` themselves; unit tests replace `fetch` (`tests/unit/worker.test.ts`).
