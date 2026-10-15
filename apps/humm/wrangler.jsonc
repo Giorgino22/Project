@@ -1,0 +1,24 @@
+// Cloudflare settings: publishes dist/ as the site "humm" (see docs/LAUNCH-CHECKLIST.md in the repo root).
+// Unlike the other sites, Humm also has a small Worker script (src/worker/index.ts): it answers
+// /api/* by asking Google's Gemini AI. Every other address is served straight from dist/.
+{
+  "name": "humm",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    // Only /api/* runs the Worker script; pages and files are served without it.
+    "run_worker_first": ["/api/*"]
+  },
+  // At most 6 searches per minute from one IP address, so nobody can use up the AI budget.
+  // The counter lives only in Cloudflare's memory for that minute.
+  "ratelimits": [{ "name": "SEARCH_LIMIT", "namespace_id": "4325", "simple": { "limit": 6, "period": 60 } }],
+  // Keep variables set in the Cloudflare dashboard (e.g. GEMINI_MODEL) when a new version is deployed.
+  "keep_vars": true,
+  // Shows the Worker's own short log lines (which AI model answered, how long it took) under "Logs".
+  // Cloudflare's automatic request logs stay off, so no IP addresses end up in the logs.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

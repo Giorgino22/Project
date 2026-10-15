@@ -12,7 +12,7 @@ import '../styles/hub.css';
 
 const title = `${network.name} – Free Online Tools for PDF, Typing and More`;
 const description =
-  'Free online tools that work right in your browser: PDF and image tools, a typing speed test, a random name picker wheel and more. No sign-up, no uploads.';
+  'Free online tools: PDF and image tools, a typing speed test, a random name picker wheel and a song finder you can hum to. No sign-up, nothing to install.';
 const toolSites = sites.filter((site) => site.id !== 'hub');
 ---
 
@@ -21,8 +21,8 @@ const toolSites = sites.filter((site) => site.id !== 'hub');
     <section class="hub-hero">
       <h1 class="display">A tin of handy tools for everyday jobs.</h1>
       <p class="lead">
-        Merge a PDF, pick a random name for class or check how fast you type. Everything runs in your browser, so your
-        files and texts never leave your computer.
+        Merge a PDF, pick a random name for class, check how fast you type or find the song that’s stuck in your head.
+        Your files and texts stay in your browser – only the song finder sends your humming to an AI, and it says so.
       </p>
     </section>
 
@@ -52,7 +52,7 @@ const toolSites = sites.filter((site) => site.id !== 'hub');
       <div>
         <h2>How can it be free?</h2>
         <p>
-          Your own browser does the work, so the sites need no servers and cost almost nothing to run.
+          Your own browser does almost all the work, so the sites cost very little to run.
           {features.ads && ' A few ads pay for the rest.'} You never need an account, and there is no paid version.
         </p>
       </div>
@@ -62,7 +62,8 @@ const toolSites = sites.filter((site) => site.id !== 'hub');
           <h2>Check it yourself</h2>
           <p>
             Open your browser’s developer tools (F12 on most computers), switch to the Network tab and use any tool.
-            You’ll see that your files are never sent anywhere.
+            You’ll see that your files are never sent anywhere. The one exception is the song finder: to recognise a
+            tune, it has to send your recording to Google’s AI.
           </p>
         </div>
       </div>

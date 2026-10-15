@@ -1,0 +1,15 @@
+---
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { allPages, site } from '../site';
+import '../styles/humm.css';
+---
+
+<SiteLayout site={site.id} title="Page not found" description="This page does not exist." path="/404/" noindex>
+  <div class="container">
+    <section class="page-intro">
+      <h1>Page not found</h1>
+      <p class="lead">This page doesn't exist. Try this one:</p>
+      <ul class="chip-list">{allPages.map((page) => <li><a href={page.path}>{page.name}</a></li>)}</ul>
+    </section>
+  </div>
+</SiteLayout>

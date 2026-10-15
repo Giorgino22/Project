@@ -23,3 +23,7 @@ playwright-report/
 # Local env files (never commit secrets)
 .env
 .env.*
+
+# Cloudflare Worker: local secrets and cache (never commit secrets)
+.dev.vars
+.wrangler/

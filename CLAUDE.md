@@ -2,7 +2,7 @@
 
 A network of free tool websites in one npm-workspaces monorepo. Each site is a fully static
 Astro 7 app deployed to its own subdomain of one central domain. Everything runs in the visitor's
-browser; nothing is uploaded. Owner is a coding apprentice: keep code simple and well commented,
+browser; nothing is uploaded – except in Humm (see below), the one site with a server part. Owner is a coding apprentice: keep code simple and well commented,
 explain complex parts, and value usability.
 
 ## Layout
@@ -11,6 +11,7 @@ explain complex parts, and value usability.
   (domain, owner, AdSense ID, tip link, analytics, list of sites + `siteUrl()`); shared components/styles.
 - `apps/keeplocal/` – PDF & image tools (English + German). Has its own CLAUDE-relevant rules below.
 - `apps/<other>/` – further sites (English only for now), each with its own tests and `wrangler.jsonc`.
+- `apps/humm/` – song finder: static Astro page + a Cloudflare Worker (`src/worker/`) that asks Google's Gemini.
 
 ## Commands (run from the repo root)
 
@@ -18,11 +19,14 @@ explain complex parts, and value usability.
 - One site: `npm run dev -w apps/keeplocal`, `npm run test:e2e -w apps/wheel`, …
 - Run check + unit + e2e before pushing. CI (`.github/workflows/ci.yml`) runs the same.
 - Playwright `webServer` uses `astro preview --ignore-lock` (otherwise Astro backgrounds itself in
-  agent environments). Each app uses its own port (keeplocal 4321, wheel 4322, typing 4323, hub 4324).
+  agent environments). Each app uses its own port (keeplocal 4321, wheel 4322, typing 4323, hub 4324, humm 4325).
 
 ## Rules for all sites
 
 - Tools must never send user data anywhere. Each app has an e2e test that blocks third-party requests.
+  Only exception: Humm sends the visitor's recording + notes to its own Worker, which forwards them to Gemini.
+  The page itself still makes no third-party requests on load; it says on the page, in its footer
+  (`dataNote` in network.ts) and in the hub's privacy policy (#song-finder) where the recording goes.
 - Insert user/file-derived strings with `textContent`, never `innerHTML`.
 - Load heavy libraries with dynamic `import()` inside handlers.
 - Meta descriptions ≤ 170 characters; one `<h1>` per page; canonical + sitemap per site.
@@ -51,3 +55,18 @@ explain complex parts, and value usability.
 - OCR ("Image to text") uses tesseract.js. `scripts/copy-ocr-assets.mjs` copies its worker, WASM core and
   language data (eng, deu) to `public/ocr/<version>/`. Always pass `workerPath`, `corePath` and `langPath` –
   the library's defaults load from CDNs, which would break the no-third-party-requests rule.
+
+## Humm specifics (apps/humm)
+
+- `wrangler.jsonc` has `main: src/worker/index.ts`, `run_worker_first: ["/api/*"]` (pages are served without the
+  Worker), a `ratelimits` binding `SEARCH_LIMIT` (6/min per IP) and `keep_vars`. Secret: `GEMINI_API_KEY`.
+- `src/worker/gemini.ts`: models tried in order (`MODELS`, `GEMINI_MODEL` first), per-model and total time limits,
+  `thinkingLevel: 'low'`, no `temperature` (Gemini 3 wants the default). First try: `responseSchema` JSON. From the
+  second try ("Search again"): the `google_search` tool and JSON described in the prompt (schema + search don't mix
+  reliably); if that fails it answers without search. Each request is ONE user message (history goes into the
+  prompt) – never replay model turns (Gemini 3 thought signatures).
+- Google requires showing `searchEntryPoint.renderedContent` next to answers that used Google Search: it is shown in
+  a sandboxed `<iframe srcdoc>` (no scripts). Previews come from the iTunes Search API (`src/worker/previews.ts`) and
+  are only used when title AND artist match.
+- Browser tests use Chromium's fake microphone fed with a generated tune (`tests/e2e/melody.ts`) and answer
+  `/api/identify` themselves; unit tests replace `fetch` (`tests/unit/worker.test.ts`).

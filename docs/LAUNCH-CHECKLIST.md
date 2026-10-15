@@ -15,6 +15,7 @@ You enter almost every value in **one file**:
 | KeepLocal | `apps/keeplocal` | `keeplocal.your-domain.com` | `keeplocal` |
 | Spin the Wheel | `apps/wheel` | `wheel.your-domain.com` | `wheel` |
 | Typing Test | `apps/typing` | `typing.your-domain.com` | `typing` |
+| Humm | `apps/humm` | `humm.your-domain.com` | `humm` (also needs step 3b) |
 
 ---
 
@@ -55,12 +56,12 @@ who runs them. In `network.ts` → `owner`, enter your **name, postal address an
 
 ## 3. Publish the sites on Cloudflare (30 minutes)
 
-Each site is its own Cloudflare **Worker**, built from the same repository. Do this **four
-times**, once per row of the table above:
+Each site is its own Cloudflare **Worker**, built from the same repository. Do this **once per
+row** of the table above:
 
 1. Cloudflare dashboard → **Workers & Pages → Create application → Import a repository**
    (connect your GitHub account the first time) → choose this repository.
-2. Settings (example for the wheel; replace `wheel` with `hub`, `keeplocal` or `typing`):
+2. Settings (example for the wheel; replace `wheel` with `hub`, `keeplocal`, `typing` or `humm`):
    - **Project name:** `wheel` (the `"name"` in `apps/wheel/wrangler.jsonc`)
    - **Build command:** `npm run build -w apps/wheel`
    - **Deploy command:** `npx wrangler deploy --config apps/wheel/wrangler.jsonc`
@@ -70,7 +71,7 @@ times**, once per row of the table above:
 4. Connect the address: open the Worker → **Settings → Domains & Routes → Add → Custom domain**:
    - hub → `your-domain.com`
    - keeplocal → `keeplocal.your-domain.com`, wheel → `wheel.your-domain.com`,
-     typing → `typing.your-domain.com`
+     typing → `typing.your-domain.com`, humm → `humm.your-domain.com`
 
    Cloudflare creates the DNS records for you.
 5. Optional, for `www`: **Rules → Redirect Rules → Create rule → template "Redirect from WWW to
@@ -105,14 +106,44 @@ If it is listed: Google Search Console → **Security & Manual Actions → Secur
 and explain that the sites are free browser tools that collect no data, have no logins and offer no
 downloads. Reviews usually take a few days.
 
+## 3b. Humm: connect the AI (20 minutes)
+
+Humm is the one site that needs a key: it asks Google's Gemini AI which song someone hummed.
+
+1. **API key:** open [Google AI Studio](https://aistudio.google.com) → *Get API key* → *Create API key*.
+2. **Switch on billing for that key's project** (*Google AI Studio → Billing*, or the Google Cloud console).
+   This is required, not optional: Google's terms allow only the **paid** Gemini API for apps that people
+   in Switzerland, the EU or the UK use. With billing on, Google also doesn't use the recordings to
+   improve its products – that's what Humm's privacy texts say.
+3. **Put a lid on the costs** (Google Cloud console, same project):
+   - *Billing → Budgets & alerts → Create budget*, e.g. CHF 10 per month, with e-mail alerts. A budget
+     only warns you; it doesn't stop anything.
+   - *APIs & Services → Generative Language API → Quotas*: lower the requests per day (e.g. to 500).
+     This is the hard limit: above it, Humm says "No AI model could answer" until the next day.
+   - What to expect: one search costs well under one cent. "Search again" also searches Google:
+     5,000 of those per month are free, after that about $14 per 1,000.
+4. **Give the key to the Worker:** Cloudflare → Workers & Pages → `humm` → *Settings → Variables and
+   Secrets → Add* → type **Secret**, name `GEMINI_API_KEY`, paste the key → *Deploy*.
+   Never put the key into the code or the repository.
+5. Optional: a variable `GEMINI_MODEL` (type Text) with a model to try first, e.g. `gemini-3.8-flash`.
+   Without it, Humm tries the models listed in `apps/humm/src/worker/gemini.ts` one after the other.
+6. Test it: open `https://humm.your-domain.com`, hum something and tap *Find the song*. If something is
+   wrong, the red message under the button says what. Each try is logged (without the recording)
+   under *Worker → Observability → Logs*.
+
+Humm limits each visitor to 6 searches per minute (`ratelimits` in `apps/humm/wrangler.jsonc`). If a
+deploy ever fails with an error about `ratelimits`, delete that block from the file – the Google quota
+from step 3 still protects your budget.
+
 ## 4. Tell search engines about the sites (15 minutes)
 
 1. [Google Search Console](https://search.google.com/search-console) → *Add property* →
    **Domain** → enter your domain → verify. Google can add the DNS record at Cloudflare for you.
    One domain property covers all subdomains.
-2. *Sitemaps* → submit all four:
+2. *Sitemaps* → submit all five:
    `https://your-domain.com/sitemap.xml`, `https://keeplocal.your-domain.com/sitemap.xml`,
-   `https://wheel.your-domain.com/sitemap.xml`, `https://typing.your-domain.com/sitemap.xml`
+   `https://wheel.your-domain.com/sitemap.xml`, `https://typing.your-domain.com/sitemap.xml`,
+   `https://humm.your-domain.com/sitemap.xml`
 3. [Bing Webmaster Tools](https://www.bing.com/webmasters) → *Import from Google Search Console*
    (one click). Bing also feeds several AI search engines.
 
@@ -148,6 +179,7 @@ New sites need a few links before Google trusts them. Low-effort places:
    - KeepLocal: `apps/keeplocal/src/config.ts` → `ads.slots`
    - Wheel: `apps/wheel/src/site.ts` → `adSlots`
    - Typing: `apps/typing/src/site.ts` → `adSlots`
+   - Humm: `apps/humm/src/site.ts` → `adSlots`
 5. **Required for visitors from the EU, UK and Switzerland:** *Privacy & messaging → European
    regulations* → create and publish the consent message for your domain.
 6. Update `legalUpdated` in `network.ts` to today's date.
