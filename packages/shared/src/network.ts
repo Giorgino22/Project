@@ -11,6 +11,7 @@
  *   humm.example.com       → find a song by humming
  *
  * Money features stay OFF while their value is empty ('').
+ * Every change to this file rebuilds and republishes ALL sites (they all use it).
  * Where to get each value: docs/LAUNCH-CHECKLIST.md
  */
 
