@@ -121,7 +121,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       <div class="confidence-meter" aria-hidden="true"><span data-meter></span></div>
       <p class="guess-why" data-why></p>
       <div class="guess-actions">
-        <button type="button" class="btn btn-secondary btn-small" data-play aria-pressed="false" hidden>
+        <button type="button" class="btn btn-secondary btn-small" data-play aria-pressed="false">
           <span data-play-icon><Icon name="play" /></span>
           <span data-pause-icon hidden><Icon name="pause" /></span>
           <span data-play-label>Play preview</span>
@@ -139,9 +139,10 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
 <script>
   import { load, save } from '@tools/shared/lib/storage';
+  import { melodyLine } from '../lib/melody';
   import { detectPitch, frequencyToNote } from '../lib/pitch';
   import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
-  import type { Answer, Guess, IdentifyRequest, Round } from '../lib/types';
+  import type { Answer, Guess, IdentifyRequest, Preview, Round } from '../lib/types';
   import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-humm]')) setupHumm(root);
@@ -339,7 +340,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
     // ------------------------------------------------------------------ the melody line
 
     /**
-     * While recording, an AnalyserNode lets us read the newest bit of sound 20 times a second.
+     * While recording, an AnalyserNode lets us read the newest bit of sound 30 times a second.
      * detectPitch() finds the note in it; drawStaff() draws all notes so far as a line.
      */
     function startMelodyLine(microphone: MediaStream): void {
@@ -354,7 +355,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
       const tick = (now: number) => {
         if (recorder?.state !== 'recording') return;
-        if (now - lastCheck >= 50) {
+        if (now - lastCheck >= 33) {
           lastCheck = now;
           analyser.getFloatTimeDomainData(wave);
           const hz = detectPitch(wave, sampleRate);
@@ -401,7 +402,8 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
       const notes = melody.flatMap((point) => (point.note === null ? [] : [point.note]));
       staff.dataset.notes = String(notes.length); // how many notes were heard (the browser tests check it)
-      if (notes.length === 0) {
+      const line = melodyLine(melody); // the smoothed melody, in pieces (see src/lib/melody.ts)
+      if (line.length === 0) {
         context.fillStyle = color('--pencil');
         context.font = `500 15px ${style.fontFamily}`;
         context.textAlign = 'center';
@@ -410,9 +412,10 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         context.fillText(empty, width / 2, height / 2);
         return;
       }
-      // Fit the notes sung so far into the height (at least 14 semitones, so a steady note stays in the middle).
-      const lowest = Math.min(...notes);
-      const highest = Math.max(...notes);
+      // Fit the melody into the height (at least 14 semitones, so a steady note stays in the middle).
+      const smoothNotes = line.flat().map((point) => point.note);
+      const lowest = Math.min(...smoothNotes);
+      const highest = Math.max(...smoothNotes);
       const span = Math.max(14, highest - lowest + 4);
       const bottom = (lowest + highest) / 2 - span / 2;
       // The staff shows at least 8 seconds and grows with the recording, so a short hum isn't squeezed.
@@ -424,24 +427,27 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       context.lineWidth = 3;
       context.lineCap = 'round';
       context.lineJoin = 'round';
-      context.beginPath();
-      let previous: number | null = null;
-      for (const point of melody) {
-        // Silence or a big jump (a new phrase) lifts the pen.
-        if (point.note === null || previous === null || Math.abs(point.note - previous) > 7) {
-          if (point.note !== null) context.moveTo(x(point.time), y(point.note));
-        } else {
-          context.lineTo(x(point.time), y(point.note));
-        }
-        previous = point.note;
-      }
-      context.stroke();
-
-      // The note you are humming right now: a yellow dot with an ink rim.
-      const last = melody[melody.length - 1];
-      if (recorder?.state === 'recording' && last?.note != null) {
+      for (const segment of line) {
+        // A smooth curve through the points: each point pulls the line towards itself
+        // ("quadratic curve" to the middle between it and the next point), so there are no corners.
         context.beginPath();
-        context.arc(x(last.time), y(last.note), 6, 0, 2 * Math.PI);
+        context.moveTo(x(segment[0]!.time), y(segment[0]!.note));
+        for (let i = 1; i < segment.length - 1; i++) {
+          const point = segment[i]!;
+          const next = segment[i + 1]!;
+          context.quadraticCurveTo(x(point.time), y(point.note), (x(point.time) + x(next.time)) / 2, (y(point.note) + y(next.note)) / 2);
+        }
+        const end = segment[segment.length - 1]!;
+        context.lineTo(x(end.time), y(end.note));
+        context.stroke();
+      }
+
+      // The note you are humming right now: a yellow dot with an ink rim at the end of the line.
+      const lastPoint = line[line.length - 1]![line[line.length - 1]!.length - 1]!;
+      const newest = melody[melody.length - 1];
+      if (recorder?.state === 'recording' && newest?.note != null && newest.time - lastPoint.time < 0.1) {
+        context.beginPath();
+        context.arc(x(lastPoint.time), y(lastPoint.note), 6, 0, 2 * Math.PI);
         context.fillStyle = color('--marker');
         context.fill();
         context.lineWidth = 2;
@@ -608,16 +614,51 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       part<HTMLAnchorElement>('[data-youtube]').href = `https://www.youtube.com/results?search_query=${query}`;
       part<HTMLAnchorElement>('[data-spotify]').href = `https://open.spotify.com/search/${query}`;
 
-      const preview = guess.preview;
-      if (preview?.audioUrl.startsWith('https://') && preview.appleUrl.startsWith('https://')) {
+      // The Apple Music link appears once we know the song's page there.
+      const showAppleLink = (preview: Preview) => {
         part<HTMLAnchorElement>('[data-apple]').href = preview.appleUrl;
         part('[data-apple-item]').hidden = false;
-        const play = part<HTMLButtonElement>('[data-play]');
-        play.hidden = false;
-        play.addEventListener('click', () => togglePreview(play, preview.audioUrl));
-      }
+      };
+      if (isUsable(guess.preview)) showAppleLink(guess.preview);
+
+      const play = part<HTMLButtonElement>('[data-play]');
+      const label = part('[data-play-label]');
+      play.addEventListener('click', async () => {
+        if (!isUsable(guess.preview)) {
+          // The answer came without a preview (Apple may have been busy): ask once more.
+          play.disabled = true;
+          label.textContent = 'Loading …';
+          guess.preview = await fetchPreview(guess);
+          play.disabled = false;
+          label.textContent = 'Play preview';
+          if (!isUsable(guess.preview)) {
+            play.disabled = true;
+            play.dataset.unavailable = 'true';
+            label.textContent = 'No preview';
+            return;
+          }
+          showAppleLink(guess.preview);
+        }
+        togglePreview(play, guess.preview.audioUrl);
+      });
       part('[data-pick]').addEventListener('click', () => markFound(row, guess));
       return row;
+    }
+
+    /** Only previews with safe https:// addresses are used. */
+    function isUsable(preview: Preview | undefined): preview is Preview {
+      return Boolean(preview?.audioUrl.startsWith('https://') && preview.appleUrl.startsWith('https://'));
+    }
+
+    /** Asks our Worker for one song's preview (it asks Apple). undefined = Apple has none. */
+    async function fetchPreview(guess: Guess): Promise<Preview | undefined> {
+      try {
+        const query = new URLSearchParams({ title: guess.title, artist: guess.artist });
+        const response = await fetch(`/api/preview?${query}`, { signal: AbortSignal.timeout(10_000) });
+        return response.ok ? ((await response.json()) as Preview) : undefined;
+      } catch {
+        return undefined;
+      }
     }
 
     // ------------------------------------------------------------------ previews
@@ -631,12 +672,17 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       previewPlayer.src = url;
       previewPlayer.play().then(
         () => setPlaying(button),
-        () => showStatus('This preview can’t be played right now. Try the links next to it.', 'error'),
+        (error: unknown) => {
+          // iPhones only start sound right after a tap. If the preview had to be loaded first,
+          // the tap is "used up" – then the next tap on the button plays it.
+          if (error instanceof Error && error.name === 'NotAllowedError') return;
+          showStatus('This preview can’t be played right now. Try the links next to it.', 'error');
+        },
       );
     }
 
     function setPlaying(button: HTMLButtonElement | null): void {
-      for (const other of guessList.querySelectorAll<HTMLButtonElement>('[data-play]')) {
+      for (const other of guessList.querySelectorAll<HTMLButtonElement>('[data-play]:not([data-unavailable])')) {
         const isPlaying = other === button;
         other.setAttribute('aria-pressed', String(isPlaying));
         other.querySelector<HTMLElement>('[data-play-icon]')!.hidden = isPlaying;

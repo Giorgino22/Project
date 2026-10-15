@@ -59,7 +59,8 @@ explain complex parts, and value usability.
 ## Humm specifics (apps/humm)
 
 - `wrangler.jsonc` has `main: src/worker/index.ts`, `run_worker_first: ["/api/*"]` (pages are served without the
-  Worker), a `ratelimits` binding `SEARCH_LIMIT` (6/min per IP) and `keep_vars`. Secret: `GEMINI_API_KEY`.
+  Worker), `ratelimits` bindings `SEARCH_LIMIT` (6/min per IP) and `PREVIEW_LIMIT` (20/min) and `keep_vars`.
+  Secret: `GEMINI_API_KEY`. Routes: `POST /api/identify`, `GET /api/preview?title=&artist=` (preview lookup on tap).
 - `src/worker/gemini.ts`: models tried in order (`MODELS`, `GEMINI_MODEL` first), per-model and total time limits,
   `thinkingLevel: 'low'`, no `temperature` (Gemini 3 wants the default). First try: `responseSchema` JSON. From the
   second try ("Search again"): the `google_search` tool and JSON described in the prompt (schema + search don't mix
@@ -67,6 +68,9 @@ explain complex parts, and value usability.
   prompt) – never replay model turns (Gemini 3 thought signatures).
 - Google requires showing `searchEntryPoint.renderedContent` next to answers that used Google Search: it is shown in
   a sandboxed `<iframe srcdoc>` (no scripts). Previews come from the iTunes Search API (`src/worker/previews.ts`) and
-  are only used when title AND artist match.
+  are only used when title AND artist match; failed lookups are logged (status/counts only). No Deezer (API is
+  non-commercial) and no direct Spotify links (Spotify's 2026 dev mode forbids business use; song.link API closed).
+- The melody line: `detectPitch` (src/lib/pitch.ts) ~30×/s, smoothed by `melodyLine` (src/lib/melody.ts: median,
+  bridge pauses, drop scraps, moving average), drawn as quadratic curves.
 - Browser tests use Chromium's fake microphone fed with a generated tune (`tests/e2e/melody.ts`) and answer
   `/api/identify` themselves; unit tests replace `fetch` (`tests/unit/worker.test.ts`).

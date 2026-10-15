@@ -13,9 +13,12 @@
     // Only /api/* runs the Worker script; pages and files are served without it.
     "run_worker_first": ["/api/*"]
   },
-  // At most 6 searches per minute from one IP address, so nobody can use up the AI budget.
-  // The counter lives only in Cloudflare's memory for that minute.
-  "ratelimits": [{ "name": "SEARCH_LIMIT", "namespace_id": "4325", "simple": { "limit": 6, "period": 60 } }],
+  // At most 6 searches (and 20 extra preview lookups) per minute from one IP address, so nobody
+  // can use up the AI budget. The counters live only in Cloudflare's memory for that minute.
+  "ratelimits": [
+    { "name": "SEARCH_LIMIT", "namespace_id": "4325", "simple": { "limit": 6, "period": 60 } },
+    { "name": "PREVIEW_LIMIT", "namespace_id": "4326", "simple": { "limit": 20, "period": 60 } }
+  ],
   // Keep variables set in the Cloudflare dashboard (e.g. GEMINI_MODEL) when a new version is deployed.
   "keep_vars": true,
   // Shows the Worker's own short log lines (which AI model answered, how long it took) under "Logs".

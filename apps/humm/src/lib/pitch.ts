@@ -13,8 +13,10 @@ export const MAX_HZ = 2100;
 
 /** Quieter than this (average loudness) counts as silence. */
 const SILENCE = 0.01;
-/** How well the wave must match itself (0–1) to count as a clear note and not as noise. */
-const CLEAR_NOTE = 0.8;
+/** How well the wave must match itself (0–1) to count as a clear note and not as noise.
+ *  A real voice is less regular than a test tone; the occasional wrong note this lets through
+ *  is removed again by melodyLine() (src/lib/melody.ts). */
+const CLEAR_NOTE = 0.72;
 
 /** Returns the frequency in Hz of the note in `samples`, or null for silence, noise or breath. */
 export function detectPitch(input: Float32Array, inputRate: number): number | null {

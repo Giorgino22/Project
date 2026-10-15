@@ -62,8 +62,9 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
       <a href="https://ai.google.dev/gemini-api/terms">https://ai.google.dev/gemini-api/terms</a>
     </p>
     <p>
-      To keep the service free and prevent abuse, Cloudflare counts how many searches come from your IP address within one
-      minute; the count is not kept any longer. When you play a song preview, your browser loads the 30-second audio file
+      To keep the service free and prevent abuse, Cloudflare counts how many searches and preview lookups come from your IP
+      address within one minute; the count is not kept any longer. To find a preview, our server asks Apple for the song’s
+      title and artist – nothing about you. When you play a song preview, your browser loads the 30-second audio file
       directly from Apple (Apple Inc., One Apple Park Way, Cupertino, CA 95014, USA), which receives your IP address. If
       Humm searched the web, it shows Google’s search suggestions; clicking one opens Google Search. The YouTube, Spotify
       and Apple Music links only open those websites when you click them.

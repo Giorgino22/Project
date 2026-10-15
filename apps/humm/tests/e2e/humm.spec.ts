@@ -72,11 +72,11 @@ test('records a tune, draws the melody and shows the songs', async ({ page }) =>
   expect(sent[0].hint).toBe('with Pitbull');
   expect(sent[0].rounds).toEqual([]);
 
-  // Links: the song with a preview has one more link (Apple Music) and a play button
+  // Links: the song with a preview also links to Apple Music; every song has a play button
   await expect(rows.first().getByRole('link', { name: 'YouTube' })).toHaveAttribute('href', /youtube\.com\/results\?search_query=El%20Taxi/);
   await expect(rows.first().getByRole('link', { name: 'Apple Music' })).toBeVisible();
   await expect(rows.nth(1).getByRole('link', { name: 'Apple Music' })).toBeHidden();
-  await expect(rows.nth(1).getByRole('button', { name: 'Play preview' })).toBeHidden();
+  await expect(rows.nth(1).getByRole('button', { name: 'Play preview' })).toBeVisible();
   // Only one yellow (main) button: "Search again"
   await expect(page.getByRole('button', { name: 'Find the song' })).not.toHaveClass(/btn-primary/);
 });
@@ -194,4 +194,34 @@ test('a very short recording asks for more', async ({ page }) => {
   await page.getByRole('button', { name: 'Stop recording' }).click();
   await expect(page.locator('[data-status]')).toContainText('very short');
   await expect(page.getByRole('button', { name: 'Find the song' })).toBeDisabled();
+});
+
+test('a missing preview is looked up when the visitor taps "Play preview"', async ({ page }) => {
+  const tone = encodeWav(Float32Array.from({ length: 16_000 }, (_, i) => 0.3 * Math.sin((2 * Math.PI * 440 * i) / 16_000)));
+  await page.route('**/late-preview.wav', (route) => route.fulfill({ body: Buffer.from(tone), contentType: 'audio/wav' }));
+  const asked: string[] = [];
+  await page.route('**/api/preview?*', (route) => {
+    const url = new URL(route.request().url());
+    asked.push(url.searchParams.get('title') ?? '');
+    return url.searchParams.get('title') === 'No Lo Trates'
+      ? route.fulfill({ json: { audioUrl: 'https://audio.example/late-preview.wav', appleUrl: 'https://music.apple.com/no-lo-trates' } })
+      : route.fulfill({ status: 404, json: { error: 'Apple Music has no preview of this song.' } });
+  });
+  await fakeApi(page, () => ({ ...answer, guesses: [answer.guesses[1], { ...answer.guesses[1], title: 'Unknown Song' }] }));
+  await page.goto('/');
+  await page.getByLabel('What do you remember? (optional)').fill('la la la');
+  await page.getByRole('button', { name: 'Find the song' }).click();
+
+  // Found on the second try: the Apple Music link appears and the preview plays
+  const first = page.locator('.guess').first();
+  await first.getByRole('button', { name: 'Play preview' }).click();
+  await expect(first.locator('[data-play]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(first.getByRole('link', { name: 'Apple Music' })).toHaveAttribute('href', 'https://music.apple.com/no-lo-trates');
+
+  // Apple has nothing: the button says so
+  const second = page.locator('.guess').nth(1);
+  await second.getByRole('button', { name: 'Play preview' }).click();
+  await expect(second.locator('[data-play]')).toHaveText('No preview');
+  await expect(second.locator('[data-play]')).toBeDisabled();
+  expect(asked).toEqual(['No Lo Trates', 'Unknown Song']);
 });

@@ -191,6 +191,27 @@ describe('the Worker', () => {
     });
   });
 
+  it('looks up one preview again when the visitor taps "Play preview"', async () => {
+    const calls = fakeInternet(() =>
+      json({ results: [{ trackName: 'Starman (2012 Remaster)', artistName: 'David Bowie', previewUrl: 'https://audio.example/starman.m4a', trackViewUrl: 'https://music.apple.com/starman' }] }),
+    );
+    const get = (query: string) => worker.fetch(new Request(`https://humm.example.com/api/preview?${query}`), env());
+    const found = await get('title=Starman&artist=David%20Bowie');
+    expect(found.status).toBe(200);
+    expect(await found.json()).toEqual({ audioUrl: 'https://audio.example/starman.m4a', appleUrl: 'https://music.apple.com/starman' });
+    expect(calls[0]!.url).toContain('itunes.apple.com/search?term=David+Bowie+Starman');
+
+    expect((await get('title=Unknown%20Song&artist=Nobody')).status).toBe(404); // Apple has no match
+    expect((await get('title=Starman')).status).toBe(400); // artist missing
+    expect((await worker.fetch(new Request('https://humm.example.com/api/preview?title=a&artist=b', { method: 'POST' }), env())).status).toBe(405);
+  });
+
+  it('limits preview lookups per visitor', async () => {
+    const limiter = { limit: vi.fn(async () => ({ success: false })) };
+    const response = await worker.fetch(new Request('https://humm.example.com/api/preview?title=a&artist=b'), env({ PREVIEW_LIMIT: limiter }));
+    expect(response.status).toBe(429);
+  });
+
   it('still answers when Apple’s search fails', async () => {
     fakeInternet((url) => (url.includes('generativelanguage') ? json(geminiReply(goodAnswer)) : json({}, 403)));
     const answer = await (await worker.fetch(post({ hint: 'la' }), env())).json();

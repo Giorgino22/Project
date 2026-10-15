@@ -96,8 +96,8 @@ the words it heard.
 | File | What it does |
 | --- | --- |
 | `src/components/SongFinder.astro` | The tool: record key, melody staff, waiting circle, results, "That's it" |
-| `src/lib/` | Pure logic, unit-tested: WAV file, note detection, time estimate, shared types |
-| `src/worker/index.ts` | The Worker: `/api/identify` (+ rate limit); everything else comes from `dist/` |
+| `src/lib/` | Pure logic, unit-tested: WAV file, note detection, smooth melody line, time estimate, shared types |
+| `src/worker/index.ts` | The Worker: `/api/identify` and `/api/preview` (+ rate limits); everything else comes from `dist/` |
 | `src/worker/gemini.ts` | Asks Gemini: models in turn, time limits, web search from the second try |
 | `src/worker/answer.ts` | The AI's instructions and safe reading of its answer |
 | `src/worker/previews.ts` | Finds the matching Apple Music preview |

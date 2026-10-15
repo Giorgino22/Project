@@ -23,17 +23,26 @@ export async function findPreview(title: string, artist: string): Promise<Previe
   const query = new URLSearchParams({ term: `${artist} ${title}`, media: 'music', entity: 'song', limit: '10' });
   try {
     const response = await fetch(`https://itunes.apple.com/search?${query}`, {
-      signal: AbortSignal.timeout(4000),
+      // Say who is asking – some servers refuse requests without these.
+      headers: { 'user-agent': 'Humm/1.0 (+https://humm.toolstin.com)', accept: 'application/json' },
+      signal: AbortSignal.timeout(5000),
       // Cloudflare keeps the answer for a day, so popular songs don't use up Apple's limit.
       cf: { cacheTtl: 86_400, cacheEverything: true },
     } as RequestInit);
-    if (!response.ok) return undefined;
+    // The log (Cloudflare → humm → Observability → Logs) shows why a preview is missing.
+    if (!response.ok) {
+      console.log(`preview: Apple answered ${response.status}`);
+      return undefined;
+    }
     const data = (await response.json()) as { results?: ItunesTrack[] };
     const track = pickBestMatch(data.results ?? [], title, artist);
-    if (!track?.previewUrl || !track.trackViewUrl) return undefined;
-    if (!isHttps(track.previewUrl) || !isHttps(track.trackViewUrl)) return undefined;
+    if (!track?.previewUrl || !track.trackViewUrl || !isHttps(track.previewUrl) || !isHttps(track.trackViewUrl)) {
+      console.log(`preview: no matching song among ${data.results?.length ?? 0} results`);
+      return undefined;
+    }
     return { audioUrl: track.previewUrl, appleUrl: track.trackViewUrl };
   } catch {
+    console.log('preview: no answer from Apple');
     return undefined; // no preview – the YouTube and Spotify links still work
   }
 }
