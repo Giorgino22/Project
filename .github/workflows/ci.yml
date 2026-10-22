@@ -11,7 +11,9 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Ubuntu 24.04, not "ubuntu-latest": since October 2026 "latest" is Ubuntu 26.04, where Playwright
+    # 1.56 can't install its browser. Move on together with a Playwright update.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
