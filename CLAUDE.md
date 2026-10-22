@@ -62,10 +62,11 @@ explain complex parts, and value usability.
   Worker), a `ratelimits` binding `SEARCH_LIMIT` (6/min per IP) and `keep_vars`. Secret: `GEMINI_API_KEY`.
   Only route: `POST /api/identify`.
 - `src/worker/gemini.ts`: models tried in order (`MODELS`, `GEMINI_MODEL` first), per-model and total time limits,
-  `thinkingLevel: 'low'`, no `temperature` (Gemini 3 wants the default). First try: `responseSchema` JSON. From the
-  second try ("Search again"): the `google_search` tool and JSON described in the prompt (schema + search don't mix
-  reliably); if that fails it answers without search. Each request is ONE user message (history goes into the
-  prompt) – never replay model turns (Gemini 3 thought signatures).
+  `thinkingLevel: 'low'`, no `temperature` (Gemini 3 wants the default). First try: `responseSchema` JSON. With
+  `check` (the page sends it right after a quick answer that heard ≥ 2 words but is < 70 % sure) and from the second
+  try ("Search again"): the `google_search` tool and JSON described in the prompt (schema + search don't mix
+  reliably); if that fails it answers without search. `check` songs are "not confirmed", never "wrong". Each request
+  is ONE user message (history goes into the prompt) – never replay model turns (Gemini 3 thought signatures).
 - Google requires showing `searchEntryPoint.renderedContent` next to answers that used Google Search: it is shown in
   a sandboxed `<iframe srcdoc>` (no scripts).
 - Song IDs: after Gemini answers, the Worker looks every song up in Wikidata (`src/worker/songids.ts`: search title →
@@ -73,13 +74,20 @@ explain complex parts, and value usability.
   P10110) and adds `ids` to the guess. Wikidata is CC0, free, no key; Wikimedia wants a User-Agent.
 - Links (`src/lib/songs.ts`): direct `open.spotify.com/track/ID` / `youtube.com/watch?v=ID` / `music.apple.com/song/ID`
   when known (phones open the apps), otherwise honest "Search on Spotify/YouTube" links. IDs are validated by regex.
-- Previews are shown right in each result row, no tap needed (`showPreview` in SongFinder.astro): Spotify's embed player
-  (`?theme=0` = dark, 80 px compact; 30 s preview, full song when logged in) when the Spotify ID is known; else Apple's
-  preview by ID via JSONP `itunes.apple.com/lookup` in the BROWSER (`src/scripts/itunes.ts`; Apple refuses Cloudflare
-  Workers and its /search answered 404 in 2026), played by Humm's own `.mini-player`; else YouTube's player
-  (youtube-nocookie.com). Embeds can't be paused from outside, so `stopPreviews()` reloads them (new search, new
-  recording, "That's it"). These loads only happen after the visitor searched: deliberate exceptions to "no third-party
-  requests" (disclosed in the privacy policy). Don't name classes `.preview` – base.css uses it for the QR tool.
+- Previews are shown right in each result row, no tap needed (`showPreview` in SongFinder.astro): Apple's 30 s preview
+  in Humm's own `.mini-player`, found in the BROWSER via JSONP (`src/scripts/itunes.ts`: `lookup` by Wikidata's Apple
+  ID, else `search` "title artist" and only a result with the same title AND artist – no covers/karaoke; Apple refuses
+  Cloudflare Workers; /search was down in April 2026, back by August). Else Spotify's embed (`?theme=0`, 80 px). No
+  YouTube player (the owner doesn't want videos; the YouTube link stays). Embeds can't be paused from outside, so
+  `stopPreviews()` reloads them. These loads only happen after the visitor searched: deliberate exceptions to "no
+  third-party requests" (disclosed in the privacy policy). Don't name classes `.preview` – base.css uses it (QR tool).
+- Melody check (the visitor's idea: "get the melodies of the songs"): the page downloads each Apple preview (needs CORS
+  on Apple's CDN – untested live; if it fails there is just no check), decodes it at 16 kHz → 8 kHz, finds its melody
+  (`src/lib/songmelody.ts`: FFT 1024/hop 256, overtone salience, Viterbi path, voicing) and compares it with the hummed
+  tune (`src/lib/compare.ts`: 0.1 s steps, subsequence DTW over 24 half-semitone shifts, octaves folded). `fitLabel`
+  claims a fit only with ≥ 6 s of tune (measured: shorter hums fit wrong songs by chance). The player's progress line
+  becomes the song's melody with the tune drawn on top; the preview starts 0.5 s before the fit. Tests: made-up songs
+  and hums (`tests/unit/music.ts`, `voice.ts`); `?debug` shows the numbers and offers the recording as a download.
 - Not used: Spotify Web API (2026 dev mode: Premium owner, no business use; preview_url gone since 2024), song.link
   (public API closed), Deezer (non-commercial), DuckDuckGo "\" (showed result pages, not the song).
 - The melody line: `detectPitch` (src/lib/pitch.ts) ~30×/s with only a tiny absolute floor (`QUIET`; phone mics are

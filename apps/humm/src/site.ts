@@ -37,11 +37,11 @@ export const pages = {
       },
       {
         q: 'Why was the first guess wrong?',
-        a: 'Recognising a hummed tune is hard, even for people. Tell Humm what’s wrong (“older”, “a woman sings”, “it was in Spanish”) and search again: from the second try on, Humm also searches the web for the words it heard.',
+        a: 'Recognising a hummed tune is hard, even for people. Humm checks the words it heard on the web when it isn’t sure. Tell Humm what’s wrong (“older”, “a woman sings”, “it was in Spanish”) and search again – and hum a bit longer: with 6 seconds or more, Humm can check the melodies too.',
       },
       {
         q: 'Where do the previews come from?',
-        a: 'Each song comes with Spotify’s player, which plays a 30-second preview (the whole song if you’re logged in to Spotify). If Spotify isn’t known for a song, you get Apple Music’s preview or the YouTube video instead. Humm finds the songs on these services through Wikidata, the free database behind Wikipedia. If a song isn’t in it yet, there’s no preview and the links search for it instead.',
+        a: 'From Apple Music, played right here – or, if Apple doesn’t have a song, from Spotify’s player. If you recorded a tune, Humm also finds the melody in each preview, draws it and shows where your tune fits, and the preview starts there.',
       },
       {
         q: 'Is Humm free?',

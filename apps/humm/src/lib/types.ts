@@ -11,6 +11,11 @@ export interface IdentifyRequest {
   hint?: string;
   /** Earlier tries of this search: what Humm suggested and what the visitor said about it */
   rounds?: Round[];
+  /**
+   * Set when the page asks to check a quick first answer on the web (the words that were heard
+   * and the songs that came to mind – not confirmed, maybe right).
+   */
+  check?: { words: string; guesses: { title: string; artist: string }[] };
 }
 
 export interface Round {
@@ -33,8 +38,13 @@ export interface SongIds {
 export interface Preview {
   /** The 30-second preview (an audio file on Apple's servers) */
   audioUrl: string;
-  /** The song's page on Apple Music */
+  /** The song's page on Apple Music ('' if unknown) */
   appleUrl: string;
+  /** Title and artist as Apple writes them */
+  title: string;
+  artist: string;
+  /** How it was found: by the song's Apple Music ID, or by searching for title and artist */
+  via: 'lookup' | 'search';
 }
 
 export interface Guess {

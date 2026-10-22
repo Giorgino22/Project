@@ -40,14 +40,17 @@ const VOWEL_A: [number, number][] = [[730, 90], [1090, 110], [2440, 170]];
 const HUM_N: [number, number][] = [[250, 100], [2200, 300]];
 
 /**
- * Sings the syllables after one second of silence. `loudness` is how loud the singing is (see
- * loudness() in pitch.ts): 0.05 is a normal voice close to the phone, 0.005 is soft humming.
+ * Sings the syllables, by default after one second of silence. `loudness` is how loud the singing
+ * is (see loudness() in pitch.ts): 0.05 is a normal voice close to the phone, 0.005 is soft humming.
  */
-export function sing(syllables: Syllable[], options: { loudness: number; noise?: number }): Voice {
-  const sampleRate = 48_000; // what iPhones record with
-  const random = randomFrom(7);
-  const leadIn = 1;
-  const tail = 0.5;
+export function sing(
+  syllables: Syllable[],
+  options: { loudness: number; noise?: number; leadIn?: number; tail?: number; sampleRate?: number; seed?: number },
+): Voice {
+  const sampleRate = options.sampleRate ?? 48_000; // what iPhones record with
+  const random = randomFrom(options.seed ?? 7);
+  const leadIn = options.leadIn ?? 1;
+  const tail = options.tail ?? 0.5;
   const sung = syllables.reduce((sum, syllable) => sum + syllable.seconds, 0);
   const samples = new Float32Array(Math.round((leadIn + sung + tail) * sampleRate));
 
@@ -58,7 +61,7 @@ export function sing(syllables: Syllable[], options: { loudness: number; noise?:
   for (const { hz: note, seconds } of syllables) {
     const count = Math.round(seconds * sampleRate);
     if (note !== null) {
-      const harmonics = Math.floor(4000 / note);
+      const harmonics = Math.floor(Math.min(4000, 0.45 * sampleRate) / note);
       const offsets = Array.from({ length: harmonics }, () => random() * 2 * Math.PI);
       const vowel = offsets.map((_, k) => mouth((k + 1) * note, VOWEL_A) / (k + 1));
       const hum = offsets.map((_, k) => mouth((k + 1) * note, HUM_N) / (k + 1));

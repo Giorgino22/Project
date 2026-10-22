@@ -24,6 +24,21 @@ describe('what we ask the AI', () => {
     expect(prompt).toContain('Google Search');
     expect(prompt).toContain('ONLY one JSON object');
   });
+
+  it('asks to check a quick answer on the web, without calling its songs wrong', () => {
+    const prompt = buildPrompt({
+      hasAudio: true,
+      hint: '',
+      rounds: [],
+      search: true,
+      check: { words: 'que loquera asere', guesses: [{ title: 'El Taxi', artist: 'Osmani García' }] },
+    });
+    expect(prompt).toContain('you made out these words: "que loquera asere"');
+    expect(prompt).toContain('NOT confirmed');
+    expect(prompt).toContain('- "El Taxi" by Osmani García');
+    expect(prompt).not.toContain('WRONG');
+    expect(prompt).toContain('Google Search');
+  });
 });
 
 describe('checking what the page sends', () => {
@@ -32,6 +47,12 @@ describe('checking what the page sends', () => {
     expect(readRequest(null)).toContain('could not be read');
     expect(readRequest({ audio: 42 })).toContain('recording could not be read');
     expect(readRequest({ audio: 'x'.repeat(MAX_AUDIO_CHARACTERS + 1) })).toContain('too long');
+  });
+
+  it('reads a request to check a quick answer', () => {
+    const request = readRequest({ hint: 'la', check: { words: '  que\u0007 loquera ', guesses: [{ title: 'El Taxi', artist: 'Osmani García', why: 'x' }, 7] } });
+    expect(request).toMatchObject({ check: { words: 'que  loquera', guesses: [{ title: 'El Taxi', artist: 'Osmani García' }, { title: '', artist: '' }] } });
+    expect(readRequest({ hint: 'la' })).not.toHaveProperty('check');
   });
 
   it('cleans up rounds and texts', () => {

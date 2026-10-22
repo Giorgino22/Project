@@ -33,8 +33,10 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       </div>
       <div class="take" data-take hidden>
         <audio controls preload="metadata" data-take-player aria-label="Your recording"></audio>
+        <a class="icon-button" data-download download="humm-recording.wav" aria-label="Download recording" hidden><Icon name="download" /></a>
         <button type="button" class="icon-button" data-discard aria-label="Delete recording"><Icon name="trash-2" /></button>
       </div>
+      <pre class="humm-debug" data-hum-debug hidden></pre>
     </div>
 
     <div class="humm-form">
@@ -121,23 +123,27 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       </div>
       <div class="confidence-meter" aria-hidden="true"><span data-meter></span></div>
       <p class="guess-why" data-why></p>
-      <!-- The preview, right in the row: Spotify's or YouTube's own player (added by the script),
-           or Apple's 30-second preview in this small player of our own. -->
-      <div class="guess-preview" data-preview hidden>
-        <div class="mini-player" data-apple-player hidden>
-          <button type="button" class="mini-player-key" data-play aria-pressed="false" aria-label="Play preview">
+      <!-- The preview, right in the row: Apple's 30-second preview in this small player of our own –
+           its progress line becomes the song's melody once Humm has found it – or Spotify's player
+           (added by the script) when Apple doesn't have the song. -->
+      <div class="guess-preview" data-preview>
+        <div class="mini-player" data-apple-player>
+          <button type="button" class="mini-player-key" data-play aria-pressed="false" aria-label="Play preview" disabled>
             <span data-play-icon><Icon name="play" /></span>
             <span data-pause-icon hidden><Icon name="pause" /></span>
           </button>
           <div class="mini-player-body">
             <p class="mini-player-head">
-              <span class="mini-player-label">Preview from Apple Music</span>
+              <span class="mini-player-label" data-preview-label>Looking for a preview …</span>
               <span class="mini-player-time readout"><span data-preview-time>0:00</span><span class="mini-player-length"> / 0:30</span></span>
             </p>
-            <span class="mini-player-track" aria-hidden="true"><span data-preview-bar></span></span>
+            <span class="mini-player-track" data-preview-track aria-hidden="true"><span data-preview-bar></span></span>
+            <canvas class="mini-player-melody" data-song-line aria-hidden="true" hidden></canvas>
           </div>
         </div>
       </div>
+      <!-- "Your tune fits this song at 0:12": the melody check (src/lib/compare.ts) -->
+      <p class="guess-fit" data-fit hidden></p>
       <div class="guess-actions">
         <button type="button" class="btn btn-secondary btn-small" data-pick><Icon name="check" /> That’s it</button>
         <ul class="chip-list guess-links">
@@ -146,18 +152,22 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
           <li data-apple-item hidden><a data-apple target="_blank" rel="noopener">Apple Music</a></li>
         </ul>
       </div>
+      <pre class="guess-debug" data-debug hidden></pre>
     </li>
   </template>
 </div>
 
 <script>
   import { load, save } from '@tools/shared/lib/storage';
-  import { melodyLine, silences, type MelodyPoint } from '../lib/melody';
+  import { RELIABLE_STEPS, compareMelodies, evenSteps, fitLabel, type MelodyMatch, type TimedNote } from '../lib/compare';
+  import { melodyLine, silences, soundLevel, type MelodyPoint } from '../lib/melody';
   import { detectPitch, frequencyToNote, loudness } from '../lib/pitch';
   import { estimateSeconds, progressFraction, timeLeftText } from '../lib/progress';
+  import { SONG_RATE, melodyNotes, songMelody } from '../lib/songmelody';
   import type { Answer, Guess, IdentifyRequest, Preview, Round } from '../lib/types';
-  import { appleMusicLink, isAppleId, isSpotifyId, isYoutubeId, spotifyLink, youtubeLink } from '../lib/songs';
-  import { applePreview } from '../scripts/itunes';
+  import { appleMusicLink, isSpotifyId, lyricWords, spotifyLink, youtubeLink } from '../lib/songs';
+  import { WAV_SAMPLE_RATE } from '../lib/wav';
+  import { findApplePreview } from '../scripts/itunes';
   import { MAX_SECONDS, MIN_SECONDS, recordingToWavBase64 } from '../scripts/recording';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-humm]')) setupHumm(root);
@@ -214,6 +224,13 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
     const previewPlayer = new Audio(); // plays Apple's 30-second previews
     let previewKey: HTMLButtonElement | null = null; // the play key of the preview that is loaded in it
+    let startAtLoad = 0; // where to start that preview (where the hummed tune fits), once it has loaded
+    let resultsRound = 0; // counts the lists of songs shown, so late work for an old list is dropped
+    let micRate = 0; // samples per second of the microphone (shown in debug mode)
+
+    // Debug mode (add ?debug to the address): shows what happens behind the scenes and lets you
+    // download your recording – for testing Humm, not for everyday use.
+    const debug = new URLSearchParams(location.search).has('debug');
 
     function updateButtons(): void {
       const recording = recorder?.state === 'recording';
@@ -329,6 +346,26 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       audio = wav;
       converting = false;
       updateButtons();
+      if (debug && wav) showRecordingDetails(wav);
+    }
+
+    /** Debug mode: a download link for the recording and a few numbers about the melody line. */
+    function showRecordingDetails(wav: string): void {
+      const bytes = Uint8Array.from(atob(wav), (character) => character.charCodeAt(0));
+      const link = find<HTMLAnchorElement>('[data-download]');
+      if (link.href.startsWith('blob:')) URL.revokeObjectURL(link.href);
+      link.href = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+      link.hidden = false;
+      const clear = melody.filter((point) => point.note !== null).length;
+      const details = find('[data-hum-debug]');
+      details.textContent = [
+        `Recording: ${((bytes.length - 44) / 2 / WAV_SAMPLE_RATE).toFixed(1)} s, sent as a ${WAV_SAMPLE_RATE / 1000} kHz WAV (${bytes.length} bytes)`,
+        `Microphone: ${micRate} samples per second`,
+        `Measurements: ${melody.length}, with a clear note: ${clear} (${Math.round((100 * clear) / Math.max(1, melody.length))} %)`,
+        `Counts as sound from loudness ${soundLevel(melody).toFixed(4)}`,
+        `Tune for the melody check: ${evenSteps(melodyLine(melody).flat()).length} steps of 0.1 s`,
+      ].join('\n');
+      details.hidden = false;
     }
 
     find('[data-discard]').addEventListener('click', discardRecording);
@@ -340,6 +377,8 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       if (takePlayer.src) URL.revokeObjectURL(takePlayer.src);
       takePlayer.removeAttribute('src');
       take.hidden = true;
+      find('[data-download]').hidden = true;
+      find('[data-hum-debug]').hidden = true;
       melody = [];
       drawStaff();
       timeText.textContent = formatTime(0);
@@ -367,6 +406,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       listener.createMediaStreamSource(microphone).connect(analyser);
       const wave = new Float32Array(analyser.fftSize);
       const sampleRate = listener.sampleRate;
+      micRate = sampleRate;
       let lastCheck = 0;
 
       const tick = (now: number) => {
@@ -491,7 +531,12 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       }
     }
     drawStaff();
-    window.addEventListener('resize', drawStaff);
+    window.addEventListener('resize', () => {
+      drawStaff();
+      for (const row of guessList.children) {
+        drawSongLine(row as HTMLElement, previewKey && row.contains(previewKey) ? previewPlayer.currentTime : 0);
+      }
+    });
 
     // ------------------------------------------------------------------ searching
 
@@ -515,6 +560,8 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       const hint = hintField.value.trim();
       if (!audio && !hint) return;
       const webSearch = rounds.length > 0; // from the second try on, Humm also searches the web
+      // The hummed tune, one note every 0.1 s, to compare with the songs' melodies later.
+      const tune = audio ? evenSteps(melodyLine(melody).flat()) : [];
       busy = true;
       updateButtons();
       stopPreviews();
@@ -523,21 +570,19 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       answerBox.hidden = true;
       found.hidden = true;
       startProgress(webSearch);
-      const started = performance.now();
 
       try {
         const request: IdentifyRequest = { audio: audio ?? undefined, hint, rounds };
-        const response = await fetch('/api/identify', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(request),
-          signal: AbortSignal.timeout(100_000), // never wait longer than 100 seconds
-        });
-        const data = (await response.json().catch(() => ({}))) as Partial<Answer> & { error?: string };
-        if (!response.ok) throw new Error(data.error || `Something went wrong (error ${response.status}). Please try again.`);
-        rememberDuration(webSearch, (performance.now() - started) / 1000);
+        let answer = await askHumm(request, webSearch);
+        // Words were heard, but Humm isn't sure yet: check them on the web right away.
+        if (!webSearch && shouldCheckOnTheWeb(answer, request)) {
+          startProgress(true, answer.words ? `Checking “${answer.words}” on the web` : 'Checking on the web');
+          const check = { words: answer.words, guesses: answer.guesses.map(({ title, artist }) => ({ title, artist })) };
+          const quick = answer;
+          answer = await askHumm({ ...request, check }, true).catch(() => quick); // if that fails, the quick answer stays
+        }
         feedbackField.value = '';
-        showAnswer(data as Answer);
+        showAnswer(answer, tune);
       } catch (error) {
         rounds.pop(); // this try didn't happen – the visitor can send the same feedback again
         const name = error instanceof Error ? error.name : '';
@@ -560,16 +605,43 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       }
     }
 
+    /** One question to our Worker (src/worker/). Remembers how long it took, for the waiting circle. */
+    async function askHumm(request: IdentifyRequest, webSearch: boolean): Promise<Answer> {
+      const started = performance.now();
+      const response = await fetch('/api/identify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: AbortSignal.timeout(100_000), // never wait longer than 100 seconds
+      });
+      const data = (await response.json().catch(() => ({}))) as Partial<Answer> & { error?: string };
+      if (!response.ok) throw new Error(data.error || `Something went wrong (error ${response.status}). Please try again.`);
+      rememberDuration(webSearch, (performance.now() - started) / 1000);
+      return { ...data, guesses: data.guesses ?? [], words: data.words ?? '' } as Answer;
+    }
+
+    /**
+     * The words are the best clue there is. So when the recording had words (or the visitor typed
+     * a few words without recording) and Humm isn't sure yet, the quick answer is checked on the web.
+     * "na na na" doesn't count as words (see lyricWords).
+     */
+    function shouldCheckOnTheWeb(answer: Answer, request: IdentifyRequest): boolean {
+      const best = Math.max(0, ...answer.guesses.map((guess) => guess.confidence));
+      const typedOnly = !request.audio && lyricWords(request.hint ?? '') >= 3;
+      return (lyricWords(answer.words) >= 2 || typedOnly) && best < 70;
+    }
+
     // ------------------------------------------------------------------ the waiting circle
 
     const circumference = 2 * Math.PI * 20; // the circle's radius is 20 (see the <svg> above)
     let progressClock = 0;
     const durationKey = (webSearch: boolean) => `humm:durations:${webSearch ? 'web' : 'quick'}`;
 
-    function startProgress(webSearch: boolean): void {
+    function startProgress(webSearch: boolean, title?: string): void {
+      window.clearInterval(progressClock); // a second step starts its own circle
       // First visit: a quick try takes about 12 s, a try with web search about 25 s.
       const estimate = estimateSeconds(load<number[]>(durationKey(webSearch), []), webSearch ? 25 : 12);
-      progressTitle.textContent = webSearch ? 'Searching again, on the web too' : 'Finding your song';
+      progressTitle.textContent = title ?? (webSearch ? 'Searching again, on the web too' : 'Finding your song');
       progress.hidden = false;
       const started = performance.now();
       const update = () => {
@@ -594,7 +666,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
 
     // ------------------------------------------------------------------ showing the answer
 
-    function showAnswer(answer: Answer): void {
+    function showAnswer(answer: Answer, tune: TimedNote[]): void {
       lastGuesses = answer.guesses ?? [];
       heard.textContent = [
         answer.heard ? `Humm heard: ${answer.heard}` : '',
@@ -604,7 +676,8 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         .filter(Boolean)
         .join(' ');
       previewKey = null; // the earlier songs and their previews are replaced
-      guessList.replaceChildren(...lastGuesses.map(renderGuess));
+      resultsRound++;
+      guessList.replaceChildren(...lastGuesses.map((guess) => renderGuess(guess, tune)));
       question.textContent = answer.question ?? '';
       question.hidden = !answer.question;
 
@@ -636,7 +709,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
     }
 
     /** Copies the row template and fills in one song. Texts go in with textContent, never as HTML. */
-    function renderGuess(guess: Guess): HTMLLIElement {
+    function renderGuess(guess: Guess, tune: TimedNote[]): HTMLLIElement {
       const row = template.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
       const part = <T extends Element = HTMLElement>(selector: string) => row.querySelector<T>(selector)!;
       const confidence = Math.max(0, Math.min(100, Math.round(guess.confidence)));
@@ -662,7 +735,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         part('[data-apple-item]').hidden = false;
       }
 
-      showPreview(part('[data-preview]'), guess);
+      void showPreview(row, guess, tune, resultsRound);
       part('[data-pick]').addEventListener('click', () => markFound(row, guess));
       return row;
     }
@@ -670,54 +743,65 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
     // ------------------------------------------------------------------ previews
 
     /**
-     * The song's preview, shown right in its row, best first: Spotify's player (a 30-second preview,
-     * the whole song when you're logged in to Spotify), else Apple's 30-second preview in our own
-     * small player, else the YouTube video. All of them need the song's ID from Wikidata. Without
-     * one there is no preview, and the links search for the song instead.
+     * The song's preview, right in its row: Apple's 30-second preview in our own small player (found
+     * by its Apple Music ID or by title and artist, see src/scripts/itunes.ts). If Apple doesn't have
+     * the song: Spotify's player, when Wikidata knew the Spotify ID. Otherwise there is no preview,
+     * and the links below search for the song.
      */
-    function showPreview(box: HTMLElement, guess: Guess): void {
-      const ids = guess.ids;
-      if (isSpotifyId(ids?.spotify)) {
-        // theme=0: Spotify's dark player instead of one coloured like the album cover
-        embed(box, `https://open.spotify.com/embed/track/${ids.spotify}?theme=0`, `${guess.title} on Spotify`, 'spotify-player');
-      } else if (isAppleId(ids?.apple)) {
-        // Apple is asked right away, so the preview plays at once when the visitor taps.
-        void applePreview(ids.apple).then((preview) => {
-          if (preview) showApplePlayer(box, preview, guess.title);
-          else if (isYoutubeId(ids.youtube)) embedYoutube(box, ids.youtube, guess.title);
-        });
-      } else if (isYoutubeId(ids?.youtube)) {
-        embedYoutube(box, ids.youtube, guess.title);
+    async function showPreview(row: HTMLElement, guess: Guess, tune: TimedNote[], round: number): Promise<void> {
+      const box = row.querySelector<HTMLElement>('[data-preview]')!;
+      const preview = await findApplePreview({ title: guess.title, artist: guess.artist, appleId: guess.ids?.apple });
+      if (round !== resultsRound) return; // other songs are shown by now
+      note(row, preview ? `Apple (${preview.via}): “${preview.title}” by ${preview.artist}` : 'Apple: no preview found');
+      if (preview) {
+        readyApplePlayer(row, preview, guess.title);
+        // The melody check takes a moment per song, so the songs take turns, the first one first.
+        if (tune.length > 0) {
+          melodyChecks = melodyChecks
+            .then(() => checkMelody(row, preview, tune, round))
+            .catch((error: unknown) => note(row, `Melody check failed: ${String(error)}`));
+        }
+        else note(row, 'Melody check: no recorded tune');
+      } else if (isSpotifyId(guess.ids?.spotify)) {
+        embedSpotify(box, guess.ids.spotify, guess.title);
+      } else {
+        box.hidden = true;
       }
     }
 
-    /** youtube-nocookie.com is YouTube's privacy-friendlier player; playsinline keeps it in the page on iPhones. */
-    function embedYoutube(box: HTMLElement, id: string, title: string): void {
-      embed(box, `https://www.youtube-nocookie.com/embed/${id}?playsinline=1`, `${title} on YouTube`, 'youtube-player');
-    }
-
-    /** Puts Spotify's or YouTube's own player into the row. Only checked IDs (isSpotifyId …) get here. */
-    function embed(box: HTMLElement, address: string, title: string, className: string): void {
+    /** Spotify's own player (theme=0: its dark look, not coloured like the album cover). Only checked IDs get here. */
+    function embedSpotify(box: HTMLElement, id: string, title: string): void {
       const frame = document.createElement('iframe');
-      frame.src = address;
-      frame.title = title;
-      frame.className = className;
+      frame.src = `https://open.spotify.com/embed/track/${id}?theme=0`;
+      frame.title = `${title} on Spotify`;
+      frame.className = 'spotify-player';
       frame.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
       frame.loading = 'lazy'; // players further down load only when you scroll to them
       box.replaceChildren(frame);
-      box.hidden = false;
     }
 
-    function showApplePlayer(box: HTMLElement, preview: Preview, title: string): void {
-      const key = box.querySelector<HTMLButtonElement>('[data-play]')!;
+    /** Our own player is ready: the key plays the preview (from where the tune fits, once that is known). */
+    function readyApplePlayer(row: HTMLElement, preview: Preview, title: string): void {
+      const key = row.querySelector<HTMLButtonElement>('[data-play]')!;
+      key.disabled = false;
       key.setAttribute('aria-label', `Play preview of ${title}`); // screen readers can tell the songs apart
-      key.addEventListener('click', () => togglePreview(key, preview.audioUrl));
-      box.querySelector<HTMLElement>('[data-apple-player]')!.hidden = false;
-      box.hidden = false;
+      row.querySelector('[data-preview-label]')!.textContent = 'Preview from Apple Music';
+      key.addEventListener('click', () => togglePreview(key, preview.audioUrl, rowMelodies.get(row)?.startAt ?? 0));
+      // Tapping the song's melody line plays from that point.
+      const line = row.querySelector<HTMLCanvasElement>('[data-song-line]')!;
+      line.addEventListener('click', (event) => {
+        const song = rowMelodies.get(row)?.song;
+        if (!song) return;
+        const seconds = (event.offsetX / line.clientWidth) * song.seconds;
+        if (previewKey === key) {
+          previewPlayer.currentTime = seconds;
+          if (previewPlayer.paused) togglePreview(key, preview.audioUrl, seconds);
+        } else togglePreview(key, preview.audioUrl, seconds);
+      });
     }
 
     /** Plays or pauses an Apple preview. Tapping the same one again continues where it stopped. */
-    function togglePreview(key: HTMLButtonElement, url: string): void {
+    function togglePreview(key: HTMLButtonElement, url: string, startAt: number): void {
       if (previewKey === key && !previewPlayer.paused) {
         previewPlayer.pause();
         return;
@@ -727,6 +811,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         if (previewKey) showProgress(previewKey, 0); // the other preview starts from the beginning next time
         previewKey = key;
         previewPlayer.src = url;
+        startAtLoad = startAt; // where the hummed tune fits – set as soon as the browser knows the file
       }
       previewPlayer.play().catch((error: unknown) => {
         // "AbortError": the visitor paused or picked another preview before this one began – no problem.
@@ -744,6 +829,11 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
         key.querySelector<HTMLElement>('[data-pause-icon]')!.hidden = !isPlaying;
       }
     }
+    // The time can only be set once the browser has read the start of the file ("metadata").
+    previewPlayer.addEventListener('loadedmetadata', () => {
+      if (startAtLoad > 0) previewPlayer.currentTime = startAtLoad;
+      startAtLoad = 0;
+    });
     previewPlayer.addEventListener('play', () => setPlaying(true));
     previewPlayer.addEventListener('pause', () => setPlaying(false));
     previewPlayer.addEventListener('timeupdate', () => {
@@ -753,23 +843,177 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       if (previewKey) showProgress(previewKey, 0);
     });
 
-    /** Moves the thin bar and the time of a preview player to `seconds`. */
+    /** Moves the progress line (or the line on the song's melody) and the time of a player to `seconds`. */
     function showProgress(key: HTMLButtonElement, seconds: number): void {
-      const player = key.closest('[data-apple-player]')!;
+      const row = key.closest<HTMLElement>('.guess');
+      if (!row) return;
       const length = Number.isFinite(previewPlayer.duration) ? previewPlayer.duration : 30;
-      player.querySelector<HTMLElement>('[data-preview-bar]')!.style.width = `${Math.min(100, (seconds / length) * 100)}%`;
-      player.querySelector('[data-preview-time]')!.textContent = formatTime(seconds);
+      row.querySelector<HTMLElement>('[data-preview-bar]')!.style.width = `${Math.min(100, (seconds / length) * 100)}%`;
+      row.querySelector('[data-preview-time]')!.textContent = formatTime(seconds);
+      drawSongLine(row, seconds);
     }
 
     /**
-     * Stops every preview. Our own player can simply be paused. Spotify's and YouTube's players
-     * live on their own websites and can't be paused from here – but loading them again stops them.
+     * Stops every preview. Our own player can simply be paused. Spotify's player lives on Spotify's
+     * website and can't be paused from here – but loading it again stops it.
      */
     function stopPreviews(rows: Element[] = [...guessList.children]): void {
       for (const row of rows) {
         if (previewKey && row.contains(previewKey)) previewPlayer.pause();
         for (const frame of row.querySelectorAll('iframe')) frame.src = frame.src;
       }
+    }
+
+    // ------------------------------------------------------------------ the melody check
+
+    /** A song's melody (one note every 0.1 s) and the length of its preview. */
+    interface SongTune {
+      notes: TimedNote[];
+      seconds: number;
+    }
+
+    /** What the melody check found for a row: drawn in its player and used to start the preview. */
+    const rowMelodies = new WeakMap<Element, { song: SongTune; tune: TimedNote[]; match: MelodyMatch | null; startAt: number }>();
+    const songTunes = new Map<string, Promise<SongTune>>(); // each preview is downloaded and analysed only once
+    let melodyChecks = Promise.resolve();
+
+    /**
+     * Finds the melody in the song's preview (src/lib/songmelody.ts) and compares it with the
+     * visitor's tune (src/lib/compare.ts). The player's progress line becomes the song's melody,
+     * with the tune drawn on top where it fits – and the preview starts there.
+     */
+    async function checkMelody(row: HTMLElement, preview: Preview, tune: TimedNote[], round: number): Promise<void> {
+      if (round !== resultsRound || !row.isConnected) return;
+      let song: SongTune;
+      try {
+        if (!songTunes.has(preview.audioUrl)) songTunes.set(preview.audioUrl, readSong(preview.audioUrl));
+        song = await songTunes.get(preview.audioUrl)!;
+      } catch (error) {
+        note(row, `Melody check: ${error instanceof Error ? error.message : 'failed'}`);
+        return;
+      }
+      if (round !== resultsRound) return;
+
+      const match = compareMelodies(tune, song.notes);
+      const label = match ? fitLabel(match, tune.length) : null;
+      note(
+        row,
+        match
+          ? `Melody check: fit ${match.fit.toFixed(3)} → ${label ?? 'no claim'} (tune ${tune.length} steps, reliable from ${RELIABLE_STEPS}), song ${match.start.toFixed(1)}–${match.end.toFixed(1)} s, ${match.shift} semitones higher`
+          : `Melody check: too little melody to compare (tune ${tune.length}, song ${song.notes.length} steps)`,
+      );
+      const fits = match !== null && label !== null;
+      const startAt = fits ? Math.max(0, match.start - 0.5) : 0; // half a second before, to hear it coming
+      rowMelodies.set(row, { song, tune, match: fits ? match : null, startAt });
+
+      // The thin progress line becomes the song's melody.
+      row.querySelector<HTMLElement>('[data-preview-track]')!.hidden = true;
+      row.querySelector<HTMLElement>('[data-song-line]')!.hidden = false;
+      drawSongLine(row, 0);
+      if (!fits) return;
+      const fit = row.querySelector<HTMLElement>('[data-fit]')!;
+      fit.textContent =
+        label === 'good'
+          ? `Your tune fits this song well at ${formatTime(match.start)}. The preview starts there.`
+          : `Parts of your tune fit this song at ${formatTime(match.start)}. The preview starts there.`;
+      fit.hidden = false;
+      row.querySelector('[data-preview-time]')!.textContent = formatTime(startAt);
+    }
+
+    /**
+     * Downloads a preview and finds its melody. This only works if Apple allows web pages to read
+     * the file ("CORS") – if not, there is simply no melody check, and the preview still plays.
+     */
+    async function readSong(url: string): Promise<SongTune> {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`the preview could not be downloaded (error ${response.status})`);
+      // Decoded at 16,000 samples per second (works in every browser) …
+      const decoded = await new OfflineAudioContext(1, 1, WAV_SAMPLE_RATE).decodeAudioData(await response.arrayBuffer());
+      // … mixed to mono, with every two samples averaged into one: 8,000 per second.
+      const channels = Array.from({ length: decoded.numberOfChannels }, (_, c) => decoded.getChannelData(c));
+      const samples = new Float32Array(Math.floor(decoded.length / 2));
+      for (let i = 0; i < samples.length; i++) {
+        let sum = 0;
+        for (const channel of channels) sum += channel[2 * i]! + channel[2 * i + 1]!;
+        samples[i] = sum / (2 * channels.length);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0)); // let the page react between the heavy steps
+      return { notes: evenSteps(melodyNotes(songMelody(samples, SONG_RATE))), seconds: decoded.duration };
+    }
+
+    /**
+     * Draws the song's melody (grey), the visitor's tune where it fits (ink, moved into the song's
+     * key and stretched to the song's speed) and how far the preview has played.
+     */
+    function drawSongLine(row: HTMLElement, seconds: number): void {
+      const data = rowMelodies.get(row);
+      const canvas = row.querySelector<HTMLCanvasElement>('[data-song-line]');
+      const context = canvas?.getContext('2d');
+      if (!data || !canvas || !context || canvas.clientWidth === 0) return;
+      const ratio = window.devicePixelRatio || 1;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+      }
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+      const style = getComputedStyle(root);
+      const color = (name: string) => style.getPropertyValue(name).trim();
+
+      // Fit the song's usual notes into the height (a few very high or low ones may stick out).
+      const sorted = data.song.notes.map((step) => step.note).sort((a, b) => a - b);
+      const low = sorted[Math.floor(sorted.length * 0.05)] ?? 60;
+      const high = sorted[Math.floor(sorted.length * 0.95)] ?? 72;
+      const span = Math.max(12, high - low + 2);
+      const bottom = (low + high) / 2 - span / 2;
+      const x = (time: number) => (time / data.song.seconds) * width;
+      const y = (note: number) => Math.max(1, Math.min(height - 1, height - 2 - ((note - bottom) / span) * (height - 4)));
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+
+      // The song's melody: a line from step to step; a gap of more than 0.25 s stays a gap.
+      context.strokeStyle = color('--edge');
+      context.lineWidth = 2;
+      context.beginPath();
+      data.song.notes.forEach((step, i) => {
+        const previous = data.song.notes[i - 1];
+        if (previous && step.time - previous.time < 0.25) context.lineTo(x(step.time), y(step.note));
+        else context.moveTo(x(step.time), y(step.note));
+      });
+      context.stroke();
+
+      // The visitor's tune where it fits, in the octave the song sings in.
+      if (data.match) {
+        const hummed = new Map(data.tune.map((step) => [step.time, step.note]));
+        const sung = new Map(data.song.notes.map((step) => [step.time, step.note]));
+        context.strokeStyle = color('--ink');
+        context.lineWidth = 2.5;
+        context.beginPath();
+        data.match.pairs.forEach(([humTime, songTime], i) => {
+          const note = hummed.get(humTime)! + data.match!.shift;
+          const target = sung.get(songTime)!;
+          const point = [x(songTime), y(note + 12 * Math.round((target - note) / 12))] as const;
+          if (i === 0) context.moveTo(...point);
+          else context.lineTo(...point);
+        });
+        context.stroke();
+      }
+
+      // How far the preview has played: a thin ink line.
+      if (seconds > 0) {
+        context.fillStyle = color('--ink');
+        context.fillRect(Math.round(x(seconds)) - 1, 0, 2, height);
+      }
+    }
+
+    /** Debug mode only (?debug in the address): what happened behind the scenes, as plain text. */
+    function note(row: HTMLElement, text: string): void {
+      if (!debug) return;
+      const box = row.querySelector<HTMLElement>('[data-debug]')!;
+      box.textContent += `${text}\n`;
+      box.hidden = false;
     }
 
     // ------------------------------------------------------------------ "That's it"
@@ -790,6 +1034,7 @@ const privacyUrl = `${siteUrl('hub')}/privacy/#song-finder`;
       previewPlayer.pause();
       guessList.replaceChildren(); // removing the songs removes (and stops) their players too
       previewKey = null;
+      resultsRound++; // melody checks that are still waiting are dropped
       rounds = [];
       lastGuesses = [];
       hintField.value = '';

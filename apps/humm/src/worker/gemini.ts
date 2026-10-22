@@ -2,8 +2,9 @@
  * Asks Google's Gemini AI which song it is.
  *
  * - The first try is a quick one: Gemini listens and answers from what it knows.
- * - From the second try on ("Search again"), Gemini may also search Google for the words it
- *   heard. That finds songs it doesn't know by heart, but costs a bit more, so it's not the default.
+ * - From the second try on ("Search again"), and when the page asks to check a quick answer that
+ *   heard words but wasn't sure (`check`), Gemini may also search Google for the words. That finds
+ *   songs it doesn't know by heart, but costs a bit more and takes longer, so it's not the default.
  * - Several models are tried in turn: if one is busy, too slow or not available for this
  *   API key, the next one gets the question.
  */
@@ -31,8 +32,9 @@ export type Result = { answer: Answer } | { error: string; status: number };
 export async function identify(input: IdentifyRequest, settings: GeminiSettings, limits = LIMITS): Promise<Result> {
   const rounds = input.rounds ?? [];
   const started = Date.now();
-  const firstTry = await ask(input, settings, limits, rounds.length > 0, started);
-  if ('answer' in firstTry || rounds.length === 0) return firstTry;
+  const search = rounds.length > 0 || Boolean(input.check);
+  const firstTry = await ask(input, settings, limits, search, started);
+  if ('answer' in firstTry || !search) return firstTry;
 
   // The web search didn't work (e.g. its daily limit is used up): ask again without it.
   console.log('web search failed, trying without it');
@@ -44,7 +46,7 @@ async function ask(input: IdentifyRequest, settings: GeminiSettings, limits: typ
   const rounds = input.rounds ?? [];
   const parts: object[] = [];
   if (input.audio) parts.push({ inlineData: { mimeType: 'audio/wav', data: input.audio } });
-  parts.push({ text: buildPrompt({ hasAudio: Boolean(input.audio), hint: input.hint ?? '', rounds, search }) });
+  parts.push({ text: buildPrompt({ hasAudio: Boolean(input.audio), hint: input.hint ?? '', rounds, search, check: input.check }) });
 
   // "low" thinking: Gemini answers in seconds instead of up to a minute.
   const thinkingConfig = { thinkingLevel: 'low' };

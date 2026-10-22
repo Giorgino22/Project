@@ -90,17 +90,22 @@ Each small site follows the same pattern:
 Humm records a tune in the browser (and draws the melody on a staff while you hum, silence in red),
 then sends it to its Worker at `/api/identify`. The Worker asks Google's Gemini AI, then looks each
 song up in Wikidata (the free database behind Wikipedia) for its Spotify, YouTube and Apple Music IDs.
-So the links open the song itself (on phones: in the app), and each song shows its preview right away:
-Spotify's player, else Apple's 30-second preview in Humm's own small player, else the YouTube video.
-Songs Wikidata doesn't know get search links. "Search again" sends the songs
-that were wrong plus the visitor's feedback, and from then on Gemini may also **search Google** for
-the words it heard.
+So the links open the song itself (on phones: in the app). Each song shows Apple's 30-second preview
+in Humm's own small player (Spotify's player when Apple doesn't have it). If words were heard but Gemini
+isn't sure, the page asks again right away with **Google Search** for the words; "Search again" sends the
+songs that were wrong plus the visitor's feedback, also with Google Search.
+
+**Melody check:** the page downloads each preview, finds its melody (`src/lib/songmelody.ts`: FFT,
+overtone "salience", best path) and compares it with the hummed tune (`src/lib/compare.ts`: dynamic time
+warping over all keys). The player draws the song's melody, the tune on top where it fits, and starts
+there. A fit is only claimed with at least 6 s of tune (shorter hums fit many songs by chance).
+Add `?debug` to the address to see the numbers and download the recording (for testing).
 
 | File | What it does |
 | --- | --- |
 | `src/components/SongFinder.astro` | The tool: record key, melody staff, waiting circle, results, "That's it" |
-| `src/lib/` | Pure logic, unit-tested: WAV file, note detection, smooth melody line with silences, time estimate, song matching and links, shared types |
-| `src/scripts/itunes.ts` | Asks Apple for a preview by ID from the visitor's browser (for songs without a Spotify ID) |
+| `src/lib/` | Pure logic, unit-tested: WAV file, note detection, smooth melody line with silences, time estimate, song matching and links, melody of a song and the melody check, shared types |
+| `src/scripts/itunes.ts` | Finds a song's Apple preview from the visitor's browser (by Apple Music ID, else by title and artist) |
 | `src/worker/songids.ts` | Finds each song's Spotify, YouTube and Apple Music IDs in Wikidata |
 | `src/worker/index.ts` | The Worker: `/api/identify` (+ rate limit); everything else comes from `dist/` |
 | `src/worker/gemini.ts` | Asks Gemini: models in turn, time limits, web search from the second try |

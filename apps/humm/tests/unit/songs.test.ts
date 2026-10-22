@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { appleMusicLink, isSpotifyId, isYoutubeId, namesArtist, sameTitle, spotifyLink, youtubeLink } from '../../src/lib/songs';
+import { appleMusicLink, isSpotifyId, isYoutubeId, lyricWords, namesArtist, sameTitle, spotifyLink, youtubeLink } from '../../src/lib/songs';
 import { addSongIds, itemValues, matchingTitles, pickIds, type Item, type SearchHit } from '../../src/worker/songids';
 import type { Guess } from '../../src/lib/types';
 
@@ -97,6 +97,15 @@ describe('asking Wikidata (with a fake internet)', () => {
     const started = Date.now();
     await addSongIds(songs, 50);
     expect(Date.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe('words in a recording', () => {
+  it('counts real words, but not "na na na" and the like', () => {
+    expect(lyricWords('que loquera asere')).toBe(3);
+    expect(lyricWords('na na na, la la, doo doo, mmm, hm, ooh, dum')).toBe(0);
+    expect(lyricWords('na na hey jude')).toBe(2);
+    expect(lyricWords('')).toBe(0);
   });
 });
 

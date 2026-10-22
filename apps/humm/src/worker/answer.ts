@@ -31,7 +31,7 @@ How to work:
 10. In "heard", describe in one sentence what you heard, or say that there was no recording.
 Write "heard", "why" and "question" in the language of the person's notes, or in English if there are none.`;
 
-/** Asked for from the second try on: the AI may search Google for the words it heard. */
+/** Asked for from the second try on, and when a quick answer is checked: the AI may search Google. */
 const SEARCH_INSTRUCTIONS = `Use Google Search before you answer: search for the words you heard and for the person's notes
 (put lyric fragments in quotes and add "lyrics" and the singer if known). Prefer songs whose real lyrics match
 what you heard.`;
@@ -69,7 +69,7 @@ export const ANSWER_SCHEMA = {
  * The message for one try. Everything – the visitor's notes, the songs that were wrong, what the
  * visitor said about them – goes into ONE message, so every request is a fresh, simple question.
  */
-export function buildPrompt(input: { hasAudio: boolean; hint: string; rounds: Round[]; search: boolean }): string {
+export function buildPrompt(input: { hasAudio: boolean; hint: string; rounds: Round[]; search: boolean; check?: IdentifyRequest['check'] }): string {
   const lines: string[] = [];
   lines.push(
     input.hasAudio
@@ -85,6 +85,15 @@ export function buildPrompt(input: { hasAudio: boolean; hint: string; rounds: Ro
     lines.push('', 'What the person said after those suggestions:');
     for (const round of input.rounds) lines.push(`- "${round.feedback}"`);
   }
+  if (input.check) {
+    // A quick first listen came back unsure: now it is checked on the web.
+    if (input.check.words) lines.push('', `In a first quick listen you made out these words: "${input.check.words}"`);
+    if (input.check.guesses.length > 0) {
+      lines.push('', 'Songs that came to mind then – NOT confirmed, they may be right or wrong:');
+      for (const song of input.check.guesses) lines.push(`- "${song.title}" by ${song.artist}`);
+      lines.push('Keep one of them only if its real lyrics or melody fit.');
+    }
+  }
   if (input.search) lines.push('', SEARCH_INSTRUCTIONS, '', JSON_INSTRUCTIONS);
   lines.push('', 'Which song is it?');
   return lines.join('\n');
@@ -93,7 +102,7 @@ export function buildPrompt(input: { hasAudio: boolean; hint: string; rounds: Ro
 /** Checks what the page sent. Returns the cleaned request, or an error message for the visitor. */
 export function readRequest(body: unknown): IdentifyRequest | string {
   if (typeof body !== 'object' || body === null) return 'The request could not be read.';
-  const { audio, hint, rounds } = body as Record<string, unknown>;
+  const { audio, hint, rounds, check } = body as Record<string, unknown>;
 
   if (audio !== undefined && audio !== null && typeof audio !== 'string') return 'The recording could not be read.';
   if (typeof audio === 'string' && audio.length > MAX_AUDIO_CHARACTERS) return 'The recording is too long. Record at most 30 seconds.';
@@ -104,15 +113,22 @@ export function readRequest(body: unknown): IdentifyRequest | string {
   for (const round of Array.isArray(rounds) ? rounds.slice(-8) : []) {
     if (typeof round !== 'object' || round === null) continue;
     const { guesses, feedback } = round as Record<string, unknown>;
-    cleanRounds.push({
-      guesses: (Array.isArray(guesses) ? guesses.slice(0, 5) : []).map((guess) => {
-        const song = (typeof guess === 'object' && guess !== null ? guess : {}) as Record<string, unknown>;
-        return { title: text(song.title, 150), artist: text(song.artist, 150) };
-      }),
-      feedback: text(feedback, 300) || 'None of these are right.',
-    });
+    cleanRounds.push({ guesses: songList(guesses), feedback: text(feedback, 300) || 'None of these are right.' });
   }
-  return { audio: audio || undefined, hint: cleanHint, rounds: cleanRounds };
+  const request: IdentifyRequest = { audio: audio || undefined, hint: cleanHint, rounds: cleanRounds };
+  if (typeof check === 'object' && check !== null) {
+    const { words, guesses } = check as Record<string, unknown>;
+    request.check = { words: text(words, 200), guesses: songList(guesses) };
+  }
+  return request;
+}
+
+/** At most five songs, each with only a title and an artist (as short, clean text). */
+function songList(value: unknown): { title: string; artist: string }[] {
+  return (Array.isArray(value) ? value.slice(0, 5) : []).map((guess) => {
+    const song = (typeof guess === 'object' && guess !== null ? guess : {}) as Record<string, unknown>;
+    return { title: text(song.title, 150), artist: text(song.artist, 150) };
+  });
 }
 
 /**

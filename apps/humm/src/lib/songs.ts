@@ -55,6 +55,16 @@ export function namesArtist(text: string, artist: string): boolean {
   return wordMatch(keep(artist), keep(text)) >= 0.5;
 }
 
+/** Syllables people sing instead of words ("na na na", "doo doo", "mmm") – they are not lyrics. */
+const SINGING_SYLLABLES = /^[nldtbpmhy]?([aeiou])\1*h?$|^[dt]u[mn]$|^h?m+$/; // na, doo, ooh, dum, hmm …
+
+/** How many real words a text has: syllables like "na", "la" or "doo" don't count. */
+export function lyricWords(text: string): number {
+  return simplify(text)
+    .split(' ')
+    .filter((word) => /\p{L}/u.test(word) && word.length >= 2 && !SINGING_SYLLABLES.test(word)).length;
+}
+
 // ---------------------------------------------------------------- IDs and links
 
 /** IDs come from outside (Wikidata), so they are checked before they go into a link or player. */

@@ -52,7 +52,7 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
       browser until you tap “Find the song”. Then your recording, what you typed and – when you search again – the songs
       Humm suggested before are sent through our server (a Cloudflare Worker) to Google’s Gemini API, a service of Google
       LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. Google’s AI listens to the recording and suggests songs;
-      from the second try on it may also search Google for the words it heard.
+      when it heard words but isn’t sure yet, and from the second try on, it may also search Google for those words.
     </p>
     <p>
       We do not store your recordings or notes, and our server logs only which AI model answered and how long it took. We
@@ -67,13 +67,14 @@ const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
       Wikidata, the free database of the Wikimedia Foundation – this contains nothing about you.
     </p>
     <p>
-      When Humm shows the songs it found, your browser loads a preview for each song where possible: Spotify’s player
-      (Spotify AB, Regeringsgatan 19, 111 53 Stockholm, Sweden) or, for songs without it, the 30-second preview from Apple
-      (Apple Inc., One Apple Park Way, Cupertino, CA 95014, USA) or YouTube’s player in its privacy-enhanced mode (Google
-      Ireland Limited, Gordon House, Barrow Street, Dublin 4, Ireland). These services receive your IP address and which
-      song is shown, and their players may set cookies. Nothing is loaded from them before you search. If Humm searched
-      the web, it shows Google’s search suggestions; clicking one opens Google Search. The Spotify, YouTube and Apple Music
-      links only open those websites or apps when you click them.
+      When Humm shows the songs it found, your browser asks Apple’s iTunes Search (Apple Inc., One Apple Park Way,
+      Cupertino, CA 95014, USA) for each song’s 30-second preview. If you recorded a tune, your browser also downloads the
+      previews to compare their melodies with your tune – this comparison happens only in your browser, your recording is
+      not sent to Apple. For songs Apple doesn’t have, Spotify’s player is shown instead (Spotify AB, Regeringsgatan 19,
+      111 53 Stockholm, Sweden), which may set cookies. Apple and Spotify receive your IP address and which songs are shown.
+      Nothing is loaded from them before you search. If Humm searched the web, it shows Google’s search suggestions;
+      clicking one opens Google Search. The Spotify, YouTube and Apple Music links only open those websites or apps when
+      you click them.
     </p>
 
     <h2>Data saved in your browser</h2>

@@ -74,6 +74,15 @@ describe('asking Gemini', () => {
     });
   });
 
+  it('checks a quick answer on the web, and may keep its songs', async () => {
+    const calls = fakeInternet(() => json(geminiReply(goodAnswer)));
+    const result = await identify({ audio: 'UklGRg==', hint: '', rounds: [], check: { words: 'que loquera', guesses: [{ title: 'El Taxi', artist: 'Osmani García' }] } }, settings);
+    expect(calls[0]!.body.tools).toEqual([{ google_search: {} }]);
+    expect(calls[0]!.body.contents[0].parts[1].text).toContain('NOT confirmed');
+    // El Taxi was only "not confirmed", not wrong – so it may stay
+    expect(result).toMatchObject({ answer: { guesses: [{ title: 'El Taxi' }] } });
+  });
+
   it('moves on to the next model when one is busy or unknown', async () => {
     const calls = fakeInternet((url) => {
       if (modelOf(url) === 'gemini-3.8-flash') return json({ error: { message: 'The model is overloaded.' } }, 503);
