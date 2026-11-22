@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { randomInt, shuffle } from '@tools/shared/lib/random';
+import { dictionaries, languages } from '../../src/i18n';
 import { makeTeams, teamsForSize } from '../../src/lib/teams';
 import {
   entriesFromHash,
@@ -12,6 +13,7 @@ import {
   segmentAtPointer,
   segmentColor,
 } from '../../src/lib/wheel';
+import { alternatesOf, getAllPages, pagePath, storageKey } from '../../src/site';
 
 describe('entries', () => {
   it('turns the text box into a clean list', () => {
@@ -95,5 +97,49 @@ describe('teams', () => {
     expect(teamsForSize(10, 3)).toBe(4);
     expect(teamsForSize(10, 5)).toBe(2);
     expect(teamsForSize(3, 10)).toBe(1);
+  });
+});
+
+describe('pages and languages', () => {
+  it('every page exists in every language, at its own address', () => {
+    const pages = getAllPages();
+    expect(pages).toHaveLength(languages.length * Object.keys(dictionaries.en.pages).length);
+    expect(new Set(pages.map((page) => page.path)).size).toBe(pages.length);
+    for (const page of pages) {
+      // Addresses use plain letters only (no umlauts): "gluecksrad", not "glücksrad"
+      expect(page.path, page.path).toMatch(page.lang === 'en' ? /^\/([a-z0-9-]+\/)?$/ : /^\/de\/([a-z0-9-]+\/)?$/);
+      expect(alternatesOf(page.key).map((version) => version.lang)).toEqual(languages);
+    }
+  });
+
+  it('German pages have German addresses that match German searches', () => {
+    expect(pagePath('home', 'de')).toBe('/de/');
+    expect(pagePath('yesNo', 'de')).toBe('/de/ja-nein-gluecksrad/');
+    expect(pagePath('numbers', 'de')).toBe('/de/zahlen-gluecksrad/');
+    expect(pagePath('letters', 'de')).toBe('/de/buchstaben-gluecksrad/');
+    expect(pagePath('teams', 'de')).toBe('/de/teamgenerator/');
+  });
+
+  it('titles and descriptions fit into Google results', () => {
+    for (const page of getAllPages()) {
+      expect(page.title.length, page.path).toBeLessThanOrEqual(65);
+      expect(page.description.length, page.path).toBeGreaterThanOrEqual(60);
+      expect(page.description.length, page.path).toBeLessThanOrEqual(170);
+      expect(page.faq.length, page.path).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('each language remembers its own entries', () => {
+    const yesNo = (lang: string) => getAllPages().find((page) => page.key === 'yesNo' && page.lang === lang)!;
+    expect(storageKey(yesNo('en'))).toBe('wheel:yes-no'); // unchanged, so English visitors keep their wheels
+    expect(storageKey(yesNo('de'))).toBe('wheel:yes-no:de');
+    expect(dictionaries.de.pages.yesNo.preset).toEqual(['Ja', 'Nein']);
+  });
+
+  it('German texts are complete: no English left in the tool buttons', () => {
+    for (const [key, value] of Object.entries(dictionaries.de.wheel)) {
+      if (key === 'seconds') continue;
+      expect(value, key).not.toBe(dictionaries.en.wheel[key as keyof typeof dictionaries.en.wheel]);
+    }
   });
 });

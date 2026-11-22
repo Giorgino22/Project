@@ -1,20 +1,24 @@
 ---
 /** A Google AdSense ad. Renders NOTHING until the publisher ID (network.ts) and this slot ID are set. */
+import { defaultLang, frameTexts, type Lang } from '../i18n';
 import { features, network } from '../network';
 
 interface Props {
   /** Ad unit ID from AdSense (only digits). Empty = no ad here. */
   slot: string;
+  /** Language of the page (for the "Advertisement" label) */
+  lang?: Lang;
 }
 
-const { slot } = Astro.props;
+const { slot, lang = defaultLang } = Astro.props;
+const label = frameTexts[lang].ad;
 const show = features.ads && slot.trim() !== '';
 ---
 
 {
   show && (
-    <aside class="ad-slot" aria-label="Advertisement">
-      <span class="ad-label">Advertisement</span>
+    <aside class="ad-slot" aria-label={label}>
+      <span class="ad-label">{label}</span>
       <ins
         class="adsbygoogle"
         style="display:block"

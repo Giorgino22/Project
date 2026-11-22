@@ -2,15 +2,44 @@
  * Builds sitemap.xml and robots.txt for a site. Each app calls these from
  * src/pages/sitemap.xml.ts and src/pages/robots.txt.ts with its own list of pages.
  */
+import { defaultLang, type Alternate } from '../i18n';
 import { features, network, siteUrl, type SiteId } from '../network';
 
-const xml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const xml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** paths like ['/', '/yes-or-no-wheel/'] → sitemap.xml response */
-export function sitemapResponse(site: SiteId, paths: string[]): Response {
+/** A page for the sitemap: its path and – if it exists in several languages – all its language versions. */
+export interface SitemapPage {
+  path: string;
+  alternates?: Alternate[];
+}
+
+/**
+ * Pages → sitemap.xml response. Pages can be plain paths ('/yes-or-no-wheel/') or pages with
+ * their language versions: then every entry also lists those versions (hreflang, plus x-default =
+ * the English page), so Google shows German visitors the German page – the same format KeepLocal uses.
+ */
+export function sitemapResponse(site: SiteId, pages: (string | SitemapPage)[]): Response {
   const base = siteUrl(site);
-  const urls = paths.map((path) => `  <url><loc>${xml(base + path)}</loc></url>`).join('\n');
-  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  const entries = pages.map((page) => {
+    const { path, alternates = [] } = typeof page === 'string' ? { path: page } : page;
+    const lines = [`    <loc>${xml(base + path)}</loc>`];
+    if (alternates.length > 1) {
+      for (const version of alternates) {
+        lines.push(`    <xhtml:link rel="alternate" hreflang="${version.lang}" href="${xml(base + version.path)}"/>`);
+      }
+      const fallback = alternates.find((version) => version.lang === defaultLang);
+      if (fallback) lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${xml(base + fallback.path)}"/>`);
+    }
+    return ['  <url>', ...lines, '  </url>'].join('\n');
+  });
+  const body = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    ...entries,
+    '</urlset>',
+    '',
+  ].join('\n');
   return new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 }
 

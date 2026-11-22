@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     "./network": "./src/network.ts",
+    "./i18n": "./src/i18n.ts",
     "./components/*": "./src/components/*",
     "./lib/*": "./src/lib/*.ts",
     "./styles/*": "./src/styles/*",

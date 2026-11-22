@@ -13,8 +13,8 @@ costs a fraction of a cent – see [apps/humm](#humm-the-song-finder) below.
 | --- | --- | --- | --- |
 | **Hub** | `example.com` | Lists all sites; privacy policy, legal notice, `ads.txt` | – |
 | **KeepLocal** | `keeplocal.example.com` | 20 PDF & image tools incl. image to text (OCR), English + German | iLovePDF ~255M, imagetotext.info ~5.7M |
-| **Spin the Wheel** | `wheel.example.com` | Name picker wheel, yes/no, number & letter wheels, team generator | Wheel of Names ~17–25M |
-| **Typing Test** | `typing.example.com` | Typing test (30 s – 5 min), practice lessons, kids test, keyboard tester | Monkeytype ~15M |
+| **Spin the Wheel** | `wheel.example.com` | Name picker wheel, yes/no, number & letter wheels, team generator, English + German ("Glücksrad", `/de/`) | Wheel of Names ~17–25M |
+| **Typing Test** | `typing.example.com` | Typing test (30 s – 5 min), practice lessons, kids test, keyboard tester, English + German ("Tipptest", `/de/`: German words, Anschläge, QWERTZ) | Monkeytype ~15M |
 | **Humm** | `humm.example.com` | Find a song by humming, singing or whistling it, with previews; uses Google's Gemini AI | Google's "hum to search" (in the Google app) |
 
 \* Third-party estimates (Semrush/Similarweb). Why these sites: [docs/STRATEGY.md](docs/STRATEGY.md).
@@ -77,8 +77,13 @@ docs/                       ← strategy and launch checklist
 
 Each small site follows the same pattern:
 
-- `src/site.ts`: everything search engines and visitors read (titles, descriptions, steps, FAQ).
-  Change texts here, no code needed.
+- `src/site.ts`: the site's pages and their addresses. Humm (English only) also keeps its texts here.
+- `src/i18n/en.ts` and `de.ts` (wheel and typing, which exist in English and German): everything
+  search engines and visitors read – titles, descriptions, steps, FAQ, buttons and messages. Change
+  texts here, no code needed. TypeScript reports a German text that is missing. One file,
+  `src/pages/[...path].astro`, builds every page in both languages, like KeepLocal does.
+  English pages live at `/…`, German ones at `/de/…`; they link to each other (language menu,
+  hreflang tags, sitemap) through `packages/shared` (`src/i18n.ts`, `SiteLayout.astro`, `lib/endpoints.ts`).
 - `src/components/`: the tool itself (HTML plus a `<script>` that runs in the browser).
 - `src/lib/`: the logic as plain functions, unit-tested in `tests/unit/`.
 - `tests/e2e/`: browser tests. `site.spec.ts` checks every page for search-engine tags, phone
@@ -130,7 +135,7 @@ Add `?debug` to the address to see the numbers and download the recording (for t
    `playwright.config.ts` and `wrangler.jsonc`, and the site ID in `astro.config.mjs`.
 2. In `packages/shared/src/network.ts`, add the ID to `SiteId` and an entry to `sites`. Every
    footer and the hub then link to the new site automatically.
-3. Write `src/site.ts` and the tool component. Run `npm install`, then the checks.
+3. Write the texts (`src/i18n/`), `src/site.ts` and the tool component. Run `npm install`, then the checks.
 4. Publish it as its own Cloudflare Worker (see the launch checklist).
 
 Or ask Claude, e.g. *"Add a new site for a unit converter, following the README"*.

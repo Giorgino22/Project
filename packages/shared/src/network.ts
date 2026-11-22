@@ -15,6 +15,8 @@
  * Where to get each value: docs/LAUNCH-CHECKLIST.md
  */
 
+import { defaultLang, type Lang } from './i18n';
+
 export const network = {
   /** Name of the whole network (hub page, footers). */
   name: 'Tool-Tin',
@@ -66,6 +68,12 @@ export interface Site {
    * "Everything runs in your browser. Nothing is uploaded." at the bottom of the site's pages.
    */
   dataNote?: string;
+  /**
+   * The site in other languages (only if it has them): its start page, name and one sentence,
+   * e.g. de: { path: '/de/', name: 'Glücksrad', description: '…' }. Footers of pages in that
+   * language link there instead of to the English start page.
+   */
+  translations?: Partial<Record<Lang, { path: string; name: string; description: string }>>;
 }
 
 /**
@@ -79,6 +87,10 @@ export const sites: Site[] = [
     name: network.name,
     description: 'Free online tools that are fast, simple and respect your privacy.',
     links: [],
+    // The hub has no German start page (yet), only German legal pages – so the path stays '/'.
+    translations: {
+      de: { path: '/', name: network.name, description: 'Kostenlose Online-Tools: schnell, einfach und mit Respekt für Ihre Privatsphäre.' },
+    },
   },
   {
     id: 'keeplocal',
@@ -92,6 +104,9 @@ export const sites: Site[] = [
       { path: '/compress-image/', label: 'Compress image' },
       { path: '/password-generator/', label: 'Password generator' },
     ],
+    translations: {
+      de: { path: '/de/', name: 'KeepLocal', description: 'PDF- & Bild-Tools, die Ihre Dateien nie hochladen.' },
+    },
   },
   {
     id: 'wheel',
@@ -103,6 +118,13 @@ export const sites: Site[] = [
       { path: '/yes-or-no-wheel/', label: 'Yes or no wheel' },
       { path: '/random-team-generator/', label: 'Team generator' },
     ],
+    translations: {
+      de: {
+        path: '/de/',
+        name: 'Glücksrad',
+        description: 'Glücksrad und Namen-Zufallsgenerator für Schule, Spiele und Entscheidungen.',
+      },
+    },
   },
   {
     id: 'typing',
@@ -114,6 +136,9 @@ export const sites: Site[] = [
       { path: '/typing-practice/', label: 'Typing practice' },
       { path: '/keyboard-test/', label: 'Keyboard test' },
     ],
+    translations: {
+      de: { path: '/de/', name: 'Tipptest', description: 'Tipptest, Tippen üben und Tastaturtest – mit deutschen Wörtern.' },
+    },
   },
   {
     id: 'humm',
@@ -130,6 +155,22 @@ export function siteUrl(id: SiteId): string {
   const site = sites.find((s) => s.id === id);
   if (!site) throw new Error(`Unknown site: ${id}`);
   return `https://${site.subdomain ? `${site.subdomain}.` : ''}${network.domain}`;
+}
+
+/**
+ * A site's start page, name and description in a language – the English ones if the site has no
+ * version in that language. siteIn('wheel', 'de') → { url: 'https://wheel.example.com/de/', name: 'Glücksrad', … }
+ */
+export function siteIn(id: SiteId, lang: Lang): { url: string; path: string; name: string; description: string } {
+  const site = sites.find((s) => s.id === id)!;
+  const translation = lang === defaultLang ? undefined : site.translations?.[lang];
+  const path = translation?.path ?? '/';
+  return {
+    url: siteUrl(id) + path,
+    path,
+    name: translation?.name ?? site.name,
+    description: translation?.description ?? site.description,
+  };
 }
 
 /** Is a money/statistics feature switched on? */

@@ -1,6 +1,10 @@
 ---
-/** Legal notice for all sites of the network. The details come from packages/shared/src/network.ts. */
+/**
+ * Legal notice for all sites of the network. The details come from packages/shared/src/network.ts.
+ * The German version is de/impressum.astro – keep both in step.
+ */
 import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { legalPaths } from '@tools/shared/i18n';
 import { network } from '@tools/shared/network';
 import '../styles/hub.css';
 
@@ -12,8 +16,11 @@ const complete = owner.name.trim() !== '' && owner.address.trim() !== '' && owne
   site="hub"
   title={`Legal notice – ${network.name}`}
   description={`Legal notice of ${network.name}: who runs these websites and how to get in touch. Free online tools that run in your browser.`}
-  path="/imprint/"
- 
+  path={legalPaths.en.imprint}
+  alternates={[
+    { lang: 'en', path: legalPaths.en.imprint },
+    { lang: 'de', path: legalPaths.de.imprint },
+  ]}
 >
   <div class="container prose">
     <section class="page-intro">

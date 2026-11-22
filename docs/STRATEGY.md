@@ -165,8 +165,8 @@ make up for it like this:
 1. More PDF tools: compress, password-protect, unlock, page numbers (KeepLocal).
 2. Audio/video with your own files: MP4 → MP3, cut audio, video → GIF. The Mediabunny library
    uses the browser's built-in encoders, so no servers are needed.
-3. German versions of the wheel and typing sites (German word lists), then French, Italian and
-   Spanish.
+3. French, Italian and Spanish versions of the wheel and typing sites. (German versions – "Glücksrad"
+   and "Tipptest" with German word lists and a QWERTZ keyboard – went live in November 2026.)
 4. On-device AI: background remover, speech → text, text → speech. Big model downloads
    (75–200 MB) and only the newest browsers, so later.
 5. German-speaking niches: Swiss QR-bill, invoices, cancellation letters.

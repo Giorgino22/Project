@@ -24,30 +24,31 @@ const versions = alternatesOf(pageKey);
     </a>
     <nav class="header-nav" aria-label={dict.nav.allTools}>
       {categories.map((category) => <a href={`${homePath(lang)}#${category}`}>{dict.categories[category]}</a>)}
-      {
-        versions.length > 1 && (
-          <details class="lang-menu">
-            <summary aria-label={dict.nav.language}>
-              <Icon name="globe" />
-              {lang.toUpperCase()}
-            </summary>
-            <ul>
-              {versions.map((version) => (
-                <li>
-                  <a
-                    href={version.path}
-                    hreflang={version.lang}
-                    lang={version.lang}
-                    aria-current={version.lang === lang ? 'page' : undefined}
-                  >
-                    {t(version.lang).name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )
-      }
     </nav>
+    {
+      /* Outside the menu on purpose: on phones the menu scrolls sideways and would cut the list off. */
+      versions.length > 1 && (
+        <details class="lang-menu">
+          <summary aria-label={dict.nav.language}>
+            <Icon name="globe" />
+            {lang.toUpperCase()}
+          </summary>
+          <ul>
+            {versions.map((version) => (
+              <li>
+                <a
+                  href={version.path}
+                  hreflang={version.lang}
+                  lang={version.lang}
+                  aria-current={version.lang === lang ? 'page' : undefined}
+                >
+                  {t(version.lang).name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )
+    }
   </div>
 </header>

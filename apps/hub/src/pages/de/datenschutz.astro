@@ -1,0 +1,178 @@
+---
+/**
+ * Datenschutzerklärung: the German version of ../privacy.astro, for the German pages of the
+ * wheel and typing sites. Keep both files in step: when a section changes in one, change it in
+ * the other. Sections about ads, statistics and tips appear automatically when you switch those
+ * features on in packages/shared/src/network.ts.
+ */
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { legalPaths } from '@tools/shared/i18n';
+import { features, network, sites, siteUrl } from '@tools/shared/network';
+import '../../styles/hub.css';
+
+const { owner, hosting } = network;
+const complete = owner.name.trim() !== '' && owner.address.trim() !== '' && owner.email.trim() !== '';
+const updated = new Date(network.legalUpdated).toLocaleDateString('de', { day: 'numeric', month: 'long', year: 'numeric' });
+const domains = sites.map((site) => siteUrl(site.id).replace('https://', ''));
+---
+
+<SiteLayout
+  site="hub"
+  lang="de"
+  title={`Datenschutzerklärung – ${network.name}`}
+  description={`Wie ${network.name} mit Ihren Daten umgeht: Unsere Tools laufen in Ihrem Browser, Ihre Dateien und Texte werden nicht hochgeladen. Kein Konto nötig.`}
+  path={legalPaths.de.privacy}
+  alternates={[
+    { lang: 'en', path: legalPaths.en.privacy },
+    { lang: 'de', path: legalPaths.de.privacy },
+  ]}
+>
+  <div class="container prose">
+    <section class="page-intro">
+      <h1>Datenschutzerklärung</h1>
+      <p class="lead">Stand: {updated}</p>
+    </section>
+
+    <p>
+      <strong>Kurz gesagt:</strong> Unsere Tools laufen vollständig in Ihrem Webbrowser. Dateien und Texte, die Sie darin
+      verwenden, werden nie an uns oder an Dritte übertragen. Die einzige Ausnahme ist der Song-Finder Humm: Um eine
+      Melodie zu erkennen, sendet er Ihre Aufnahme an die KI von Google (siehe <a href="#song-finder">Song-Finder</a>).
+      Im Folgenden erklären wir, welche anderen Daten beim Besuch unserer Websites verarbeitet werden.
+    </p>
+    <p>Diese Datenschutzerklärung gilt für folgende Websites: {domains.join(', ')}.</p>
+
+    <h2>Verantwortliche Stelle</h2>
+    {!complete && <p class="warning-box">Die Angaben zum Betreiber sind noch nicht ausgefüllt (packages/shared/src/network.ts → owner).</p>}
+    <address>{owner.name}{'\n'}{owner.address}{'\n'}{owner.email}</address>
+
+    <h2>Ihre Dateien und Eingaben</h2>
+    <p>
+      Dateien, die Sie mit unseren Tools öffnen (zum Beispiel PDFs und Bilder), und alles, was Sie in ein Tool eingeben
+      (zum Beispiel die Namen auf einem Glücksrad oder die Wörter eines Tipptests), werden ausschließlich auf Ihrem Gerät
+      in Ihrem Browser verarbeitet. Sie werden weder an unsere Server noch an Dritte übertragen, und wir können sie nicht
+      einsehen. Die einzige Ausnahme ist der Song-Finder, wie im nächsten Abschnitt beschrieben.
+    </p>
+
+    <h2 id="song-finder">Song-Finder (Humm)</h2>
+    <p>
+      Humm nutzt Ihr Mikrofon erst, nachdem Sie auf die Aufnahmetaste getippt haben, und nur so lange, bis Sie die
+      Aufnahme beenden. Die Aufnahme bleibt in Ihrem Browser, bis Sie auf „Find the song“ tippen. Dann werden Ihre
+      Aufnahme, das, was Sie eingetippt haben, und – wenn Sie erneut suchen – die zuvor vorgeschlagenen Songs über unseren
+      Server (einen Cloudflare Worker) an die Gemini API von Google gesendet, einen Dienst der Google LLC, 1600
+      Amphitheatre Parkway, Mountain View, CA 94043, USA. Die KI von Google hört sich die Aufnahme an und schlägt Songs
+      vor; wenn sie Wörter gehört hat, sich aber noch nicht sicher ist, und ab dem zweiten Versuch kann sie diese Wörter
+      auch bei Google suchen.
+    </p>
+    <p>
+      Wir speichern Ihre Aufnahmen und Notizen nicht; unser Server protokolliert nur, welches KI-Modell geantwortet hat
+      und wie lange das gedauert hat. Wir nutzen den kostenpflichtigen Gemini-Dienst von Google: Laut den Bedingungen von
+      Google verwendet Google die Daten nicht zur Verbesserung seiner Produkte und bewahrt sie nur für begrenzte Zeit auf,
+      um Missbrauch zu erkennen. Daten können in den USA verarbeitet werden. Rechtsgrundlage ist Ihre Anfrage, einen Song
+      zu erkennen (Art. 6 Abs. 1 lit. b DSGVO). Weitere Informationen:
+      <a href="https://ai.google.dev/gemini-api/terms">https://ai.google.dev/gemini-api/terms</a>
+    </p>
+    <p>
+      Damit der Dienst kostenlos bleibt und nicht missbraucht wird, zählt Cloudflare, wie viele Suchen innerhalb einer
+      Minute von Ihrer IP-Adresse kommen; der Zähler wird nicht länger aufbewahrt. Um die vorgeschlagenen Songs verlinken
+      zu können, schlägt unser Server ihre Titel in Wikidata nach, der freien Datenbank der Wikimedia Foundation – diese
+      Abfrage enthält nichts über Sie.
+    </p>
+    <p>
+      Wenn Humm die gefundenen Songs anzeigt, fragt Ihr Browser bei der iTunes-Suche von Apple (Apple Inc., One Apple Park
+      Way, Cupertino, CA 95014, USA) nach der 30-sekündigen Hörprobe jedes Songs. Wenn Sie eine Melodie aufgenommen haben,
+      lädt Ihr Browser die Hörproben außerdem herunter, um ihre Melodien mit Ihrer zu vergleichen – dieser Vergleich
+      findet nur in Ihrem Browser statt, Ihre Aufnahme wird nicht an Apple gesendet. Für Songs, die Apple nicht hat, wird
+      stattdessen der Player von Spotify angezeigt (Spotify AB, Regeringsgatan 19, 111 53 Stockholm, Schweden), der
+      Cookies setzen kann. Apple und Spotify erhalten Ihre IP-Adresse und erfahren, welche Songs angezeigt werden. Vor
+      Ihrer Suche wird nichts von ihnen geladen. Wenn Humm im Web gesucht hat, zeigt es die Suchvorschläge von Google an;
+      ein Klick darauf öffnet die Google-Suche. Die Links zu Spotify, YouTube und Apple Music öffnen diese Websites oder
+      Apps erst, wenn Sie darauf klicken.
+    </p>
+
+    <h2>In Ihrem Browser gespeicherte Daten</h2>
+    <p>
+      Einige Tools merken sich Dinge für Sie – zum Beispiel die Einträge eines Glücksrads, Ihre Bestleistung im Tipptest,
+      Ihre Einstellungen oder wie lange die letzten Suchen des Song-Finders gedauert haben (um die Wartezeit zu schätzen).
+      Diese Daten liegen im lokalen Speicher (Local Storage) Ihres Browsers auf Ihrem Gerät und werden nie an uns
+      gesendet. Sie können sie jederzeit löschen, indem Sie die Websitedaten in Ihrem Browser löschen. Wenn Sie den Link zu
+      einem Glücksrad teilen, sind dessen Einträge Teil dieses Links.
+    </p>
+
+    <h2>Hosting und Server-Logfiles</h2>
+    <p>
+      Unsere Websites werden von {hosting.name}, {hosting.address}, ausgeliefert. Beim Aufruf einer Seite übermittelt Ihr
+      Browser automatisch technische Informationen wie Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Seite und Ihren
+      Browsertyp. Der Hoster benötigt diese Daten, um die Websites auszuliefern und vor Angriffen zu schützen.
+      Rechtsgrundlage ist unser berechtigtes Interesse an sicheren und zuverlässigen Websites (Art. 6 Abs. 1 lit. f
+      DSGVO). Daten können auch außerhalb der EU und der Schweiz verarbeitet werden. Weitere Informationen:
+      <a href={hosting.privacyUrl}>{hosting.privacyUrl}</a>
+    </p>
+
+    {
+      features.analytics && (
+        <>
+          <h2>Besucherstatistik</h2>
+          <p>
+            Wir verwenden Cloudflare Web Analytics, um Seitenaufrufe zu zählen. Der Dienst verwendet keine Cookies,
+            erstellt keine Nutzerprofile und speichert keine vollständigen IP-Adressen. Rechtsgrundlage ist unser
+            berechtigtes Interesse daran, zu erfahren, welche Tools genutzt werden (Art. 6 Abs. 1 lit. f DSGVO).
+          </p>
+        </>
+      )
+    }
+
+    {
+      features.ads && (
+        <>
+          <h2>Werbung (Google AdSense)</h2>
+          <p>
+            Damit die Tools kostenlos bleiben, zeigen wir Anzeigen von Google AdSense, einem Dienst der Google Ireland
+            Limited, Gordon House, Barrow Street, Dublin 4, Irland. Google kann Cookies und ähnliche Technologien verwenden,
+            um Anzeigen auszuspielen und ihre Wirkung zu messen. Personalisierte Anzeigen werden nur angezeigt, wenn Sie im
+            Einwilligungs-Banner zustimmen; Ihre Auswahl können Sie jederzeit ändern. Dabei können Daten an die Google LLC
+            in den USA übertragen werden. Seiten für Kinder, etwa unser Tipptest für Kinder, zeigen keine Werbung. Weitere
+            Informationen:{' '}
+            <a href="https://policies.google.com/technologies/ads">https://policies.google.com/technologies/ads</a>
+          </p>
+        </>
+      )
+    }
+
+    <h2>Affiliate-Links</h2>
+    <p>
+      Wenn eine Seite Affiliate-Links enthält, sind sie als Anzeige gekennzeichnet. Wenn Sie nach einem Klick darauf etwas
+      kaufen, erhalten wir möglicherweise eine Provision – für Sie ändert sich der Preis nicht. Beim Klick kann der Partner
+      erfassen, dass Sie von unserer Website kommen.
+    </p>
+
+    {
+      features.support && (
+        <>
+          <h2>Unterstützung</h2>
+          <p>
+            Wenn Sie den Unterstützen-Button nutzen, werden Sie zu einem externen Zahlungsanbieter weitergeleitet. Dort gilt
+            dessen Datenschutzerklärung; wir erhalten nur die Informationen, die Sie selbst angeben.
+          </p>
+        </>
+      )
+    }
+
+    <h2>Cookies</h2>
+    <p>
+      {
+        features.ads
+          ? 'Wir selbst setzen keine Cookies. Der Werbeanbieter kann – abhängig von Ihrer Einwilligung – Cookies setzen, wie oben beschrieben.'
+          : 'Wir verwenden keine Cookies.'
+      }
+    </p>
+
+    <h2>Ihre Rechte</h2>
+    <p>
+      Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer personenbezogenen Daten, auf Einschränkung der
+      Verarbeitung, auf Widerspruch und auf Datenübertragbarkeit. Außerdem können Sie sich bei einer
+      Datenschutz-Aufsichtsbehörde beschweren – in der Schweiz beim Eidgenössischen Datenschutz- und
+      Öffentlichkeitsbeauftragten (EDÖB), in der EU bei der Behörde Ihres Landes. Um Ihre Rechte auszuüben, kontaktieren
+      Sie uns über die oben genannten Angaben.
+    </p>
+  </div>
+</SiteLayout>

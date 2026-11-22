@@ -1,0 +1,40 @@
+---
+/**
+ * ONE file creates ALL pages of the site, in every language (the same way KeepLocal does it).
+ *
+ * `getStaticPaths` runs at build time and returns one entry per page and language, e.g.
+ * /keyboard-test/ and /de/tastaturtest/. Astro renders each to an HTML file.
+ * The page list and the URLs come from src/site.ts, the texts from src/i18n/.
+ */
+import ToolPage from '@tools/shared/components/ToolPage.astro';
+import KeyboardTester from '../components/KeyboardTester.astro';
+import TypingTest from '../components/TypingTest.astro';
+import { alternatesOf, getAllPages, pagesIn, site, type TypingPage } from '../site';
+import '../styles/typing.css';
+
+export function getStaticPaths() {
+  return getAllPages().map((page) => ({
+    // "/de/tastaturtest/" → "de/tastaturtest"; the start page "/" → undefined
+    params: { path: page.path === '/' ? undefined : page.path.slice(1, -1) },
+    props: { page },
+  }));
+}
+
+interface Props {
+  page: TypingPage;
+}
+
+const { page } = Astro.props;
+---
+
+<ToolPage
+  site={site.id}
+  lang={page.lang}
+  page={page}
+  allPages={pagesIn(page.lang)}
+  alternates={alternatesOf(page.key)}
+  adSlots={site.adSlots}
+  noAds={page.noAds}
+>
+  {page.test ? <TypingTest lang={page.lang} {...page.test} /> : <KeyboardTester lang={page.lang} />}
+</ToolPage>

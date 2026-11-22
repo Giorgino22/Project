@@ -4,13 +4,15 @@
  */
 type JsonLd = Record<string, unknown>;
 
-export function webApplicationSchema(name: string, description: string, url: string): JsonLd {
+/** `lang`: language of the page, e.g. 'de' (search engines read it as "inLanguage"). */
+export function webApplicationSchema(name: string, description: string, url: string, lang = 'en'): JsonLd {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name,
     description,
     url,
+    inLanguage: lang,
     applicationCategory: 'UtilitiesApplication',
     operatingSystem: 'Any',
     browserRequirements: 'Requires JavaScript',

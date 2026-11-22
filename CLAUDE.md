@@ -10,7 +10,8 @@ explain complex parts, and value usability.
 - `packages/shared/` – `@tools/shared`: `src/network.ts` is the ONE settings file for all sites
   (domain, owner, AdSense ID, tip link, analytics, list of sites + `siteUrl()`); shared components/styles.
 - `apps/keeplocal/` – PDF & image tools (English + German). Has its own CLAUDE-relevant rules below.
-- `apps/<other>/` – further sites (English only for now), each with its own tests and `wrangler.jsonc`.
+- `apps/<other>/` – further sites, each with its own tests and `wrangler.jsonc`. Wheel and typing are English + German
+  (see "Languages" below), Humm is English only.
 - `apps/humm/` – song finder: static Astro page + a Cloudflare Worker (`src/worker/`) that asks Google's Gemini.
 
 ## Commands (run from the repo root)
@@ -30,6 +31,21 @@ explain complex parts, and value usability.
 - Insert user/file-derived strings with `textContent`, never `innerHTML`.
 - Load heavy libraries with dynamic `import()` inside handlers.
 - Meta descriptions ≤ 170 characters; one `<h1>` per page; canonical + sitemap per site.
+
+## Languages (wheel, typing, hub legal pages)
+
+- Same approach as KeepLocal: English at the root, German under `/de/` with German slugs (no umlauts in URLs:
+  `gluecksrad`, `tippen-ueben`). Texts in `src/i18n/{en,de}.ts` (`Dictionary = typeof en`), URLs only from
+  `src/site.ts`, all pages from `src/pages/[...path].astro`. German addresses visitors with "Sie" (like KeepLocal);
+  tool buttons/messages avoid pronouns (they also appear on the kids page).
+- Shared: `packages/shared/src/i18n.ts` (`Lang`, frame texts, `legalPaths`), `SiteLayout`/`ToolPage` take `lang` +
+  `alternates` (→ `<html lang>`, hreflang en/de/x-default, language menu, footer links), `sitemapResponse` takes
+  `{ path, alternates }`. `network.ts` → `translations.de` gives each site's German name/start page (footers link there).
+- Scripts get their texts as JSON in `data-i18n`. Each language stores its own entries/bests (`…:de` keys).
+- Typing in German: big number = Anschläge pro Minute (`cpm`), words per minute below it. German word lists
+  (`src/lib/words-de.ts`): nouns capitalised, no ß and no word starting with Ä/Ö/Ü (Swiss keyboards). Keyboard test:
+  ISO QWERTZ (`qwertzMainBlock`, Enter two rows tall) with German or Swiss labels (`ch`), Swiss first for `de-CH` browsers.
+- The hub's privacy policy/legal notice exist in English and German (`apps/hub/src/pages/de/`) – change both together.
 
 ## Design system (all sites)
 

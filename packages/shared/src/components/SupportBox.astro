@@ -1,17 +1,24 @@
 ---
 /** "Did this help? Buy me a coffee" – shown after a result. Hidden while network.supportUrl is empty. */
+import { defaultLang, frameTexts, type Lang } from '../i18n';
 import { features, network } from '../network';
+
+interface Props {
+  /** Language of the page */
+  lang?: Lang;
+}
+
+const text = frameTexts[Astro.props.lang ?? defaultLang];
 ---
 
 {
   features.support && (
     <div class="support-box">
       <p>
-        <strong>Did this help?</strong> The tools are free and stay free. If you’d like to say thanks, you can buy me a
-        coffee.
+        <strong>{text.supportTitle}</strong> {text.supportText}
       </p>
       <a class="btn btn-secondary btn-small" href={network.supportUrl} target="_blank" rel="noopener">
-        Buy me a coffee
+        {text.supportButton}
       </a>
     </div>
   )

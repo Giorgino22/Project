@@ -3,17 +3,27 @@
  * The HTML frame of every page on the new sites: everything search engines and social
  * networks read in <head>, a header, the page content and a footer that links to all
  * other sites of the network (those links help visitors – and Google – find them).
+ *
+ * Pages in several languages pass `alternates` (all language versions of the page). Then the
+ * frame adds the hreflang links search engines need, a language menu in the header and
+ * language links in the footer – the same way KeepLocal does it.
  */
-import { features, network, sites, siteUrl, type SiteId } from '../network';
+import { defaultLang, fill, frameTexts, legalPaths, type Alternate, type Lang } from '../i18n';
+import { features, network, sites, siteIn, siteUrl, type SiteId } from '../network';
+import Icon from './Icon.astro';
 import '../styles/base.css';
 
 interface Props {
   site: SiteId;
+  /** Language of this page (default: English) */
+  lang?: Lang;
   /** Full text for the browser tab and the Google headline */
   title: string;
   description: string;
   /** Path of this page, e.g. "/yes-or-no-wheel/" */
   path: string;
+  /** All language versions of this page, e.g. [{ lang: 'en', path: '/' }, { lang: 'de', path: '/de/' }] */
+  alternates?: Alternate[];
   /** Structured data for search engines (see lib/seo.ts) */
   jsonLd?: Record<string, unknown>[];
   /** true = search engines should not index this page (404 page) */
@@ -24,30 +34,50 @@ interface Props {
   noAds?: boolean;
 }
 
-const { site, title, description, path, jsonLd = [], noindex = false, nav = [], noAds = false } = Astro.props;
+const {
+  site,
+  lang = defaultLang,
+  title,
+  description,
+  path,
+  alternates = [],
+  jsonLd = [],
+  noindex = false,
+  nav = [],
+  noAds = false,
+} = Astro.props;
+const text = frameTexts[lang];
 const current = sites.find((s) => s.id === site)!;
+const here = siteIn(site, lang); // name, description and start page of this site in this language
 const base = siteUrl(site);
 const hub = site === 'hub' ? '' : siteUrl('hub');
+const legal = legalPaths[lang];
 const others = sites.filter((s) => s.id !== site && s.id !== 'hub');
+// Language menu and hreflang links only when the page really exists in more than one language.
+const versions = alternates.length > 1 ? alternates : [];
+const fallback = versions.find((version) => version.lang === defaultLang);
 const year = new Date().getFullYear();
 // JSON inside <script> must not contain "</script>", so "<" is escaped.
 const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={base + path} />}
+    {!noindex && versions.map((version) => <link rel="alternate" hreflang={version.lang} href={base + version.path} />)}
+    {!noindex && fallback && <link rel="alternate" hreflang="x-default" href={base + fallback.path} />}
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content={current.name} />
+    <meta property="og:site_name" content={here.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={base + path} />
     <meta property="og:image" content={`${base}/og-image.jpg`} />
+    <meta property="og:locale" content={text.locale} />
     <meta name="twitter:card" content="summary_large_image" />
     {/* The browser's own bars take the page colour (light and dark mode) */}
     <meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)" />
@@ -67,19 +97,44 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
     }
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+    <a class="skip-link" href="#main">{text.skip}</a>
     <header class="site-header">
       <div class="container">
-        <a class="logo" href="/"><img src="/favicon.svg" width="28" height="28" alt="" />{current.name}</a>
+        <a class="logo" href={here.path}><img src="/favicon.svg" width="28" height="28" alt="" />{here.name}</a>
         {
           nav.length > 0 && (
-            <nav class="header-nav" aria-label="Main">
+            <nav class="header-nav" aria-label={text.mainMenu}>
               {nav.map((link) => (
                 <a href={link.href} aria-current={link.href === path ? 'page' : undefined}>
                   {link.label}
                 </a>
               ))}
             </nav>
+          )
+        }
+        {
+          /* Outside the menu on purpose: on phones the menu scrolls sideways and would cut the list off. */
+          versions.length > 0 && (
+            <details class="lang-menu">
+              <summary aria-label={text.language}>
+                <Icon name="globe" />
+                {lang.toUpperCase()}
+              </summary>
+              <ul>
+                {versions.map((version) => (
+                  <li>
+                    <a
+                      href={version.path}
+                      hreflang={version.lang}
+                      lang={version.lang}
+                      aria-current={version.lang === lang ? 'page' : undefined}
+                    >
+                      {frameTexts[version.lang].name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )
         }
       </div>
@@ -91,21 +146,21 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
       <div class="container">
         <div class="footer-grid">
           <div>
-            <h2>{current.name}</h2>
-            <p>{current.description}</p>
+            <h2>{here.name}</h2>
+            <p>{here.description}</p>
             {
               site === 'hub' && (
                 <ul>
-                  <li><a href="/privacy/">Privacy policy</a></li>
-                  <li><a href="/imprint/">Legal notice</a></li>
+                  <li><a href={legal.privacy}>{text.privacy}</a></li>
+                  <li><a href={legal.imprint}>{text.imprint}</a></li>
                 </ul>
               )
             }
           </div>
           {
             nav.length > 0 && (
-              <nav aria-label={`${current.name} pages`}>
-                <h2>Tools on this site</h2>
+              <nav aria-label={fill(text.sitePages, { site: here.name })}>
+                <h2>{text.toolsOnSite}</h2>
                 <ul>
                   {nav.map((link) => (
                     <li>
@@ -118,12 +173,12 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
           }
           {
             others.length > 0 && (
-              <nav aria-label="More free tools">
-                <h2>More from {network.name}</h2>
+              <nav aria-label={text.moreTools}>
+                <h2>{fill(text.moreFrom, { network: network.name })}</h2>
                 <ul>
                   {others.map((other) => (
                     <li>
-                      <a href={`${siteUrl(other.id)}/`}>{other.name}</a>
+                      <a href={siteIn(other.id, lang).url}>{siteIn(other.id, lang).name}</a>
                     </li>
                   ))}
                 </ul>
@@ -135,9 +190,9 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
               <div>
                 <h2>{network.name}</h2>
                 <ul>
-                  <li><a href={`${hub}/`}>All our tools</a></li>
-                  <li><a href={`${hub}/privacy/`}>Privacy policy</a></li>
-                  <li><a href={`${hub}/imprint/`}>Legal notice</a></li>
+                  <li><a href={`${hub}/`}>{text.allTools}</a></li>
+                  <li><a href={hub + legal.privacy}>{text.privacy}</a></li>
+                  <li><a href={hub + legal.imprint}>{text.imprint}</a></li>
                 </ul>
               </div>
             )
@@ -145,7 +200,18 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
         </div>
         <div class="footer-bottom">
           <span>© {year} {network.name}</span>
-          <span>{current.dataNote ?? 'Everything runs in your browser. Nothing is uploaded.'}</span>
+          <span>{current.dataNote ?? text.noUpload}</span>
+          {
+            versions.length > 0 && (
+              <nav class="footer-languages" aria-label={text.languages}>
+                {versions.map((version) => (
+                  <a href={version.path} hreflang={version.lang} lang={version.lang}>
+                    {frameTexts[version.lang].name}
+                  </a>
+                ))}
+              </nav>
+            )
+          }
         </div>
       </div>
     </footer>

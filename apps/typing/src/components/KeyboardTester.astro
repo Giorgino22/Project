@@ -1,32 +1,48 @@
 ---
 /**
  * Keyboard tester: draws a keyboard and lights up every key the visitor presses.
- * Behaviour: <script> below. The layout is in src/lib/keyboard.ts.
+ * Behaviour: <script> below. The layouts are in src/lib/keyboard.ts: the English page shows a
+ * US keyboard, the German page a QWERTZ keyboard with German or Swiss labels (the visitor picks).
  */
 import Icon from '@tools/shared/components/Icon.astro';
-import { mainBlock, navBlock, type Key } from '../lib/keyboard';
+import { t, type SiteLang } from '../i18n';
+import { keyboards, type Key } from '../lib/keyboard';
 
+interface Props {
+  lang: SiteLang;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).keyboard;
+const board = keyboards[text.board];
 const blocks: { name: string; rows: Key[][] }[] = [
-  { name: 'keys-main', rows: mainBlock },
-  { name: 'keys-nav', rows: navBlock },
+  { name: 'keys-main', rows: board.main },
+  { name: 'keys-nav', rows: board.nav },
 ];
 /** The keyboard is a grid with 4 columns per key unit, so a 1.25-wide key spans 5 columns. */
-const span = (key: Key) => `grid-column: span ${key.width * 4}`;
+const span = (key: Key) => `grid-column: span ${key.width * 4};${key.rows ? ` grid-row: span ${key.rows};` : ''}`;
 ---
 
-<div class="keytest card" data-keytest>
+{/* data-i18n: the texts travel along as JSON, so the script can show its messages in the page's language */}
+<div class="keytest card" data-keytest data-i18n={JSON.stringify(text)}>
   <div class="keytest-info">
-    <p class="keytest-last" aria-live="polite">Last key: <strong data-last>–</strong></p>
-    <p class="keytest-count">Keys tested: <strong data-count>0</strong></p>
-    <button type="button" class="btn btn-secondary btn-small" data-reset><Icon name="rotate-ccw" /> Reset</button>
+    {
+      text.variants.length > 1 && (
+        <div class="segmented" role="radiogroup" aria-label={text.variantLabel}>
+          {text.variants.map((variant, index) => (
+            <label>
+              <input type="radio" name="keyboard-variant" value={variant.id} checked={index === 0} />
+              <span>{variant.name}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+    <p class="keytest-last" aria-live="polite">{text.last} <strong data-last>–</strong></p>
+    <p class="keytest-count">{text.count} <strong data-count>0</strong></p>
+    <button type="button" class="btn btn-secondary btn-small" data-reset><Icon name="rotate-ccw" /> {text.reset}</button>
   </div>
-  <div
-    class="keyboard"
-    data-keyboard
-    tabindex="0"
-    role="application"
-    aria-label="Keyboard test: press any key. To leave, press Esc and then Tab."
-  >
+  <div class="keyboard" data-keyboard tabindex="0" role="application" aria-label={text.label}>
     {
       blocks.map((block) => (
         <div class={block.name}>
@@ -34,7 +50,14 @@ const span = (key: Key) => `grid-column: span ${key.width * 4}`;
             <div class="key-row">
               {row.map((key) =>
                 key.code ? (
-                  <span class="key" data-code={key.code} style={span(key)}>
+                  // data-label-*: the labels of the keys that look different on Swiss keyboards
+                  <span
+                    class="key"
+                    data-code={key.code}
+                    data-label-de={key.ch ? key.label : undefined}
+                    data-label-ch={key.ch}
+                    style={span(key)}
+                  >
                     {key.label}
                   </span>
                 ) : (
@@ -46,14 +69,17 @@ const span = (key: Key) => `grid-column: span ${key.width * 4}`;
         </div>
       ))
     }
-    <p class="keytest-paused" data-paused>Click here to test your keys</p>
+    <p class="keytest-paused" data-paused>{text.paused}</p>
   </div>
 </div>
 
 <script>
+  import { load, save } from '@tools/shared/lib/storage';
+  import type { Dictionary } from '../i18n/en';
   import { keyName } from '../lib/keyboard';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-keytest]')) {
+    const text = JSON.parse(root.dataset.i18n!) as Dictionary['keyboard']; // the texts in the page's language
     const keyboard = root.querySelector<HTMLElement>('[data-keyboard]')!;
     const last = root.querySelector<HTMLElement>('[data-last]')!;
     const count = root.querySelector<HTMLElement>('[data-count]')!;
@@ -72,7 +98,7 @@ const span = (key: Key) => `grid-column: span ${key.width * 4}`;
 
       tested.add(event.code);
       keyFor(event.code)?.classList.add('down', 'tested');
-      last.textContent = `${keyName(event.key)} (${event.code || 'no code'})`;
+      last.textContent = `${keyName(event.key, text)} (${event.code || text.noCode})`;
       count.textContent = String(tested.size);
     }
 
@@ -94,6 +120,27 @@ const span = (key: Key) => `grid-column: span ${key.width * 4}`;
       count.textContent = '0';
       keyboard.focus();
     });
+
+    // German page: German/Austrian or Swiss labels. Only some labels change – the keys stay where they are.
+    const variants = root.querySelectorAll<HTMLInputElement>('input[name="keyboard-variant"]');
+    if (variants.length > 0) {
+      const showVariant = (variant: string) => {
+        for (const key of keyboard.querySelectorAll<HTMLElement>('[data-label-ch]')) {
+          key.textContent = (variant === 'ch' ? key.dataset.labelCh : key.dataset.labelDe) ?? '';
+        }
+        for (const radio of variants) radio.checked = radio.value === variant;
+      };
+      // First visit: Swiss labels if the browser's language is Swiss German (de-CH).
+      const swiss = navigator.languages.some((language) => language.toLowerCase() === 'de-ch');
+      showVariant(load('keytest:variant', swiss ? 'ch' : 'de'));
+      for (const radio of variants) {
+        radio.addEventListener('change', () => {
+          save('keytest:variant', radio.value);
+          showVariant(radio.value);
+          keyboard.focus(); // back to testing
+        });
+      }
+    }
 
     // Ready to test right away on computers.
     if (matchMedia('(pointer: fine)').matches) keyboard.focus({ preventScroll: true });

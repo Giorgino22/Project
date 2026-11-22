@@ -39,6 +39,23 @@ test('the privacy policy covers all sites and the browser storage', async ({ pag
   await expect(page.locator('#song-finder')).toBeVisible();
 });
 
+test('the German privacy policy is complete and in German', async ({ page }) => {
+  await page.goto('/de/datenschutz/');
+  await expect(page.getByRole('heading', { name: 'Datenschutzerklärung', level: 1 })).toBeVisible();
+  for (const subdomain of ['keeplocal', 'wheel', 'typing', 'humm']) await expect(page.getByText(`${subdomain}.`, { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'In Ihrem Browser gespeicherte Daten' })).toBeVisible();
+  await expect(page.locator('#song-finder')).toBeVisible();
+  // The same sections as the English policy
+  const count = async (path: string) => {
+    await page.goto(path);
+    return page.locator('main h2').count();
+  };
+  expect(await count('/de/datenschutz/')).toBe(await count('/privacy/'));
+  // The footer links to the German legal pages
+  await page.goto('/de/impressum/');
+  await expect(page.locator('footer a[href="/de/datenschutz/"]')).toBeVisible();
+});
+
 test('ads.txt is served as plain text', async ({ request }) => {
   const response = await request.get('/ads.txt');
   expect(response.status()).toBe(200);

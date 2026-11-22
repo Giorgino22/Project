@@ -1,5 +1,5 @@
 ---
-import { sites, siteUrl } from '@tools/shared/network';
+import { sites, siteIn, siteUrl } from '@tools/shared/network';
 import { config } from '../config';
 import { t, type Lang } from '../i18n';
 import { alternatesOf, legalPath, toolPath, toolText } from '../site/pages';
@@ -40,9 +40,10 @@ const sisterSites = sites.filter((site) => site.id !== 'keeplocal' && site.id !=
         <h2>{dict.footer.moreTools}</h2>
         <ul>
           {
+            // German pages link to the German versions of the other sites (e.g. "Glücksrad"), where they exist.
             sisterSites.map((site) => (
               <li>
-                <a href={`${siteUrl(site.id)}/`}>{site.name}</a>
+                <a href={siteIn(site.id, lang).url}>{siteIn(site.id, lang).name}</a>
               </li>
             ))
           }

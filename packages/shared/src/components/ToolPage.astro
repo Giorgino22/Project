@@ -4,6 +4,7 @@
  * default slot), then "how it works", FAQ and links to the site's other tools.
  * The tool comes FIRST, right below the heading – visitors came to use it, not to read.
  */
+import { defaultLang, frameTexts, type Alternate, type Lang } from '../i18n';
 import { siteUrl, type SiteId } from '../network';
 import { faqSchema, webApplicationSchema } from '../lib/seo';
 import AdSlot from './AdSlot.astro';
@@ -27,16 +28,21 @@ export interface ToolPageData {
 
 interface Props {
   site: SiteId;
+  /** Language of the page (default: English) */
+  lang?: Lang;
   page: ToolPageData;
-  /** All pages of the site, for the header menu and the "more tools" section */
+  /** All pages of the site in this language, for the header menu and the "more tools" section */
   allPages: ToolPageData[];
+  /** All language versions of this page (for the language menu and search engines) */
+  alternates?: Alternate[];
   /** AdSense slot IDs for this site (empty = no ad) */
   adSlots?: { afterTool?: string; beforeFaq?: string };
   /** true = no ads at all on this page. Use it for pages aimed at children: ads there need special rules. */
   noAds?: boolean;
 }
 
-const { site, page, allPages, noAds = false } = Astro.props;
+const { site, lang = defaultLang, page, allPages, alternates = [], noAds = false } = Astro.props;
+const text = frameTexts[lang];
 const adSlots = noAds ? {} : (Astro.props.adSlots ?? {});
 const url = siteUrl(site) + page.path;
 const nav = allPages.map((p) => ({ href: p.path, label: p.name }));
@@ -45,12 +51,14 @@ const related = allPages.filter((p) => p.path !== page.path);
 
 <SiteLayout
   site={site}
+  lang={lang}
   title={page.title}
   description={page.description}
   path={page.path}
+  alternates={alternates}
   nav={nav}
   noAds={noAds}
-  jsonLd={[webApplicationSchema(page.name, page.description, url), faqSchema(page.faq)]}
+  jsonLd={[webApplicationSchema(page.name, page.description, url, lang), faqSchema(page.faq)]}
 >
   <div class="container">
     <section class="page-intro compact">
@@ -60,17 +68,17 @@ const related = allPages.filter((p) => p.path !== page.path);
 
     <slot />
 
-    <AdSlot slot={adSlots.afterTool ?? ''} />
+    <AdSlot slot={adSlots.afterTool ?? ''} lang={lang} />
 
     <section>
-      <h2>How it works</h2>
+      <h2>{text.howItWorks}</h2>
       <ol class="steps">{page.steps.map((step) => <li>{step}</li>)}</ol>
     </section>
 
-    <AdSlot slot={adSlots.beforeFaq ?? ''} />
+    <AdSlot slot={adSlots.beforeFaq ?? ''} lang={lang} />
 
     <section class="faq">
-      <h2>Frequently asked questions</h2>
+      <h2>{text.faq}</h2>
       {
         page.faq.map((item) => (
           <details>
@@ -84,7 +92,7 @@ const related = allPages.filter((p) => p.path !== page.path);
     {
       related.length > 0 && (
         <section>
-          <h2>More free tools</h2>
+          <h2>{text.related}</h2>
           <ul class="link-list">
             {related.map((other) => (
               <li>

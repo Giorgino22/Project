@@ -1,0 +1,45 @@
+---
+/**
+ * Impressum: the German version of ../imprint.astro (keep both in step).
+ * The details come from packages/shared/src/network.ts.
+ */
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { legalPaths } from '@tools/shared/i18n';
+import { network } from '@tools/shared/network';
+import '../../styles/hub.css';
+
+const { owner } = network;
+const complete = owner.name.trim() !== '' && owner.address.trim() !== '' && owner.email.trim() !== '';
+---
+
+<SiteLayout
+  site="hub"
+  lang="de"
+  title={`Impressum – ${network.name}`}
+  description={`Impressum von ${network.name}: wer diese Websites betreibt und wie Sie uns erreichen. Kostenlose Online-Tools, die in Ihrem Browser laufen.`}
+  path={legalPaths.de.imprint}
+  alternates={[
+    { lang: 'en', path: legalPaths.en.imprint },
+    { lang: 'de', path: legalPaths.de.imprint },
+  ]}
+>
+  <div class="container prose">
+    <section class="page-intro">
+      <h1>Impressum</h1>
+    </section>
+
+    {!complete && <p class="warning-box">Die Angaben zum Betreiber sind noch nicht ausgefüllt (packages/shared/src/network.ts → owner).</p>}
+
+    <h2>Betreiber dieser Websites</h2>
+    <address>{owner.name}{'\n'}{owner.address}</address>
+
+    <h2>Kontakt</h2>
+    <p>E-Mail: {owner.email && <a href={`mailto:${owner.email}`}>{owner.email}</a>}</p>
+
+    <h2>Haftungsausschluss</h2>
+    <p>
+      Die Tools werden kostenlos und ohne Gewähr bereitgestellt. Bitte bewahren Sie immer eine Kopie Ihrer Originaldateien
+      auf. Für die Inhalte externer Websites, auf die wir verlinken, sind wir nicht verantwortlich.
+    </p>
+  </div>
+</SiteLayout>

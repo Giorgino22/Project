@@ -47,7 +47,9 @@ Many countries (including Germany, Austria and Switzerland) require websites wit
 who runs them. In `network.ts` → `owner`, enter your **name, postal address and e-mail**.
 
 - The hub's privacy policy and legal notice (`/privacy/`, `/imprint/`) cover the hub, the wheel
-  and the typing site. Their footers link there.
+  and the typing site. Their footers link there. The German pages of the wheel and typing sites
+  link to the German versions (`/de/datenschutz/`, `/de/impressum/`) – when you change one
+  language, change the other too.
 - KeepLocal has its own legal pages in English and German. They use the same `owner` details.
 
 > ⚠️ The privacy policies are a careful starting point, not legal advice. They update themselves

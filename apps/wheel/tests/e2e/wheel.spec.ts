@@ -84,3 +84,53 @@ test('team generator makes fair teams', async ({ page }) => {
   await page.getByRole('button', { name: 'Make teams' }).click();
   await expect(cards).toHaveCount(4);
 });
+
+// ---------- German pages ----------
+
+test('the German wheel speaks German and keeps its own entries', async ({ page }) => {
+  await page.goto('/de/ja-nein-gluecksrad/');
+  await expect(page.locator('[data-entries]')).toHaveValue('Ja\nNein');
+  // The English yes/no wheel keeps its own entries
+  await page.goto('/yes-or-no-wheel/');
+  await expect(page.locator('[data-entries]')).toHaveValue('Yes\nNo');
+
+  await page.goto('/de/');
+  const entries = page.locator('[data-entries]');
+  await entries.fill('Schweiz\nÖsterreich\nDeutschland');
+  await page.getByRole('button', { name: 'A–Z sortieren' }).click();
+  await expect(entries).toHaveValue('Deutschland\nÖsterreich\nSchweiz'); // Ö sorts like O
+
+  await page.locator('[data-duration]').selectOption('3');
+  await expect(page.locator('[data-duration] option:checked')).toHaveText('3 Sek.');
+  await page.getByRole('button', { name: 'Glücksrad drehen' }).click();
+  const dialog = page.locator('[data-dialog]');
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  await expect(dialog).toContainText('Das Glücksrad hat entschieden');
+  const winner = (await dialog.locator('[data-winner]').textContent()) ?? '';
+  expect(['Deutschland', 'Österreich', 'Schweiz']).toContain(winner);
+  await dialog.getByRole('button', { name: 'Vom Rad entfernen' }).click();
+  await expect(page.locator('[data-count]')).toHaveText('(2)');
+  await expect(page.getByRole('heading', { name: 'Bisher ausgelost' })).toBeVisible();
+});
+
+test('the German wheel explains in German what is missing', async ({ page }) => {
+  await page.goto('/de/');
+  await page.locator('[data-entries]').fill('Nur einer');
+  await page.getByRole('button', { name: 'Glücksrad drehen' }).click();
+  await expect(page.locator('[data-status]')).toContainText('mindestens zwei Einträge');
+});
+
+test('German number wheel and team generator', async ({ page }) => {
+  await page.goto('/de/zahlen-gluecksrad/');
+  await page.getByLabel('Von', { exact: true }).fill('1');
+  await page.getByLabel('Bis', { exact: true }).fill('100');
+  await page.getByRole('button', { name: 'Rad erstellen' }).click();
+  await expect(page.locator('[data-count]')).toHaveText('(100)');
+
+  await page.goto('/de/teamgenerator/');
+  await page.locator('[data-names]').fill('Anna\nBen\nClara\nDavid');
+  await page.getByRole('button', { name: 'Teams bilden' }).click();
+  await expect(page.locator('.team-card h3')).toHaveText(['Team 1', 'Team 2']);
+  await page.locator('.segmented label', { hasText: 'Personen pro Team' }).click();
+  await expect(page.locator('[data-number-label]')).toHaveText('Personen pro Team');
+});

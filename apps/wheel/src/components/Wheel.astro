@@ -5,8 +5,11 @@
  */
 import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
+import { fill } from '@tools/shared/i18n';
+import { t, type SiteLang } from '../i18n';
 
 interface Props {
+  lang: SiteLang;
   /** Entries shown the first time, before the visitor typed their own */
   preset: string[];
   /** Name under which this page remembers the visitor's entries in their browser */
@@ -15,28 +18,37 @@ interface Props {
   numberRange?: boolean;
 }
 
-const { preset, storageKey, numberRange = false } = Astro.props;
+const { lang, preset, storageKey, numberRange = false } = Astro.props;
+const text = t(lang).wheel;
 ---
 
-<div class="wheel-tool card" data-wheel data-preset={JSON.stringify(preset)} data-storage-key={storageKey}>
+{/* data-i18n: the texts travel along as JSON, so the script can show its messages in the page's language */}
+<div
+  class="wheel-tool card"
+  data-wheel
+  data-lang={lang}
+  data-i18n={JSON.stringify(text)}
+  data-preset={JSON.stringify(preset)}
+  data-storage-key={storageKey}
+>
   <div class="wheel-stage" data-stage>
     <div class="wheel-box" data-box>
       <canvas data-canvas aria-hidden="true"></canvas>
       <div class="wheel-pointer" aria-hidden="true"></div>
-      <button type="button" class="wheel-spin" data-spin aria-label="Spin the wheel">Spin</button>
+      <button type="button" class="wheel-spin" data-spin aria-label={text.spinLabel}>{text.spin}</button>
     </div>
     <div class="wheel-toolbar">
-      <button type="button" class="btn btn-secondary btn-small" data-fullscreen><Icon name="maximize" /> Full screen</button>
+      <button type="button" class="btn btn-secondary btn-small" data-fullscreen><Icon name="maximize" /> {text.fullscreen}</button>
       <button type="button" class="btn btn-secondary btn-small" data-sound aria-pressed="true">
-        <span data-sound-on><Icon name="volume-2" /> Sound on</span>
-        <span data-sound-off hidden><Icon name="volume-x" /> Sound off</span>
+        <span data-sound-on><Icon name="volume-2" /> {text.soundOn}</span>
+        <span data-sound-off hidden><Icon name="volume-x" /> {text.soundOff}</span>
       </button>
       <label class="wheel-speed">
-        Spin time
+        {text.spinTime}
         <select data-duration>
-          <option value="3">3 s</option>
-          <option value="5" selected>5 s</option>
-          <option value="10">10 s</option>
+          <option value="3">{fill(text.seconds, { n: 3 })}</option>
+          <option value="5" selected>{fill(text.seconds, { n: 5 })}</option>
+          <option value="10">{fill(text.seconds, { n: 10 })}</option>
         </select>
       </label>
     </div>
@@ -47,48 +59,49 @@ const { preset, storageKey, numberRange = false } = Astro.props;
       numberRange && (
         <div class="number-range">
           <label class="field">
-            <span class="field-label">From</span>
+            <span class="field-label">{text.from}</span>
             <input type="number" data-from value="1" inputmode="numeric" />
           </label>
           <label class="field">
-            <span class="field-label">To</span>
+            <span class="field-label">{text.to}</span>
             <input type="number" data-to value="10" inputmode="numeric" />
           </label>
-          <button type="button" class="btn btn-primary" data-make-range>Create wheel</button>
+          <button type="button" class="btn btn-primary" data-make-range>{text.createWheel}</button>
         </div>
       )
     }
-    <label class="field-label" for="entries">Entries <span class="entry-count" data-count></span></label>
-    <textarea id="entries" data-entries rows="10" spellcheck="false" placeholder="One name or option per line"></textarea>
+    <label class="field-label" for="entries">{text.entries} <span class="entry-count" data-count></span></label>
+    <textarea id="entries" data-entries rows="10" spellcheck="false" placeholder={text.placeholder}></textarea>
     <div class="wheel-actions">
-      <button type="button" class="btn btn-secondary btn-small" data-shuffle><Icon name="shuffle" /> Shuffle</button>
-      <button type="button" class="btn btn-secondary btn-small" data-sort><Icon name="arrow-down-a-z" /> Sort A–Z</button>
-      <button type="button" class="btn btn-secondary btn-small" data-clear><Icon name="eraser" /> Clear</button>
-      <button type="button" class="btn btn-secondary btn-small" data-share><Icon name="link" /> Copy share link</button>
+      <button type="button" class="btn btn-secondary btn-small" data-shuffle><Icon name="shuffle" /> {text.shuffle}</button>
+      <button type="button" class="btn btn-secondary btn-small" data-sort><Icon name="arrow-down-a-z" /> {text.sort}</button>
+      <button type="button" class="btn btn-secondary btn-small" data-clear><Icon name="eraser" /> {text.clear}</button>
+      <button type="button" class="btn btn-secondary btn-small" data-share><Icon name="link" /> {text.share}</button>
     </div>
     <p class="status" data-status role="status" aria-live="polite"></p>
     <div data-history-box hidden>
-      <h2 class="history-title">Picked so far</h2>
+      <h2 class="history-title">{text.history}</h2>
       <ol class="history" data-history></ol>
     </div>
   </div>
 
   <dialog class="wheel-dialog" data-dialog aria-labelledby="winner-name">
     <canvas class="confetti" data-confetti aria-hidden="true"></canvas>
-    <p class="winner-label">The wheel picked</p>
+    <p class="winner-label">{text.winner}</p>
     <p class="winner-name" id="winner-name" data-winner></p>
     <div class="actions">
-      <button type="button" class="btn btn-primary" data-again>Spin again</button>
-      <button type="button" class="btn btn-secondary" data-remove>Remove from wheel</button>
-      <button type="button" class="btn btn-secondary" data-close>Close</button>
+      <button type="button" class="btn btn-primary" data-again>{text.again}</button>
+      <button type="button" class="btn btn-secondary" data-remove>{text.remove}</button>
+      <button type="button" class="btn btn-secondary" data-close>{text.close}</button>
     </div>
-    <SupportBox />
+    <SupportBox lang={lang} />
   </dialog>
 </div>
 
 <script>
   import { load, save } from '@tools/shared/lib/storage';
   import { randomFraction, randomInt, shuffle } from '@tools/shared/lib/random';
+  import type { Dictionary } from '../i18n/en';
   import {
     COLORS,
     easeOut,
@@ -114,6 +127,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     const dialog = find<HTMLDialogElement>('[data-dialog]');
     const status = find('[data-status]');
     const storageKey = root.dataset.storageKey!;
+    const text = JSON.parse(root.dataset.i18n!) as Dictionary['wheel']; // the texts in the page's language
+    const lang = root.dataset.lang;
 
     // Which entries to show first: a shared link wins, then what this visitor typed last time,
     // then the page's example entries.
@@ -141,7 +156,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
       const size = canvas.width;
       const radius = size / 2;
       const ring = size * 0.014; // dark rim around the wheel
-      const labels = entries.length > 0 ? entries : ['Add names to start'];
+      const labels = entries.length > 0 ? entries : [text.empty];
       const count = labels.length;
       const segment = (2 * Math.PI) / count;
 
@@ -208,7 +223,8 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     textarea.addEventListener('input', () => setEntries(parseEntries(textarea.value), false));
     find('[data-shuffle]').addEventListener('click', () => setEntries(shuffle(entries)));
     find('[data-sort]').addEventListener('click', () =>
-      setEntries([...entries].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))),
+      // Sorted the way the page's language sorts (in German, "Ä" comes right after "A").
+      setEntries([...entries].sort((a, b) => a.localeCompare(b, lang, { numeric: true }))),
     );
     find('[data-clear]').addEventListener('click', () => {
       setEntries([]);
@@ -219,7 +235,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
       const link = `${location.origin}${location.pathname}${entriesToHash(entries)}`;
       try {
         await navigator.clipboard.writeText(link);
-        status.textContent = 'Link copied! Anyone who opens it sees this wheel.';
+        status.textContent = text.linkCopied;
       } catch {
         status.textContent = link; // clipboard blocked → show the link so it can be copied by hand
       }
@@ -232,7 +248,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
         setEntries(numberRange(from, to));
         status.textContent = '';
       } catch {
-        status.textContent = 'Please enter whole numbers, "From" smaller than "To", at most 200 numbers.';
+        status.textContent = text.rangeError;
       }
     });
 
@@ -272,7 +288,7 @@ const { preset, storageKey, numberRange = false } = Astro.props;
     function spin(): void {
       if (spinning) return;
       if (entries.length < 2) {
-        status.textContent = 'Add at least two entries to spin the wheel.';
+        status.textContent = text.needTwo;
         return;
       }
       status.textContent = '';

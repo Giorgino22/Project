@@ -2,48 +2,61 @@
 /** Random team generator: names in, fair random teams out. Behaviour: <script> below. */
 import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
+import { t, type SiteLang } from '../i18n';
 
 interface Props {
+  lang: SiteLang;
   preset: string[];
+  /** Name under which the page remembers the names in the visitor's browser */
+  storageKey: string;
 }
 
-const { preset } = Astro.props;
+const { lang, preset, storageKey } = Astro.props;
+const text = t(lang).teams;
 ---
 
-<div class="teams-tool card" data-teams data-preset={JSON.stringify(preset)}>
+<div
+  class="teams-tool card"
+  data-teams
+  data-i18n={JSON.stringify(text)}
+  data-preset={JSON.stringify(preset)}
+  data-storage-key={storageKey}
+>
   <div class="teams-form">
     <div class="field">
-      <label class="field-label" for="team-names">Names <span class="entry-count" data-count></span></label>
-      <textarea id="team-names" data-names rows="10" spellcheck="false" placeholder="One name per line"></textarea>
+      <label class="field-label" for="team-names">{text.names} <span class="entry-count" data-count></span></label>
+      <textarea id="team-names" data-names rows="10" spellcheck="false" placeholder={text.placeholder}></textarea>
     </div>
     <div class="teams-options">
       <fieldset class="field">
-        <legend>Split by</legend>
+        <legend>{text.splitBy}</legend>
         <div class="segmented">
-          <label><input type="radio" name="team-mode" value="teams" checked /><span>Number of teams</span></label>
-          <label><input type="radio" name="team-mode" value="size" /><span>People per team</span></label>
+          <label><input type="radio" name="team-mode" value="teams" checked /><span>{text.byTeams}</span></label>
+          <label><input type="radio" name="team-mode" value="size" /><span>{text.bySize}</span></label>
         </div>
       </fieldset>
       <label class="field">
-        <span class="field-label" data-number-label>Number of teams</span>
+        <span class="field-label" data-number-label>{text.byTeams}</span>
         <input type="number" data-number min="1" max="100" value="2" inputmode="numeric" />
       </label>
-      <button type="button" class="btn btn-primary" data-make>Make teams</button>
+      <button type="button" class="btn btn-primary" data-make>{text.make}</button>
     </div>
   </div>
   <p class="status" data-status role="status" aria-live="polite"></p>
   <div data-results hidden>
     <div class="team-grid" data-grid></div>
     <div class="actions">
-      <button type="button" class="btn btn-secondary" data-again><Icon name="shuffle" /> Shuffle again</button>
-      <button type="button" class="btn btn-secondary" data-copy><Icon name="copy" /> Copy teams</button>
+      <button type="button" class="btn btn-secondary" data-again><Icon name="shuffle" /> {text.again}</button>
+      <button type="button" class="btn btn-secondary" data-copy><Icon name="copy" /> {text.copy}</button>
     </div>
-    <SupportBox />
+    <SupportBox lang={lang} />
   </div>
 </div>
 
 <script>
+  import { fill } from '@tools/shared/i18n';
   import { load, save } from '@tools/shared/lib/storage';
+  import type { Dictionary } from '../i18n/en';
   import { makeTeams, teamsForSize } from '../lib/teams';
   import { parseEntries } from '../lib/wheel';
 
@@ -52,21 +65,23 @@ const { preset } = Astro.props;
     const textarea = find<HTMLTextAreaElement>('[data-names]');
     const number = find<HTMLInputElement>('[data-number]');
     const status = find('[data-status]');
+    const text = JSON.parse(root.dataset.i18n!) as Dictionary['teams']; // the texts in the page's language
+    const storageKey = root.dataset.storageKey!;
     let teams: string[][] = [];
 
-    textarea.value = load<string[]>('teams:names', JSON.parse(root.dataset.preset!)).join('\n');
+    textarea.value = load<string[]>(storageKey, JSON.parse(root.dataset.preset!)).join('\n');
     const names = () => parseEntries(textarea.value);
     const showCount = () => (find('[data-count]').textContent = `(${names().length})`);
     showCount();
     textarea.addEventListener('input', () => {
-      save('teams:names', names());
+      save(storageKey, names());
       showCount();
     });
 
     const mode = () => root.querySelector<HTMLInputElement>('input[name="team-mode"]:checked')!.value;
     for (const radio of root.querySelectorAll<HTMLInputElement>('input[name="team-mode"]')) {
       radio.addEventListener('change', () => {
-        find('[data-number-label]').textContent = mode() === 'teams' ? 'Number of teams' : 'People per team';
+        find('[data-number-label]').textContent = mode() === 'teams' ? text.byTeams : text.bySize;
       });
     }
 
@@ -74,11 +89,11 @@ const { preset } = Astro.props;
       const list = names();
       const value = Math.floor(Number(number.value));
       if (list.length < 2) {
-        status.textContent = 'Add at least two names.';
+        status.textContent = text.needTwo;
         return;
       }
       if (!(value >= 1)) {
-        status.textContent = 'Please enter a number of 1 or more.';
+        status.textContent = text.needNumber;
         return;
       }
       status.textContent = '';
@@ -90,7 +105,7 @@ const { preset } = Astro.props;
           const card = document.createElement('section');
           card.className = 'team-card';
           const title = document.createElement('h3');
-          title.textContent = `Team ${index + 1}`;
+          title.textContent = fill(text.team, { n: index + 1 });
           const members = document.createElement('ul');
           for (const name of team) {
             const item = document.createElement('li');
@@ -107,12 +122,12 @@ const { preset } = Astro.props;
     find('[data-make]').addEventListener('click', make);
     find('[data-again]').addEventListener('click', make);
     find('[data-copy]').addEventListener('click', async () => {
-      const text = teams.map((team, index) => `Team ${index + 1}: ${team.join(', ')}`).join('\n');
+      const list = teams.map((team, index) => `${fill(text.team, { n: index + 1 })}: ${team.join(', ')}`).join('\n');
       try {
-        await navigator.clipboard.writeText(text);
-        status.textContent = 'Teams copied to the clipboard.';
+        await navigator.clipboard.writeText(list);
+        status.textContent = text.copied;
       } catch {
-        status.textContent = text;
+        status.textContent = list;
       }
     });
   }

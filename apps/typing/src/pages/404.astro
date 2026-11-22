@@ -1,15 +1,25 @@
 ---
+/** Shown for addresses that don't exist – in both languages, because we can't know the visitor's. */
 import SiteLayout from '@tools/shared/components/SiteLayout.astro';
-import { allPages, site } from '../site';
+import { t } from '../i18n';
+import { pagesIn, site } from '../site';
 import '../styles/typing.css';
+
+const en = t('en').notFound;
+const de = t('de').notFound;
 ---
 
-<SiteLayout site={site.id} title="Page not found" description="This page does not exist." path="/404/" noindex>
+<SiteLayout site={site.id} title={en.title} description="This page does not exist." path="/404/" noindex>
   <div class="container">
     <section class="page-intro">
-      <h1>Page not found</h1>
-      <p class="lead">This page doesn't exist. Try one of these:</p>
-      <ul class="chip-list">{allPages.map((page) => <li><a href={page.path}>{page.name}</a></li>)}</ul>
+      <h1>{en.title}</h1>
+      <p class="lead">{en.text}</p>
+      <ul class="chip-list">{pagesIn('en').map((page) => <li><a href={page.path}>{page.name}</a></li>)}</ul>
+    </section>
+    <section lang="de">
+      <h2>{de.title}</h2>
+      <p>{de.text}</p>
+      <ul class="chip-list">{pagesIn('de').map((page) => <li><a href={page.path}>{page.name}</a></li>)}</ul>
     </section>
   </div>
 </SiteLayout>

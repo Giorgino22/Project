@@ -2,26 +2,40 @@
 /**
  * The typing test. Words appear in the box; the visitor types them into the field below and
  * presses the space bar after each word. The timer starts with the first key.
- * Behaviour: <script> below. Scoring (WPM, accuracy) lives in src/lib/typing.ts.
+ * Behaviour: <script> below. Scoring (WPM, Anschläge, accuracy) lives in src/lib/typing.ts.
+ * The words come from the page's language (English: src/lib/words.ts, German: words-de.ts).
  */
 import Icon from '@tools/shared/components/Icon.astro';
 import SupportBox from '@tools/shared/components/SupportBox.astro';
-import { durationLabel, LESSONS, type TestOptions } from '../lib/typing';
+import { t, type SiteLang } from '../i18n';
+import { durationLabel, LESSON_IDS, type TestOptions } from '../lib/typing';
 
-type Props = TestOptions;
+type Props = TestOptions & { lang: SiteLang };
 
-const { duration, durations = [], words = 'common', lessons = false, large = false } = Astro.props;
+const { lang, duration, durations = [], words = 'common', lessons = false, large = false } = Astro.props;
+const dict = t(lang);
+const text = dict.test;
+// 'cpm': the big number shows Anschläge per minute, with words per minute in a smaller line below it.
+const showCpm = text.measure === 'cpm';
 ---
 
-<div class:list={['typing card', { 'typing-large': large }]} data-typing data-duration={duration} data-words={words}>
+{/* data-i18n: the texts travel along as JSON, so the script can show its messages in the page's language */}
+<div
+  class:list={['typing card', { 'typing-large': large }]}
+  data-typing
+  data-lang={lang}
+  data-i18n={JSON.stringify({ ...text, ratings: dict.ratings })}
+  data-duration={duration}
+  data-words={words}
+>
   <div class="typing-bar">
     {
       durations.length > 0 && (
-        <div class="segmented" role="radiogroup" aria-label="Test length">
+        <div class="segmented" role="radiogroup" aria-label={text.length}>
           {durations.map((seconds) => (
             <label>
               <input type="radio" name="duration" value={seconds} checked={seconds === duration} />
-              <span>{durationLabel(seconds)}</span>
+              <span>{durationLabel(seconds, text)}</span>
             </label>
           ))}
         </div>
@@ -30,16 +44,16 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
     {
       lessons && (
         <label class="typing-lesson">
-          <span>Lesson</span>
+          <span>{text.lesson}</span>
           <select data-lesson>
-            {Object.entries(LESSONS).map(([id, name]) => (
-              <option value={id}>{name}</option>
+            {LESSON_IDS.map((id) => (
+              <option value={id}>{dict.lessons[id]}</option>
             ))}
           </select>
         </label>
       )
     }
-    <span class="typing-timer" data-timer role="timer" aria-label="Time"></span>
+    <span class="typing-timer" data-timer role="timer" aria-label={text.time}></span>
   </div>
 
   <div data-area>
@@ -48,51 +62,57 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
       <input
         type="text"
         data-input
-        aria-label="Type the highlighted word, then press space"
-        placeholder="Type here to start"
+        aria-label={text.inputLabel}
+        placeholder={text.placeholder}
         autocomplete="off"
         autocapitalize="off"
         autocorrect="off"
         spellcheck="false"
         enterkeyhint="next"
       />
-      <button type="button" class="btn btn-secondary" data-restart title="Restart (Esc)"><Icon name="rotate-ccw" /> Restart</button>
+      <button type="button" class="btn btn-secondary" data-restart title={text.restartTitle}><Icon name="rotate-ccw" /> <span>{text.restart}</span></button>
     </div>
     <p class="typing-best" data-best></p>
   </div>
 
-  <section class="typing-result" data-result hidden tabindex="-1" aria-label="Your result">
-    <p class="result-speed"><strong data-wpm></strong> <span>words per minute</span></p>
+  <section class="typing-result" data-result hidden tabindex="-1" aria-label={text.result}>
+    <p class="result-speed"><strong data-speed></strong> <span>{showCpm ? text.cpm : text.wpm}</span></p>
+    {showCpm && <p class="result-speed-second"><strong data-wpm></strong> {text.wpm}</p>}
     <p class="result-rating" data-rating></p>
     <dl class="result-stats">
-      <div><dt>Accuracy</dt><dd data-accuracy></dd></div>
-      <div><dt>Correct words</dt><dd data-correct></dd></div>
-      <div><dt>Wrong words</dt><dd data-wrong></dd></div>
-      <div><dt>Personal best</dt><dd data-best-value></dd></div>
+      <div><dt>{text.accuracy}</dt><dd data-accuracy></dd></div>
+      <div><dt>{text.correct}</dt><dd data-correct></dd></div>
+      <div><dt>{text.wrong}</dt><dd data-wrong></dd></div>
+      <div><dt>{text.best}</dt><dd data-best-value></dd></div>
     </dl>
     <p class="result-mistakes" data-mistakes hidden></p>
     <div class="actions">
-      <button type="button" class="btn btn-primary" data-again><Icon name="rotate-ccw" /> Try again</button>
-      <button type="button" class="btn btn-secondary" data-share><Icon name="share-2" /> Share result</button>
+      <button type="button" class="btn btn-primary" data-again><Icon name="rotate-ccw" /> {text.again}</button>
+      <button type="button" class="btn btn-secondary" data-share><Icon name="share-2" /> {text.share}</button>
     </div>
     <p class="status" data-status role="status" aria-live="polite"></p>
-    <SupportBox />
+    <SupportBox lang={lang} />
   </section>
 </div>
 
 <script>
+  import { fill } from '@tools/shared/i18n';
   import { load, save } from '@tools/shared/lib/storage';
-  import { commonWords, kidWords } from '../lib/words';
+  import type { Dictionary } from '../i18n/en';
   import {
     countKeystrokes,
     formatTime,
     lessonWords,
     pickWords,
-    rating,
+    ratingLevel,
     scoreTest,
+    wordSets,
     type LessonId,
     type TestResult,
+    type WordLang,
   } from '../lib/typing';
+
+  type Texts = Dictionary['test'] & { ratings: string[] };
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-typing]')) {
     const find = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
@@ -101,6 +121,11 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
     const timer = find('[data-timer]');
     const status = find('[data-status]');
     const lesson = root.querySelector<HTMLSelectElement>('[data-lesson]'); // only on the practice page
+    const text = JSON.parse(root.dataset.i18n!) as Texts; // the texts in the page's language
+    const lang = root.dataset.lang as WordLang;
+    const wordSet = wordSets[lang]; // the word lists of the page's language
+    // English pages measure speed in words per minute, German ones in Anschläge (characters) per minute.
+    const speedOf = (score: TestResult) => (text.measure === 'cpm' ? score.cpm : score.wpm);
 
     let duration = Number(root.dataset.duration); // seconds; 0 = practice without time limit
     let words: string[] = []; // the words to type
@@ -113,15 +138,19 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
     let finished = false;
     let lastScore: TestResult | null = null;
 
-    /** Which personal best this test counts towards, e.g. "typing:best:common:60" */
-    const bestKey = () => `typing:best:${lesson ? `practice:${lesson.value}` : `${root.dataset.words}:${duration}`}`;
+    /**
+     * Which personal best this test counts towards, e.g. "typing:best:common:60". Other languages
+     * keep their own ("typing:best:de:common:60"): other words, and German bests are in Anschläge.
+     */
+    const bestKey = () =>
+      `typing:best:${lang === 'en' ? '' : `${lang}:`}${lesson ? `practice:${lesson.value}` : `${root.dataset.words}:${duration}`}`;
     const isDesktop = () => matchMedia('(pointer: fine)').matches;
 
     function newWords(): string[] {
-      if (lesson) return lessonWords(lesson.value as LessonId, 30);
+      if (lesson) return lessonWords(lesson.value as LessonId, 30, undefined, wordSet);
       // More words than even a record-breaking typist (200 words per minute) can type in time.
       const count = Math.ceil(duration / 60) * 200 + 20;
-      return pickWords(root.dataset.words === 'kids' ? kidWords : commonWords, count);
+      return pickWords(root.dataset.words === 'kids' ? wordSet.kids : wordSet.common, count);
     }
 
     /** Starts a fresh test (the clock waits for the first key). */
@@ -145,7 +174,7 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
       input.disabled = false;
       timer.textContent = formatTime(duration);
       const best = load<number>(bestKey(), 0);
-      find('[data-best]').textContent = best > 0 ? `Your personal best: ${best} WPM` : '';
+      find('[data-best]').textContent = best > 0 ? fill(text.bestSoFar, { best: fill(text.bestValue, { n: best }) }) : '';
       find('[data-area]').hidden = false;
       find('[data-result]').hidden = true;
     }
@@ -192,18 +221,22 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
       input.disabled = true;
 
       const score = scoreTest(words, typed, keys, duration || secondsSinceStart());
+      const speed = speedOf(score);
       const best = load<number>(bestKey(), 0);
-      if (score.wpm > best) save(bestKey(), score.wpm);
+      if (speed > best) save(bestKey(), speed);
       lastScore = score;
 
-      find('[data-wpm]').textContent = String(score.wpm);
-      find('[data-rating]').textContent = (best > 0 && score.wpm > best ? 'New personal best. ' : '') + rating(score.wpm);
+      find('[data-speed]').textContent = String(speed);
+      const wpm = root.querySelector('[data-wpm]'); // only where the big number shows Anschläge
+      if (wpm) wpm.textContent = String(score.wpm);
+      const verdict = text.ratings[ratingLevel(score.wpm)]!;
+      find('[data-rating]').textContent = best > 0 && speed > best ? `${text.newBest} ${verdict}` : verdict;
       find('[data-accuracy]').textContent = `${score.accuracy} %`;
       find('[data-correct]').textContent = String(score.correctWords);
       find('[data-wrong]').textContent = String(score.wrongWords);
-      find('[data-best-value]').textContent = `${Math.max(best, score.wpm)} WPM`;
+      find('[data-best-value]').textContent = fill(text.bestValue, { n: Math.max(best, speed) });
       const mistakes = find('[data-mistakes]');
-      mistakes.textContent = `Words to practise: ${score.mistakes.slice(0, 15).join(', ')}`;
+      mistakes.textContent = fill(text.mistakes, { words: score.mistakes.slice(0, 15).join(', ') });
       mistakes.hidden = score.mistakes.length === 0;
       status.textContent = '';
 
@@ -227,7 +260,8 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
       }
 
       // A space finishes a word. Normally there is at most one, but fast typing on a phone can bring more.
-      const parts = input.value.split(' ');
+      // normalize('NFC'): an "ü" typed as u + ¨ (two characters) becomes the one character of the word list.
+      const parts = input.value.normalize('NFC').split(' ');
       const current = parts.pop()!; // the word that is still being typed (after the last space)
       for (const part of parts) {
         if (part === '') continue; // two spaces in a row
@@ -280,17 +314,17 @@ const { duration, durations = [], words = 'common', lessons = false, large = fal
 
     find('[data-share]').addEventListener('click', async () => {
       if (!lastScore) return;
-      const text = `I type ${lastScore.wpm} words per minute with ${lastScore.accuracy} % accuracy. How fast are you?`;
+      const message = fill(text.shareText, { wpm: lastScore.wpm, cpm: lastScore.cpm, accuracy: lastScore.accuracy });
       const url = location.origin + location.pathname;
       if (navigator.share) {
-        await navigator.share({ text, url }).catch(() => {}); // the visitor closed the share menu
+        await navigator.share({ text: message, url }).catch(() => {}); // the visitor closed the share menu
         return;
       }
       try {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        status.textContent = 'Copied! Paste it anywhere to challenge your friends.';
+        await navigator.clipboard.writeText(`${message} ${url}`);
+        status.textContent = text.copied;
       } catch {
-        status.textContent = `${text} ${url}`; // copying isn't allowed – show the text to copy by hand
+        status.textContent = `${message} ${url}`; // copying isn't allowed – show the text to copy by hand
       }
     });
 

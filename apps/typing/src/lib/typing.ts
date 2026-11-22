@@ -2,8 +2,10 @@
  * The maths of the typing test – plain functions without any page code, so they are easy to
  * test (tests/unit/typing.test.ts). The page itself is in src/components/TypingTest.astro.
  */
+import { fill } from '@tools/shared/i18n';
 import { randomInt } from '@tools/shared/lib/random';
-import { bottomRowWords, commonWords, homeRowWords } from './words';
+import { bottomRowWords, commonWords, homeRowWords, kidWords } from './words';
+import { germanBottomRowWords, germanCommonWords, germanHomeRowWords, germanKidWords } from './words-de';
 
 /** A function that returns a random whole number from 0 to max-1 (tests pass in a fake one). */
 type Random = (max: number) => number;
@@ -28,8 +30,10 @@ export interface Keystrokes {
 }
 
 export interface TestResult {
-  /** Words per minute */
+  /** Words per minute (5 characters = 1 word) */
   wpm: number;
+  /** Characters per minute – in German "Anschläge pro Minute" */
+  cpm: number;
   /** Correct keystrokes in percent (0–100) */
   accuracy: number;
   correctWords: number;
@@ -69,6 +73,8 @@ export function countKeystrokes(target: string, before: string, after: string): 
  * Scores a finished test the standard way:
  * - WPM: every 5 characters count as one "word" (so long and short words are fair). Only correctly
  *   typed words count, plus the space after each of them.
+ * - CPM ("Anschläge pro Minute", what German speakers know): the same characters, not divided by 5.
+ *   A capital letter counts as one character, like in German typing exams.
  * - Accuracy: correct keystrokes out of all keystrokes. Letters left out of a word count as mistakes.
  */
 export function scoreTest(
@@ -97,6 +103,7 @@ export function scoreTest(
   const allKeys = keys.correct + keys.wrong + missingLetters;
   return {
     wpm: minutes > 0 ? Math.round(correctChars / 5 / minutes) : 0,
+    cpm: minutes > 0 ? Math.round(correctChars / minutes) : 0,
     accuracy: allKeys > 0 ? Math.round((keys.correct / allKeys) * 100) : 0,
     correctWords,
     wrongWords: typed.length - correctWords,
@@ -104,14 +111,15 @@ export function scoreTest(
   };
 }
 
-/** A friendly verdict for a speed. Most adults type around 40 words per minute. */
-export function rating(wpm: number): string {
-  if (wpm >= 90) return 'Pro level. Faster than almost everyone.';
-  if (wpm >= 70) return 'Very fast. Much faster than most people.';
-  if (wpm >= 50) return 'Fast. Above average.';
-  if (wpm >= 35) return 'Average. About as fast as most people.';
-  if (wpm >= 20) return 'Getting there. A few minutes of practice a day will speed you up quickly.';
-  return 'Beginner. Everyone starts here, so keep practising.';
+/** The lowest speed (words per minute) of each verdict level. Most adults type around 40 words per minute. */
+const LEVELS = [90, 70, 50, 35, 20, 0];
+
+/**
+ * Which friendly verdict a speed gets: 0 = pro level, 1 = very fast … 5 = beginner.
+ * The verdicts themselves are texts in each language (`ratings` in src/i18n/en.ts and de.ts).
+ */
+export function ratingLevel(wpm: number): number {
+  return LEVELS.findIndex((lowest) => wpm >= lowest);
 }
 
 /** 75 → "1:15" */
@@ -120,44 +128,77 @@ export function formatTime(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/** 30 → "30 s", 60 → "1 min", 180 → "3 min" */
-export function durationLabel(seconds: number): string {
-  return seconds < 60 ? `${seconds} s` : `${seconds / 60} min`;
+/**
+ * 30 → "30 s", 60 → "1 min", 180 → "3 min". Other languages pass their own units,
+ * e.g. { seconds: '{n} Sek.', minutes: '{n} Min.' }.
+ */
+export function durationLabel(seconds: number, units = { seconds: '{n} s', minutes: '{n} min' }): string {
+  return seconds < 60 ? fill(units.seconds, { n: seconds }) : fill(units.minutes, { n: seconds / 60 });
 }
 
-// ---------- Practice lessons ----------
+// ---------- Word lists per language ----------
 
-/** Lessons on the practice page: ID → name shown in the menu. */
-export const LESSONS = {
-  common: 'Common words',
-  home: 'Home row (A S D F …)',
-  top: 'Top row (Q W E R …)',
-  bottom: 'Bottom row (Z X C V …)',
-  numbers: 'Numbers',
-  sentences: 'Capitals & punctuation',
-} as const;
-
-export type LessonId = keyof typeof LESSONS;
+/** All word lists of one language. */
+export interface WordSet {
+  /** Frequent words (the normal test) */
+  common: readonly string[];
+  /** Short, easy words (kids test) */
+  kids: readonly string[];
+  /** Practice lessons: words for the home row, the top row and the bottom row of keys */
+  home: readonly string[];
+  top: readonly string[];
+  bottom: readonly string[];
+}
 
 /** Common words that only need the top row and the home row – and at least one top row key. */
 export const topRowWords = commonWords.filter((word) => /^[qwertyuiopasdfghjkl]+$/.test(word) && /[qwertyuiop]/.test(word));
 
-/** The words to type in a lesson. */
-export function lessonWords(lesson: LessonId, count: number, random: Random = randomInt): string[] {
+/** The same for German (QWERTZ keyboard: Z and Ü are in the top row, Ö and Ä in the home row). */
+export const germanTopRowWords = germanCommonWords.filter(
+  (word) => /^[qwertzuiopüasdfghjklöä]+$/.test(word) && /[qwertzuiopü]/.test(word),
+);
+
+export const wordSets = {
+  en: { common: commonWords, kids: kidWords, home: homeRowWords, top: topRowWords, bottom: bottomRowWords },
+  de: {
+    common: germanCommonWords,
+    kids: germanKidWords,
+    home: germanHomeRowWords,
+    top: germanTopRowWords,
+    bottom: germanBottomRowWords,
+  },
+} satisfies Record<string, WordSet>;
+
+export type WordLang = keyof typeof wordSets;
+
+// ---------- Practice lessons ----------
+
+/** Lessons on the practice page. Their names are texts in each language (`lessons` in src/i18n/). */
+export const LESSON_IDS = ['common', 'home', 'top', 'bottom', 'numbers', 'sentences'] as const;
+
+export type LessonId = (typeof LESSON_IDS)[number];
+
+/** The words to type in a lesson, from the word lists of one language (English if none is given). */
+export function lessonWords(
+  lesson: LessonId,
+  count: number,
+  random: Random = randomInt,
+  words: WordSet = wordSets.en,
+): string[] {
   switch (lesson) {
     case 'home':
-      return pickWords(homeRowWords, count, random);
+      return pickWords(words.home, count, random);
     case 'top':
-      return pickWords(topRowWords, count, random);
+      return pickWords(words.top, count, random);
     case 'bottom':
-      return pickWords(bottomRowWords, count, random);
+      return pickWords(words.bottom, count, random);
     case 'numbers':
       // Numbers with 1 to 4 digits, e.g. "7", "42", "2048"
       return Array.from({ length: count }, () => String(random(10 ** (1 + random(4)))));
     case 'sentences':
-      return sentences(pickWords(commonWords, count, random), random);
+      return sentences(pickWords(words.common, count, random), random);
     default:
-      return pickWords(commonWords, count, random);
+      return pickWords(words.common, count, random);
   }
 }
 

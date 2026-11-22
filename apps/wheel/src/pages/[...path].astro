@@ -1,0 +1,45 @@
+---
+/**
+ * ONE file creates ALL pages of the site, in every language (the same way KeepLocal does it).
+ *
+ * `getStaticPaths` runs at build time and returns one entry per page and language, e.g.
+ * /yes-or-no-wheel/ and /de/ja-nein-gluecksrad/. Astro renders each to an HTML file.
+ * The page list and the URLs come from src/site.ts, the texts from src/i18n/.
+ */
+import ToolPage from '@tools/shared/components/ToolPage.astro';
+import TeamGenerator from '../components/TeamGenerator.astro';
+import Wheel from '../components/Wheel.astro';
+import { alternatesOf, getAllPages, pagesIn, site, storageKey, type WheelPage } from '../site';
+import '../styles/wheel.css';
+
+export function getStaticPaths() {
+  return getAllPages().map((page) => ({
+    // "/de/ja-nein-gluecksrad/" → "de/ja-nein-gluecksrad"; the start page "/" → undefined
+    params: { path: page.path === '/' ? undefined : page.path.slice(1, -1) },
+    props: { page },
+  }));
+}
+
+interface Props {
+  page: WheelPage;
+}
+
+const { page } = Astro.props;
+---
+
+<ToolPage
+  site={site.id}
+  lang={page.lang}
+  page={page}
+  allPages={pagesIn(page.lang)}
+  alternates={alternatesOf(page.key)}
+  adSlots={site.adSlots}
+>
+  {
+    page.key === 'teams' ? (
+      <TeamGenerator lang={page.lang} preset={page.preset} storageKey={storageKey(page)} />
+    ) : (
+      <Wheel lang={page.lang} preset={page.preset} storageKey={storageKey(page)} numberRange={page.key === 'numbers'} />
+    )
+  }
+</ToolPage>

@@ -1,7 +1,7 @@
 /** Checks for every page: search-engine tags, fits on a phone, no requests to other servers. */
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/', '/privacy/', '/imprint/'];
+const PAGES = ['/', '/privacy/', '/imprint/', '/de/datenschutz/', '/de/impressum/'];
 
 test('every page is ready for search engines and phones', async ({ page, baseURL }) => {
   const foreign: string[] = [];
@@ -29,6 +29,23 @@ test('every page is ready for search engines and phones', async ({ page, baseURL
 test('the sitemap lists every page', async ({ request }) => {
   const sitemap = await (await request.get('/sitemap.xml')).text();
   for (const path of PAGES) expect(sitemap).toContain(`${path}</loc>`);
+});
+
+test('the legal pages exist in English and German and point to each other', async ({ page, request }) => {
+  for (const [en, de] of [
+    ['/privacy/', '/de/datenschutz/'],
+    ['/imprint/', '/de/impressum/'],
+  ]) {
+    for (const path of [en, de]) {
+      await page.goto(path!);
+      await expect(page.locator('link[rel="alternate"][hreflang="en"]'), path).toHaveAttribute('href', new RegExp(`${en}$`));
+      await expect(page.locator('link[rel="alternate"][hreflang="de"]'), path).toHaveAttribute('href', new RegExp(`${de}$`));
+      await expect(page.locator('link[rel="alternate"][hreflang="x-default"]'), path).toHaveAttribute('href', new RegExp(`${en}$`));
+    }
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  }
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  expect(sitemap).toContain('hreflang="de" href="https://toolstin.com/de/datenschutz/"');
 });
 
 test('unknown pages show the 404 page', async ({ page }) => {

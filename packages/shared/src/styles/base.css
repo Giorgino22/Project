@@ -237,6 +237,11 @@ canvas {
   gap: 4px 22px;
 }
 
+/* The main menu stays on the right, next to the language menu (when the page has one). */
+.site-header .header-nav {
+  margin-left: auto;
+}
+
 /* Menu links get a marker stroke underneath when they are the current page. */
 .header-nav > a {
   padding: 8px 0;
@@ -1321,10 +1326,18 @@ input[aria-invalid='true'] {
   }
 
   .header-nav {
+    order: 2;
     width: 100%;
     padding-bottom: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+
+  /* The language menu moves up next to the logo. Inside the sideways-scrolling menu its list
+     would be cut off. */
+  .site-header .lang-menu {
+    order: 1;
+    margin-left: auto;
   }
 
   /* On touch screens every menu link is at least 44px tall, easy to hit with a thumb. */
