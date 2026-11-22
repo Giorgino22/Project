@@ -12,7 +12,7 @@ costs a fraction of a cent – see [apps/humm](#humm-the-song-finder) below.
 | Site | Address | What it offers | Market leader's monthly visits* |
 | --- | --- | --- | --- |
 | **Hub** | `example.com` | Lists all sites; privacy policy, legal notice, `ads.txt` | – |
-| **KeepLocal** | `keeplocal.example.com` | 20 PDF & image tools incl. image to text (OCR), English + German | iLovePDF ~255M, imagetotext.info ~5.7M |
+| **KeepLocal** | `keeplocal.example.com` | 22 PDF, image & generator tools incl. image to text (OCR) and Swiss QR-bills, English + German | iLovePDF ~255M, imagetotext.info ~5.7M |
 | **Spin the Wheel** | `wheel.example.com` | Name picker wheel, yes/no, number & letter wheels, team generator, English + German ("Glücksrad", `/de/`) | Wheel of Names ~17–25M |
 | **Typing Test** | `typing.example.com` | Typing test (30 s – 5 min), practice lessons, kids test, keyboard tester, English + German ("Tipptest", `/de/`: German words, Anschläge, QWERTZ) | Monkeytype ~15M |
 | **Humm** | `humm.example.com` | Find a song by humming, singing or whistling it, with previews; uses Google's Gemini AI | Google's "hum to search" (in the Google app) |

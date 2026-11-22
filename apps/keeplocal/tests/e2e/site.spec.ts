@@ -76,6 +76,16 @@ test('tools never send files anywhere (no requests to other servers)', async ({ 
   await page.getByRole('button', { name: 'Remove metadata' }).click();
   await expect(page.locator('[data-results]')).toBeVisible();
 
+  // QR-bills contain bank details and addresses: they must stay on the device too.
+  await page.goto('/swiss-qr-bill-generator/');
+  await page.locator('input[name="account"]').fill('CH58 0079 1123 0008 8901 2');
+  await page.locator('input[name="creditor.name"]').fill('Muster GmbH');
+  await page.locator('input[name="creditor.postalCode"]').fill('8000');
+  await page.locator('input[name="creditor.town"]').fill('Zürich');
+  await expect(page.locator('[data-preview]')).toBeVisible();
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'PDF (A4)' }).click()]);
+  expect(pdf.suggestedFilename()).toBe('qr-bill.pdf');
+
   expect(foreign, 'requests to other servers').toEqual([]);
   expect(uploads, 'POST/PUT requests (uploads)').toEqual([]);
 });

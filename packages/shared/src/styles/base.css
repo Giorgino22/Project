@@ -445,6 +445,18 @@ canvas {
   color: var(--go);
 }
 
+/* One sentence below a tool that points to a related tool. */
+.see-also {
+  max-width: 68ch;
+  margin: 20px 0 0;
+  color: var(--pencil);
+}
+
+.see-also a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 /* ---------- Work surface ---------- */
 
 /* The surface a tool sits on (".card" is the name the components use). Flat, no border, no shadow. */

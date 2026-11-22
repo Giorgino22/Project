@@ -72,6 +72,20 @@ explain complex parts, and value usability.
   language data (eng, deu) to `public/ocr/<version>/`. Always pass `workerPath`, `corePath` and `langPath` –
   the library's defaults load from CDNs, which would break the no-third-party-requests rule.
 
+- Tool texts may have optional `sections` (long-form text below "How it works"), `seeAlso` (link to a related tool,
+  `{link}` = its name) and `privacy` (wording for tools without files). Rendered by `src/components/ToolPage.astro`.
+- Swiss QR-bill (`swiss-qr-bill`): SIX Implementation Guidelines 2.3 – structured addresses (type S) ONLY (combined/K
+  addresses are invalid since 21 Nov 2025). `src/lib/qr-bill.ts` checks input and builds the payload (QR-IBAN ⇔ QRR,
+  mod-10 recursive / ISO 11649 check digits, SIX "Latin" character set; typographic dashes/quotes become plain ones);
+  `src/lib/qr-bill-layout.ts` turns a bill into shapes (mm, style-guide positions) that `src/scripts/qr-bill-svg.ts`
+  draws as the preview and `src/lib/qr-bill-pdf.ts` draws into a PDF (pdf-lib + `@cantoo/fontkit`, dynamic import on
+  click). Font: "QR Bill Sans" = Liberation Sans subset (OFL, renamed) in `public/fonts/`, made by
+  `scripts/make-qr-bill-fonts.py`, which also writes the width table `src/lib/qr-bill-font-widths.json` used for line
+  breaks. (The `swissqrbill` npm package was evaluated: its PDF output needs PDFKit, its SVG doesn't convert with
+  pdf-lib's `drawSvg`.)
+- Password card (`password-card`): `src/lib/password-card.ts`; the card is generated in the browser only (never at
+  build time). Printing: on `beforeprint` a copy of the card is put into `<body>` and the print CSS hides everything else.
+
 ## Humm specifics (apps/humm)
 
 - `wrangler.jsonc` has `main: src/worker/index.ts`, `run_worker_first: ["/api/*"]` (pages are served without the

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { bitsPerCharacter, CARD_SIZES, cardCharacters, columnLabels, generateCard, type CardOptions } from '../../src/lib/password-card';
 import { characterPools, entropyBits, generatePassword, secureRandomInt, strengthOf, type PasswordOptions } from '../../src/lib/password';
 import {
   emailPayload,
@@ -54,6 +55,45 @@ describe('password generator', () => {
     expect(strengthOf(60)).toBe('fair');
     expect(strengthOf(80)).toBe('strong');
     expect(strengthOf(128)).toBe('excellent');
+  });
+});
+
+describe('password card', () => {
+  const CARD: CardOptions = { lowercase: true, uppercase: true, digits: true, symbols: true, avoidAmbiguous: true };
+
+  it('has the right number of rows and columns', () => {
+    const wallet = generateCard('wallet', CARD);
+    expect(wallet).toHaveLength(CARD_SIZES.wallet.rows);
+    for (const row of wallet) expect(row).toHaveLength(CARD_SIZES.wallet.columns);
+    expect(generateCard('a4', CARD)).toHaveLength(30);
+    expect(columnLabels(16).join('')).toBe('ABCDEFGHIJKLMNOP');
+    expect(columnLabels(CARD_SIZES.a4.columns).at(-1)).toBe('Z');
+  });
+
+  it('only uses the selected characters, without look-alikes', () => {
+    const cells = generateCard('a4', CARD).flat().join('');
+    expect(cells).not.toMatch(/[Il1O0]/);
+    expect(generateCard('wallet', { ...CARD, lowercase: false, uppercase: false, symbols: false }).flat().join('')).toMatch(/^[2-9]+$/);
+  });
+
+  it('uses every allowed character (the random choice reaches all of them)', () => {
+    const allowed = cardCharacters(CARD);
+    const seen = new Set(Array.from({ length: 20 }, () => generateCard('a4', CARD).flat()).flat());
+    expect(seen.size).toBe(allowed.length);
+  });
+
+  it('picks characters with the random function it gets', () => {
+    expect(generateCard('wallet', { ...CARD, uppercase: false, digits: false, symbols: false, avoidAmbiguous: false }, () => 2)[0]![0]).toBe('c');
+  });
+
+  it('needs at least one character type', () => {
+    expect(() => generateCard('wallet', { lowercase: false, uppercase: false, digits: false, symbols: false, avoidAmbiguous: false })).toThrow();
+  });
+
+  it('knows how strong a path on the card is', () => {
+    // 25 + 24 + 8 + 24 = 81 characters without look-alikes: log2(81) ≈ 6.34 bits each, 12 characters ≈ 76 bits
+    expect(cardCharacters(CARD)).toHaveLength(81);
+    expect(Math.round(bitsPerCharacter(CARD) * 12)).toBe(76);
   });
 });
 

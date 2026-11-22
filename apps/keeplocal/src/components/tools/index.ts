@@ -10,6 +10,7 @@ import EpcQrCode from './EpcQrCode.astro';
 import ImagesToPdf from './ImagesToPdf.astro';
 import ImageToText from './ImageToText.astro';
 import MergePdf from './MergePdf.astro';
+import PasswordCard from './PasswordCard.astro';
 import PasswordGenerator from './PasswordGenerator.astro';
 import PdfToImages from './PdfToImages.astro';
 import QrCode from './QrCode.astro';
@@ -17,6 +18,7 @@ import RemoveExif from './RemoveExif.astro';
 import ResizeImage from './ResizeImage.astro';
 import RotatePdf from './RotatePdf.astro';
 import SplitPdf from './SplitPdf.astro';
+import SwissQrBill from './SwissQrBill.astro';
 
 export const toolComponents = {
   MergePdf,
@@ -32,5 +34,7 @@ export const toolComponents = {
   ImageToText,
   QrCode,
   EpcQrCode,
+  SwissQrBill,
   PasswordGenerator,
+  PasswordCard,
 } satisfies Record<ComponentName, unknown>;

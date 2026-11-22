@@ -102,7 +102,9 @@ export const sites: Site[] = [
       { path: '/image-to-text/', label: 'Image to text' },
       { path: '/jpg-to-pdf/', label: 'JPG to PDF' },
       { path: '/compress-image/', label: 'Compress image' },
+      { path: '/swiss-qr-bill-generator/', label: 'Swiss QR-bill' },
       { path: '/password-generator/', label: 'Password generator' },
+      { path: '/password-card-generator/', label: 'Password card' },
     ],
     translations: {
       de: { path: '/de/', name: 'KeepLocal', description: 'PDF- & Bild-Tools, die Ihre Dateien nie hochladen.' },

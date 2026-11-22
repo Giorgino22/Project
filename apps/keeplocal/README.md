@@ -13,7 +13,7 @@ user data to look after.
   [`packages/shared/src/network.ts`](../../packages/shared/src/network.ts); KeepLocal's ad units and
   affiliate offers are in [`src/config.ts`](src/config.ts).
 - **How it grows:** every tool in every language is its own page that can be found on Google.
-  Today: 20 tools × 2 languages (English, German) = 40 tool pages. A new language multiplies
+  Today: 22 tools × 2 languages (English, German) = 44 tool pages. A new language multiplies
   all of them – see [docs/ADDING-TOOLS.md](docs/ADDING-TOOLS.md).
 - **Why this idea?** Research, numbers and honest risks: [docs/STRATEGY.md](../../docs/STRATEGY.md)
 - **Going live:** [docs/LAUNCH-CHECKLIST.md](../../docs/LAUNCH-CHECKLIST.md) (for all sites of the network)
@@ -22,7 +22,7 @@ user data to look after.
 
 | PDF | Images | Generators |
 | --- | --- | --- |
-| Merge PDF · Split PDF · Rotate PDF · Delete pages · JPG → PDF · PDF → JPG | Compress · Resize · Image converter (+ 6 pages like "PNG to JPG") · Remove EXIF/GPS data · Image to text (OCR) | QR codes (link, text, Wi-Fi, e-mail, phone) · EPC payment QR code (GiroCode) · Password generator |
+| Merge PDF · Split PDF · Rotate PDF · Delete pages · JPG → PDF · PDF → JPG | Compress · Resize · Image converter (+ 6 pages like "PNG to JPG") · Remove EXIF/GPS data · Image to text (OCR) | QR codes (link, text, Wi-Fi, e-mail, phone) · EPC payment QR code (GiroCode) · Swiss QR-bill (PDF with receipt) · Password generator · Password card |
 
 A few details that make them better than many competitors:
 
@@ -32,6 +32,9 @@ A few details that make them better than many competitors:
   camera and other hidden data is dropped. Orientation and colour profile are kept.
 - **Text recognition (OCR) without uploading.** Receipts, contracts and screenshots are read on
   the visitor's device. The engine and language data are served from our own site.
+- **Swiss QR-bills by the current standard.** Payment part and receipt as a print-ready PDF (A4 or
+  slip only), only structured addresses (required since 21 November 2025), IBAN/QR-IBAN and reference
+  check digits verified, all Latin letters printable (č, ł, ő …) thanks to an embedded font.
 - **QR codes never expire.** They are static codes, not "dynamic" codes that stop working after a trial.
 - **Verifiable privacy.** An automated test blocks every outside server and fails if a tool
   tries to contact one.
@@ -92,5 +95,7 @@ becomes a downloadable file in memory (a `Blob`). Nothing ever leaves the visito
 [exifr](https://github.com/MikeKovarik/exifr) (MIT) for reading photo metadata ·
 [tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0) for text recognition ·
 [fflate](https://github.com/101arrowz/fflate) (MIT) for ZIP files ·
+[fontkit](https://github.com/cantoo-scribe/fontkit) (`@cantoo` fork, MIT) to embed the QR-bill font ·
+Liberation Sans (SIL OFL 1.1, reduced copy "QR Bill Sans" in `public/fonts/`, see `scripts/make-qr-bill-fonts.py`) ·
 icons from [Lucide](https://lucide.dev) (ISC, see `src/icons/LICENSE`).
 Hosting: Cloudflare (free plan, unlimited traffic for static files).

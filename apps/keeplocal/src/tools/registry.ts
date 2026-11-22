@@ -28,7 +28,9 @@ export type ComponentName =
   | 'ImageToText'
   | 'QrCode'
   | 'EpcQrCode'
-  | 'PasswordGenerator';
+  | 'SwissQrBill'
+  | 'PasswordGenerator'
+  | 'PasswordCard';
 
 export interface ToolDefinition {
   /** Stable internal name. Never change it once the site is live (texts and settings use it). */
@@ -70,7 +72,9 @@ export const tools = [
   // Generators
   { id: 'qr-code-generator', category: 'generator', component: 'QrCode', icon: 'qr-code' },
   { id: 'epc-qr-code', category: 'generator', component: 'EpcQrCode', icon: 'banknote' },
+  { id: 'swiss-qr-bill', category: 'generator', component: 'SwissQrBill', icon: 'receipt-swiss-franc' },
   { id: 'password-generator', category: 'generator', component: 'PasswordGenerator', icon: 'key-round' },
+  { id: 'password-card', category: 'generator', component: 'PasswordCard', icon: 'grid-3x3' },
 ] as const satisfies readonly ToolDefinition[];
 
 /** Union of all tool ids: 'merge-pdf' | 'split-pdf' | … (TypeScript builds it from the list above) */

@@ -36,6 +36,8 @@ describe('texts', () => {
         expect(text.description.length, `${tool.id} description is too long for Google`).toBeLessThanOrEqual(170);
         expect(text.steps.length).toBeGreaterThanOrEqual(3);
         expect(text.faq.length).toBeGreaterThanOrEqual(3);
+        // "See also" sentences need exactly one place for the link
+        if (text.seeAlso) expect(text.seeAlso.text.split('{link}'), `${tool.id} seeAlso`).toHaveLength(2);
       }
     });
   }
@@ -58,5 +60,13 @@ describe('sitemap', () => {
     expect(xml).toContain(`hreflang="de" href="${config.siteUrl}/de/pdf-zusammenfuegen/"`);
     expect(xml).toContain('hreflang="x-default"');
     expect(xml.match(/<url>/g)).toHaveLength(getAllPages().length);
+  });
+
+  it('lists the QR-bill and password card pages in both languages', () => {
+    const xml = buildSitemap(getAllPages());
+    for (const path of ['/swiss-qr-bill-generator/', '/de/qr-rechnung-erstellen/', '/password-card-generator/', '/de/passwortkarte/']) {
+      expect(xml).toContain(`<loc>${config.siteUrl}${path}</loc>`);
+    }
+    expect(xml).toContain(`hreflang="de" href="${config.siteUrl}/de/qr-rechnung-erstellen/"`);
   });
 });

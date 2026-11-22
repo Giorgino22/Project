@@ -1,0 +1,477 @@
+---
+/**
+ * Swiss QR-bill generator: a form → live preview of the slip → PDF (A4 or slip) or QR code (PNG/SVG).
+ * Checking and the QR code text: src/lib/qr-bill.ts. Layout: src/lib/qr-bill-layout.ts.
+ * Preview: src/scripts/qr-bill-svg.ts. PDF: src/lib/qr-bill-pdf.ts (loaded only when needed).
+ */
+import { t, type Lang } from '../../i18n';
+import type { ToolDefinition } from '../../tools/registry';
+import Icon from '@tools/shared/components/Icon.astro';
+import StatusLine from '../StatusLine.astro';
+import SupportBox from '../SupportBox.astro';
+import QrBillAddress from './QrBillAddress.astro';
+import ToolShell from './ToolShell.astro';
+
+interface Props {
+  lang: Lang;
+  tool: ToolDefinition;
+}
+
+const { lang } = Astro.props;
+const text = t(lang).components.SwissQrBill;
+
+// The bill itself can be in any of the four languages of the standard (default: the page's language).
+const billLanguages = [
+  ['en', 'English'],
+  ['de', 'Deutsch'],
+  ['fr', 'Français'],
+  ['it', 'Italiano'],
+] as const;
+const defaultBillLanguage = billLanguages.some(([code]) => code === lang) ? lang : 'en';
+---
+
+<ToolShell lang={lang} component="SwissQrBill">
+  <div class="qr-bill-form">
+    <QrBillAddress lang={lang} party="creditor">
+      <label class="field qr-bill-span-6">
+        <span class="field-label">{text.accountLabel}</span>
+        <input
+          type="text"
+          name="account"
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="characters"
+          placeholder="CH44 3199 9123 0008 8901 2"
+        />
+        <span class="field-help" data-account-help>{text.accountHelp}</span>
+      </label>
+    </QrBillAddress>
+
+    <fieldset class="qr-bill-group">
+      <legend>{text.amountTitle}</legend>
+      <div class="qr-bill-grid">
+        <fieldset class="field qr-bill-span-2">
+          <legend>{text.currencyLabel}</legend>
+          <div class="segmented">
+            {
+              ['CHF', 'EUR'].map((currency) => (
+                <label>
+                  <input type="radio" name="currency" value={currency} checked={currency === 'CHF'} />
+                  <span>{currency}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+        <label class="field qr-bill-span-4">
+          <span class="field-label">{text.amountLabel}</span>
+          <input type="text" name="amount" inputmode="decimal" autocomplete="off" placeholder="0.00" />
+          <span class="field-help">{text.amountHelp}</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset class="qr-bill-group">
+      <legend>{text.referenceTitle}</legend>
+      <div class="segmented">
+        {
+          (
+            [
+              ['QRR', text.referenceQrr],
+              ['SCOR', text.referenceScor],
+              ['NON', text.referenceNone],
+            ] as const
+          ).map(([value, label]) => (
+            <label>
+              <input type="radio" name="referenceType" value={value} checked={value === 'NON'} />
+              <span>{label}</span>
+            </label>
+          ))
+        }
+      </div>
+      <div data-reference-row hidden>
+        <div class="qr-bill-reference">
+          <label class="field">
+            <span class="field-label">{text.referenceLabel}</span>
+            <input type="text" name="reference" autocomplete="off" spellcheck="false" autocapitalize="characters" />
+          </label>
+          <button type="button" class="btn btn-secondary btn-small" data-make-reference></button>
+        </div>
+        <p class="field-help" data-reference-help></p>
+      </div>
+      <label class="field qr-bill-message">
+        <span class="field-label">{text.messageLabel}</span>
+        <input type="text" name="message" maxlength="140" autocomplete="off" />
+        <span class="field-help">{text.messageHelp}</span>
+      </label>
+    </fieldset>
+
+    <QrBillAddress lang={lang} party="debtor" />
+
+    <fieldset class="qr-bill-group">
+      <legend>{text.languageLabel}</legend>
+      <div class="segmented">
+        {
+          billLanguages.map(([code, name]) => (
+            <label>
+              <input type="radio" name="billLanguage" value={code} checked={code === defaultBillLanguage} />
+              <span lang={code}>{name}</span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+  </div>
+
+  <datalist id="qr-bill-countries">
+    {Object.entries(text.countries).map(([code, name]) => <option value={code}>{name}</option>)}
+  </datalist>
+
+  <div class="qr-bill-preview">
+    <p class="preview-hint" data-hint>{text.emptyHint}</p>
+    <div data-preview-box hidden>
+      <svg data-preview viewBox="0 0 210 105" role="img" aria-label={text.previewLabel}></svg>
+    </div>
+  </div>
+  <StatusLine />
+  <div class="actions">
+    <button type="button" class="btn btn-primary" data-download="a4" disabled>
+      <Icon name="download" />
+      {text.downloadA4}
+    </button>
+    <button type="button" class="btn btn-secondary" data-download="slip" disabled>
+      <Icon name="download" />
+      {text.downloadSlip}
+    </button>
+    <button type="button" class="btn btn-secondary" data-download="png" disabled>
+      <Icon name="download" />
+      {text.downloadPng}
+    </button>
+    <button type="button" class="btn btn-secondary" data-download="svg" disabled>
+      <Icon name="download" />
+      {text.downloadSvg}
+    </button>
+  </div>
+  <div data-support hidden><SupportBox lang={lang} /></div>
+</ToolShell>
+
+<style is:global>
+  /* Global (not scoped) because QrBillAddress.astro uses these classes too – all start with "qr-bill-". */
+
+  /* The font of the PDF, so the preview looks exactly like it. Only downloaded once a preview shows. */
+  @font-face {
+    font-family: 'QR Bill Sans';
+    src: url('/fonts/qr-bill-sans-regular.ttf') format('truetype');
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'QR Bill Sans';
+    src: url('/fonts/qr-bill-sans-bold.ttf') format('truetype');
+    font-weight: 700;
+    font-display: swap;
+  }
+
+  .qr-bill-form {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .qr-bill-group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .qr-bill-group > legend {
+    margin-bottom: 14px;
+    padding: 0;
+    font-size: 1.1875rem;
+    font-weight: 700;
+  }
+
+  .qr-bill-intro {
+    margin: -6px 0 14px;
+  }
+
+  /* Six columns: street (4) + number (2), postal code (2) + town (4), … */
+  .qr-bill-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px 14px;
+  }
+
+  .qr-bill-span-2 {
+    grid-column: span 2;
+  }
+
+  .qr-bill-span-4 {
+    grid-column: span 4;
+  }
+
+  .qr-bill-span-6 {
+    grid-column: span 6;
+  }
+
+  .qr-bill-reference {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    margin-top: 16px;
+  }
+
+  .qr-bill-reference .field {
+    flex: 1 1 280px;
+  }
+
+  .qr-bill-reference .btn {
+    min-height: 48px;
+  }
+
+  .qr-bill-form [data-reference-row] .field-help {
+    margin: 8px 0 0;
+  }
+
+  .qr-bill-message {
+    margin-top: 16px;
+  }
+
+  /* Options that don't fit the account (e.g. a QR reference with a normal IBAN) */
+  .qr-bill-form .segmented input:disabled + span {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* The preview: a white sheet, like the printed slip (also in dark mode). */
+  .qr-bill-preview {
+    margin-top: 32px;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--sheet);
+  }
+
+  .qr-bill-preview svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #fff;
+    outline: 1px solid var(--line);
+  }
+
+  @media (max-width: 560px) {
+    .qr-bill-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .qr-bill-span-4,
+    .qr-bill-span-6 {
+      grid-column: span 2;
+    }
+
+    .qr-bill-span-2 {
+      grid-column: span 1;
+    }
+
+    .qr-bill-preview {
+      padding: 8px;
+    }
+  }
+</style>
+
+<script>
+  import type { Dictionary } from '../../i18n/en';
+  import { fill } from '../../lib/format';
+  import {
+    accountKind,
+    creditorReferenceFrom,
+    formatCreditorReference,
+    formatQrReference,
+    isValidQrReference,
+    parseQrBill,
+    qrBillPayload,
+    QrBillError,
+    qrReferenceFrom,
+    type AddressInput,
+    type Currency,
+    type QrBill,
+    type QrBillInput,
+    type ReferenceType,
+  } from '../../lib/qr-bill';
+  import { layoutQrBill, type BillLanguage } from '../../lib/qr-bill-layout';
+  import type { QrBillFonts } from '../../lib/qr-bill-pdf';
+  import { formatIban, isValidCreditorReference } from '../../lib/qr-payloads';
+  import { encodeCanvas } from '../../scripts/images';
+  import { drawShapes, qrCodeCanvas, qrCodeSvgFile } from '../../scripts/qr-bill-svg';
+  import { downloadBlob } from '../../scripts/results';
+  import { $, bytesToBlob, radioValue, readTexts, runTask, Status, toolRoots } from '../../scripts/ui';
+
+  type Texts = Dictionary['common'] & Dictionary['components']['SwissQrBill'];
+
+  /** The two font files for the PDF, from our own website (never from a font service). */
+  let fonts: Promise<QrBillFonts> | undefined;
+  function loadFonts(): Promise<QrBillFonts> {
+    const load = async (style: string) => {
+      const response = await fetch(`/fonts/qr-bill-sans-${style}.ttf`);
+      if (!response.ok) throw new Error(`Font ${style}: HTTP ${response.status}`);
+      return new Uint8Array(await response.arrayBuffer());
+    };
+    fonts ??= Promise.all([load('regular'), load('bold')]).then(([regular, bold]) => ({ regular, bold }));
+    fonts.catch(() => (fonts = undefined)); // try again next time
+    return fonts;
+  }
+
+  for (const root of toolRoots('SwissQrBill')) {
+    const t = readTexts<Texts>(root);
+    const status = new Status($(root, '[data-status]'));
+    const preview = $<SVGSVGElement>(root, '[data-preview]');
+    const previewBox = $(root, '[data-preview-box]');
+    const hint = $(root, '[data-hint]');
+    const downloads = [...root.querySelectorAll<HTMLButtonElement>('[data-download]')];
+    const input = (name: string) => $<HTMLInputElement>(root, `input[name="${name}"]`);
+    const referenceRadio = (type: ReferenceType) => $<HTMLInputElement>(root, `input[name="referenceType"][value="${type}"]`);
+    const makeReference = $<HTMLButtonElement>(root, '[data-make-reference]');
+    /** The last bill without errors (what the download buttons use). */
+    let bill: QrBill | undefined;
+
+    const address = (party: 'creditor' | 'debtor'): AddressInput => ({
+      name: input(`${party}.name`).value,
+      street: input(`${party}.street`).value,
+      number: input(`${party}.number`).value,
+      postalCode: input(`${party}.postalCode`).value,
+      town: input(`${party}.town`).value,
+      country: input(`${party}.country`).value,
+    });
+
+    function readForm(): QrBillInput {
+      return {
+        account: input('account').value,
+        creditor: address('creditor'),
+        currency: radioValue(root, 'currency') as Currency,
+        amount: input('amount').value,
+        referenceType: radioValue(root, 'referenceType') as ReferenceType,
+        reference: input('reference').value,
+        message: input('message').value,
+        debtor: address('debtor'),
+      };
+    }
+
+    const billLanguage = () => radioValue(root, 'billLanguage') as BillLanguage;
+
+    /**
+     * A QR-IBAN only works with a QR reference, a normal IBAN never with one. As soon as the
+     * IBAN is complete, the options that don't fit are switched off.
+     */
+    function syncReferenceOptions(): void {
+      const kind = accountKind(input('account').value);
+      referenceRadio('QRR').disabled = kind === 'normal';
+      referenceRadio('SCOR').disabled = kind === 'qr';
+      referenceRadio('NON').disabled = kind === 'qr';
+      if (kind === 'qr') referenceRadio('QRR').checked = true;
+      if (kind === 'normal' && referenceRadio('QRR').checked) referenceRadio('NON').checked = true;
+      $(root, '[data-account-help]').textContent = kind === 'qr' ? t.accountQr : kind === 'normal' ? t.accountNormal : t.accountHelp;
+
+      const type = radioValue(root, 'referenceType') as ReferenceType;
+      $(root, '[data-reference-row]').hidden = type === 'NON';
+      $(root, '[data-reference-help]').textContent = type === 'QRR' ? t.referenceHelpQrr : t.referenceHelpScor;
+      makeReference.textContent = type === 'QRR' ? t.makeReferenceQrr : t.makeReferenceScor;
+    }
+
+    /** The label of a field, for messages like "Please fill in “Town”." */
+    function fieldName(name: string): string {
+      const label = root.querySelector(`input[name="${name}"]`)?.closest('label')?.querySelector('.field-label')?.textContent ?? name;
+      const withoutOptional = label.replace(/\s*\([^)]*\)\s*$/, '');
+      return name.startsWith('debtor.') ? `${t.debtorTitle.replace(/\s*\([^)]*\)\s*$/, '')}: ${withoutOptional}` : withoutOptional;
+    }
+
+    function showBill(next: QrBill | undefined): void {
+      bill = next;
+      previewBox.hidden = !next;
+      downloads.forEach((button) => (button.disabled = !next));
+      if (next) drawShapes(preview, layoutQrBill(next, { language: billLanguage(), lineAbove: false }));
+    }
+
+    function update(): void {
+      root.querySelectorAll('[aria-invalid]').forEach((field) => field.removeAttribute('aria-invalid'));
+      syncReferenceOptions();
+      const form = readForm();
+      // Only start complaining once the essential fields are filled in.
+      const ready = [form.account, form.creditor.name, form.creditor.postalCode, form.creditor.town].every((value) => value.trim() !== '');
+      hint.hidden = ready;
+      if (!ready) {
+        showBill(undefined);
+        status.clear();
+        return;
+      }
+      try {
+        showBill(parseQrBill(form));
+        status.clear();
+      } catch (error) {
+        showBill(undefined);
+        if (!(error instanceof QrBillError)) throw error;
+        root.querySelector(`input[name="${error.field}"]`)?.setAttribute('aria-invalid', 'true');
+        const message = fill(t.errors[error.problem], { field: fieldName(error.field), max: error.detail.max ?? '', char: error.detail.char ?? '' });
+        status.set(message, 'error');
+      }
+    }
+
+    let timer: number | undefined;
+    root.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(update, 150);
+    });
+
+    // Tidy up valid numbers when leaving the field: "ch4431999…" → "CH44 3199 9123 …"
+    input('account').addEventListener('blur', () => {
+      if (accountKind(input('account').value)) input('account').value = formatIban(input('account').value);
+    });
+    input('reference').addEventListener('blur', () => {
+      const reference = input('reference').value;
+      if (isValidQrReference(reference)) input('reference').value = formatQrReference(reference);
+      else if (isValidCreditorReference(reference)) input('reference').value = formatCreditorReference(reference);
+    });
+
+    // "Add check digit(s)": invoice number → complete QR or creditor reference
+    makeReference.addEventListener('click', () => {
+      const typed = input('reference').value;
+      const isQrr = radioValue(root, 'referenceType') === 'QRR';
+      if (isQrr ? isValidQrReference(typed) : isValidCreditorReference(typed)) return; // already complete
+      const made = isQrr ? qrReferenceFrom(typed) : creditorReferenceFrom(typed);
+      if (!made) {
+        input('reference').setAttribute('aria-invalid', 'true');
+        status.set(t.makeReferenceError, 'error');
+        return;
+      }
+      input('reference').value = isQrr ? formatQrReference(made) : formatCreditorReference(made);
+      update();
+    });
+
+    for (const button of downloads) {
+      button.addEventListener('click', () =>
+        runTask(button, status, t, async () => {
+          if (!bill) return;
+          const kind = button.dataset.download;
+          if (kind === 'a4' || kind === 'slip') {
+            // pdf-lib and the fonts are only loaded now – most of the page doesn't need them.
+            const [{ qrBillPdf }, fontFiles] = await Promise.all([import('../../lib/qr-bill-pdf'), loadFonts()]);
+            const shapes = layoutQrBill(bill, { language: billLanguage(), lineAbove: kind === 'a4' });
+            const bytes = await qrBillPdf(shapes, kind, fontFiles, t.pdfTitle);
+            downloadBlob(bytesToBlob(bytes, 'application/pdf'), kind === 'a4' ? t.fileA4 : t.fileSlip);
+          } else if (kind === 'svg') {
+            downloadBlob(qrCodeSvgFile(qrBillPayload(bill)), `${t.fileQr}.svg`);
+          } else {
+            downloadBlob(await encodeCanvas(qrCodeCanvas(qrBillPayload(bill)), 'png'), `${t.fileQr}.png`);
+          }
+          status.set(t.done, 'success');
+          root.querySelector<HTMLElement>('[data-support]')?.removeAttribute('hidden');
+        }),
+      );
+    }
+
+    syncReferenceOptions();
+    update(); // the browser may have kept values from before a reload
+  }
+</script>

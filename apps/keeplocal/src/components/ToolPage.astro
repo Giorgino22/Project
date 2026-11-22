@@ -43,6 +43,16 @@ const related = [
   .filter((other) => other.id !== toolId && !('convert' in other))
   .slice(0, 6);
 
+// Tools without files (generators) can say what stays private in their own words.
+const badge = text.privacy?.badge ?? dict.badge;
+
+// "Try the {link}: …" → text before the link, the link, text after it.
+const seeAlso = text.seeAlso && {
+  toolId: text.seeAlso.toolId,
+  before: text.seeAlso.text.split('{link}')[0],
+  after: text.seeAlso.text.split('{link}')[1] ?? '',
+};
+
 const jsonLd = [
   webApplicationSchema(text, url, lang),
   breadcrumbSchema([
@@ -74,10 +84,20 @@ const jsonLd = [
       <h1>{text.h1}</h1>
       <p class="lead">{text.lead}</p>
       {/* The promise, unless the intro above already says exactly that */}
-      {!text.lead.includes(dict.badge) && <p class="note"><Icon name="lock" /> {dict.badge}</p>}
+      {!text.lead.includes(badge) && <p class="note"><Icon name="lock" /> {badge}</p>}
     </section>
 
     <Tool lang={lang} tool={tool} />
+
+    {
+      seeAlso && (
+        <p class="see-also">
+          {seeAlso.before}
+          <a href={toolPath(seeAlso.toolId, lang)}>{toolText(seeAlso.toolId, lang).name}</a>
+          {seeAlso.after}
+        </p>
+      )
+    }
 
     <AdSlot lang={lang} slot="afterTool" />
     <AffiliateBox lang={lang} toolId={toolId} />
@@ -86,6 +106,17 @@ const jsonLd = [
       <h2>{dict.toolPage.howTo}</h2>
       <ol class="steps">{text.steps.map((step) => <li>{step}</li>)}</ol>
     </section>
+
+    {
+      text.sections?.map((section) => (
+        <section class="prose">
+          <h2>{section.h}</h2>
+          {section.p.map((paragraph) => (
+            <p>{paragraph}</p>
+          ))}
+        </section>
+      ))
+    }
 
     {
       isConverter && (
@@ -112,8 +143,8 @@ const jsonLd = [
     <section class="callout">
       <Icon name="shield-check" />
       <div>
-        <h2>{dict.toolPage.privacyTitle}</h2>
-        <p>{dict.toolPage.privacyText}</p>
+        <h2>{text.privacy?.title ?? dict.toolPage.privacyTitle}</h2>
+        <p>{text.privacy?.text ?? dict.toolPage.privacyText}</p>
       </div>
     </section>
 

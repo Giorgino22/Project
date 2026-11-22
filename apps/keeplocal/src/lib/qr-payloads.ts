@@ -78,15 +78,22 @@ export function formatIban(iban: string): string {
  * The number is too big for JavaScript, so we compute the remainder digit by digit.
  */
 function passesMod97(value: string): boolean {
-  const rearranged = value.slice(4) + value.slice(0, 4);
+  return mod97(value.slice(4) + value.slice(0, 4)) === 1;
+}
+
+/**
+ * Steps 2 and 3 of the check above: the remainder of "letters replaced by numbers" divided by 97.
+ * Returns NaN if the value contains anything other than digits and letters.
+ */
+export function mod97(value: string): number {
   let remainder = 0;
-  for (const char of rearranged) {
+  for (const char of value) {
     const number = parseInt(char, 36); // '0'–'9' → 0–9, 'A'–'Z' → 10–35
-    if (Number.isNaN(number)) return false;
+    if (Number.isNaN(number)) return Number.NaN;
     // Numbers ≥ 10 have two digits, so we "shift" the remainder by 100 instead of 10.
     remainder = (remainder * (number > 9 ? 100 : 10) + number) % 97;
   }
-  return remainder === 1;
+  return remainder;
 }
 
 export function isValidIban(iban: string): boolean {

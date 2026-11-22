@@ -1,0 +1,55 @@
+---
+/**
+ * The address fields of the QR-bill form (used twice by SwissQrBill.astro: for the creditor and for
+ * the debtor). Structured, as the standard requires since November 2025: every part has its own field.
+ * Field names like "creditor.town" match the field names in src/lib/qr-bill.ts.
+ */
+import { t, type Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+  party: 'creditor' | 'debtor';
+}
+
+const { lang, party } = Astro.props;
+const text = t(lang).components.SwissQrBill;
+// The creditor is usually the visitor, so the browser may fill in their own address.
+const own = party === 'creditor';
+// `span` = width in the form's 6-column grid: street (4) + number (2), postal code (2) + town (4)
+const fields = [
+  { key: 'name', label: text.nameLabel, max: 70, span: 6, autocomplete: own ? 'organization' : 'off' },
+  { key: 'street', label: text.streetLabel, max: 70, span: 4, autocomplete: own ? 'address-line1' : 'off' },
+  { key: 'number', label: text.numberLabel, max: 16, span: 2, autocomplete: 'off' },
+  { key: 'postalCode', label: text.postalCodeLabel, max: 16, span: 2, autocomplete: own ? 'postal-code' : 'off' },
+  { key: 'town', label: text.townLabel, max: 35, span: 4, autocomplete: own ? 'address-level2' : 'off' },
+];
+---
+
+<fieldset class="qr-bill-group">
+  <legend>{own ? text.creditorTitle : text.debtorTitle}</legend>
+  {!own && <p class="field-help qr-bill-intro">{text.debtorHelp}</p>}
+  <div class="qr-bill-grid">
+    <slot />
+    {
+      fields.map((field) => (
+        <label class={`field qr-bill-span-${field.span}`}>
+          <span class="field-label">{field.label}</span>
+          <input type="text" name={`${party}.${field.key}`} maxlength={field.max} autocomplete={field.autocomplete} />
+        </label>
+      ))
+    }
+    <label class="field qr-bill-span-2">
+      <span class="field-label">{text.countryLabel}</span>
+      <input
+        type="text"
+        name={`${party}.country`}
+        value="CH"
+        maxlength="2"
+        list="qr-bill-countries"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+      />
+    </label>
+  </div>
+</fieldset>

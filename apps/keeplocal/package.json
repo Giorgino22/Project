@@ -20,6 +20,7 @@
     "images": "node ../../packages/shared/scripts/og-image.mjs \"KeepLocal\" \"PDF & image tools that never upload your files.\" \"keeplocal\""
   },
   "dependencies": {
+    "@cantoo/fontkit": "2.0.12",
     "@cantoo/pdf-lib": "2.11.1",
     "@tools/shared": "*",
     "astro": "7.3.8",

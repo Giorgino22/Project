@@ -6,6 +6,7 @@
  * Placeholders like {name} are filled in by the code (see `fill` in src/lib/format.ts).
  */
 import { IMAGE_FORMATS, type ImageFormat } from '../lib/formats';
+import type { QrBillProblem } from '../lib/qr-bill';
 import type { MainToolId } from '../tools/registry';
 
 /** The texts of one tool page. */
@@ -24,6 +25,12 @@ export interface ToolText {
   lead: string;
   steps: string[];
   faq: { q: string; a: string }[];
+  /** Optional: longer explanations below "How it works" – a heading and paragraphs each. */
+  sections?: { h: string; p: string[] }[];
+  /** Optional: a sentence below the tool that links a related tool. "{link}" becomes that tool's name as a link. */
+  seeAlso?: { toolId: MainToolId; text: string };
+  /** Optional: for tools without files – replaces "Your files never leave your device" and the privacy box. */
+  privacy?: { badge: string; title: string; text: string };
 }
 
 export const en = {
@@ -49,7 +56,7 @@ export const en = {
   categoryIntros: {
     pdf: 'Merge, split, rotate and convert PDF files – even confidential ones.',
     image: 'Compress, resize and convert photos, and remove hidden location data.',
-    generator: 'Create QR codes, payment codes and strong passwords.',
+    generator: 'Create QR codes, Swiss QR-bills, payment codes, passwords and password cards.',
   },
 
   badge: 'Your files never leave your device',
@@ -138,7 +145,7 @@ export const en = {
       controllerText: 'Responsible for data processing on this website:',
       filesTitle: 'Your files and inputs',
       filesText:
-        'Files you open with our tools (for example PDFs and images) and anything you type into a tool (for example QR code content or bank details) are processed only on your device, inside your browser. They are not transmitted to our servers or to third parties, and we cannot see them. When you close the page, they are gone.',
+        'Files you open with our tools (for example PDFs and images) and anything you type into a tool (for example QR code content, invoice addresses or bank details) are processed only on your device, inside your browser. They are not transmitted to our servers or to third parties, and we cannot see them. When you close the page, they are gone.',
       hostingTitle: 'Hosting and server log files',
       hostingText:
         'This website is delivered by {hostName}, {hostAddress}. When you open a page, your browser automatically transmits technical information such as your IP address, the date and time, the requested page and your browser type. The host needs this to deliver the website and to protect it against attacks. The legal basis is our legitimate interest in a secure and reliable website (Art. 6(1)(f) GDPR). Data may be processed outside the EU and Switzerland. More information: {hostPrivacyUrl}',
@@ -383,6 +390,64 @@ export const en = {
         'too-long': 'Too much text in total. Please shorten the name or the reference.',
       },
     },
+    SwissQrBill: {
+      creditorTitle: 'Your details (payee)',
+      accountLabel: 'IBAN or QR-IBAN',
+      accountHelp: 'Your Swiss or Liechtenstein account (CH… or LI…).',
+      accountQr: 'QR-IBAN – it needs a QR reference.',
+      accountNormal: 'IBAN – with a creditor reference (RF) or without a reference.',
+      nameLabel: 'Name or company',
+      streetLabel: 'Street (optional)',
+      numberLabel: 'No. (optional)',
+      postalCodeLabel: 'Postal code',
+      townLabel: 'Town',
+      countryLabel: 'Country',
+      amountTitle: 'Amount',
+      currencyLabel: 'Currency',
+      amountLabel: 'Amount (optional)',
+      amountHelp: 'Leave it empty and the payer writes the amount by hand.',
+      referenceTitle: 'Reference',
+      referenceQrr: 'QR reference',
+      referenceScor: 'Creditor reference (RF)',
+      referenceNone: 'None',
+      referenceLabel: 'Reference',
+      referenceHelpQrr: '27 digits. Only have an invoice or customer number? Type it in and click “Add check digit”.',
+      referenceHelpScor: 'Starts with RF. Only have an invoice number? Type it in and click “Add check digits”.',
+      makeReferenceQrr: 'Add check digit',
+      makeReferenceScor: 'Add check digits',
+      makeReferenceError:
+        'That can’t become a reference: a QR reference is made from up to 26 digits, a creditor reference from up to 21 letters and digits.',
+      messageLabel: 'Additional information (optional)',
+      messageHelp: 'For example “Invoice 2026-114”. Up to 140 characters.',
+      debtorTitle: 'Payable by (optional)',
+      debtorHelp: 'Leave it empty and the bill gets a box for the payer’s name and address.',
+      languageLabel: 'Language of the bill',
+      previewLabel: 'Preview of the QR-bill',
+      emptyHint: 'Enter your IBAN, name, postal code and town to see your QR-bill.',
+      downloadA4: 'PDF (A4)',
+      downloadSlip: 'PDF (slip only)',
+      downloadPng: 'QR code (PNG)',
+      downloadSvg: 'QR code (SVG)',
+      pdfTitle: 'QR-bill',
+      fileA4: 'qr-bill.pdf',
+      fileSlip: 'qr-bill-slip.pdf',
+      fileQr: 'qr-bill-qr-code',
+      countries: { CH: 'Switzerland', LI: 'Liechtenstein', DE: 'Germany', AT: 'Austria', FR: 'France', IT: 'Italy' },
+      errors: {
+        required: 'Please fill in “{field}”.',
+        'too-long': '“{field}” can have at most {max} characters.',
+        character: '“{field}” contains “{char}”, which a QR-bill can’t contain. Please replace it.',
+        iban: 'This IBAN is not valid – please check it.',
+        'iban-country': 'A QR-bill needs a Swiss or Liechtenstein account (an IBAN starting with CH or LI).',
+        country: 'Please enter a two-letter country code, for example CH.',
+        amount: 'Please enter an amount between 0.01 and 999 999 999.99.',
+        'qr-iban-needs-qrr': 'This is a QR-IBAN: it always needs a QR reference (27 digits).',
+        'qrr-needs-qr-iban': 'A QR reference only works with a QR-IBAN. With this IBAN, use a creditor reference (RF) or none.',
+        'qr-reference': 'This QR reference is not valid: it has 27 digits, and the last one is a check digit.',
+        'creditor-reference': 'This creditor reference is not valid: it starts with RF and two check digits.',
+        'too-much': 'Too much text for one QR code. Please shorten the addresses or the additional information.',
+      } satisfies Record<QrBillProblem, string>,
+    },
     PasswordGenerator: {
       charactersLabel: 'Characters',
       lengthLabel: 'Length',
@@ -403,6 +468,17 @@ export const en = {
       },
       entropy: '{bits} bits of entropy',
       needOneType: 'Select at least one character type.',
+    },
+    PasswordCard: {
+      sizeLabel: 'Card size',
+      sizeWallet: 'Wallet card (85.6 × 54 mm)',
+      sizeA4: 'A4 page',
+      newCard: 'New card',
+      print: 'Print card',
+      entropy: 'Each character adds {bits} bits. A path of 12 characters: about {total} bits.',
+      needOneType: 'Select at least one character type.',
+      tableLabel: 'Password card: {rows} rows and {columns} columns of random characters',
+      printHint: 'Print it now: the card exists only in this tab and can’t be recreated later.',
     },
   },
 
@@ -897,13 +973,87 @@ export const en = {
         },
         {
           q: 'Does it work for Swiss QR-bills?',
-          a: 'No. Switzerland uses its own “QR-bill” standard. EPC codes are for euro payments within the SEPA area.',
+          a: 'No. Switzerland uses its own “QR-bill” standard, and EPC codes are for euro payments within the SEPA area. For Swiss invoices, use our Swiss QR-bill generator.',
         },
         {
           q: 'Do I need the BIC?',
           a: 'Not for payments within the European Economic Area – you can leave it empty.',
         },
       ],
+      seeAlso: { toolId: 'swiss-qr-bill', text: 'Invoicing customers in Switzerland? {link}: payment part and receipt as PDF.' },
+    },
+    'swiss-qr-bill': {
+      slug: 'swiss-qr-bill-generator',
+      name: 'Swiss QR-bill generator',
+      short: 'QR-bills with receipt as PDF.',
+      title: 'Swiss QR-Bill Generator – Free PDF, No Upload',
+      description:
+        'Create a Swiss QR-bill with payment part and receipt as PDF (A4 or slip only), or just the QR code. Current SIX standard with structured addresses. Free, no upload.',
+      h1: 'Swiss QR-bill generator',
+      lead: 'Create the payment part and receipt of a Swiss QR-bill for your invoices – as a print-ready PDF or as a QR code for your own layout. It follows the current SIX standard and runs entirely in your browser.',
+      steps: [
+        'Enter your IBAN or QR-IBAN, your name and your address – that’s who gets paid.',
+        'Add the amount, a reference, additional information and the payer’s address if you like. Anything you leave empty, the payer fills in by hand.',
+        'Check the preview. Then download the PDF – an A4 page with the slip at the bottom, or the slip on its own – or just the QR code as PNG or SVG.',
+      ],
+      sections: [
+        {
+          h: 'What is a QR-bill?',
+          p: [
+            'The QR-bill is the payment slip of Switzerland and Liechtenstein. Since October 2022 it is the only one: it replaced the old orange and red slips. It has two parts. On the left is the receipt, which the payer keeps when paying at a post office counter. On the right is the payment part with the Swiss QR code – the square code with the small Swiss cross in the middle.',
+            'The QR code contains everything a bank needs: your account, your name and address, the amount, the currency, the reference and the payer’s address. A banking app reads it in a second, so nobody has to type an IBAN or a 27-digit number. The same details are printed next to the code for people who pay at the counter or type them into e-banking.',
+          ],
+        },
+        {
+          h: 'IBAN or QR-IBAN?',
+          p: [
+            'A QR-IBAN looks like a normal IBAN, but digits 5 to 9 – the bank’s identification number – are between 30000 and 31999. Banks give QR-IBANs to customers who want incoming payments matched automatically: a payment to a QR-IBAN always carries a 27-digit QR reference, which your accounting software uses to mark the right invoice as paid. Ask your bank if you need one; it is usually an extra number for your existing account.',
+            'With a normal IBAN you use the international creditor reference (it starts with RF) or no reference at all. Without a reference, put the invoice number into the additional information so you know what a payment is for. The generator checks the IBAN and the check digits of both kinds of reference and tells you if something doesn’t fit together.',
+          ],
+        },
+        {
+          h: 'Since November 2025: structured addresses only',
+          p: [
+            'Since 21 November 2025, banks only accept QR-bills with structured addresses: street, building number, postal code and town each have their own field. The older “combined” address – two free lines like “Rue du Lac 1268” and “2501 Biel” – is no longer allowed, and payments with such bills can be rejected. If your accounting software or old templates still create combined addresses, it’s time to replace them.',
+            'This generator only creates structured addresses, as version 2.3 of the SIX implementation guidelines requires. Street and building number are optional – some addresses don’t have them – but postal code, town and country are always needed.',
+          ],
+        },
+        {
+          h: 'How to print a QR-bill',
+          p: [
+            'The slip is exactly 210 × 105 mm: the bottom third of an A4 sheet. Print the A4 PDF at 100 % (“actual size”), not “fit to page” – otherwise the QR code gets smaller than the 46 × 46 mm the standard asks for. Plain white paper is fine. On paper without perforation, the dashed lines with the scissors show where to cut, as the standard requires.',
+            'Use the slip-only PDF for perforated QR-bill paper or to put behind your own invoice. Sending a QR-bill as a PDF by e-mail is allowed too: your customer scans the code from the screen with their banking app. Need the code in your own invoice layout? Download it as SVG (sharp at any size) or PNG and place it at 46 × 46 mm.',
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Do banks accept these QR-bills?',
+          a: 'Yes. They follow the SIX implementation guidelines (version 2.3) and style guide, so every Swiss and Liechtenstein banking app can scan them. As with any new invoice template, it’s a good idea to scan the first one with your own banking app before you send it.',
+        },
+        {
+          q: 'Are my bank details and addresses uploaded?',
+          a: 'No. The QR code and the PDF are created in your browser. Your IBAN, names and addresses never leave your device – we can’t see them, and nothing is kept after you close the page.',
+        },
+        {
+          q: 'Where do I get a QR reference?',
+          a: 'Usually from your accounting software. If you only have an invoice or customer number, type it into the reference field and click “Add check digit”: the generator fills it up to 27 digits and adds the check digit. Some banks want their own customer number at the start of every QR reference – ask your bank if you’re not sure.',
+        },
+        {
+          q: 'Can I leave the amount or the payer empty?',
+          a: 'Yes. The bill then shows empty boxes with corner marks, and the payer fills in the amount or their name and address by hand – useful for donations or for slips you hand out.',
+        },
+        {
+          q: 'Does it work with euros?',
+          a: 'Yes – choose EUR. The account must still be a Swiss or Liechtenstein IBAN. For euro transfers to accounts in other countries, use an EPC QR code (GiroCode) instead.',
+        },
+      ],
+      seeAlso: { toolId: 'epc-qr-code', text: 'Invoicing a customer in the euro area? {link}: the payment code their banking app scans.' },
+      privacy: {
+        badge: 'Your bank details never leave your device',
+        title: 'Why your invoice data stays private',
+        text: 'QR-bills contain names, addresses and bank details. That’s why this generator runs entirely in your browser: what you type is never sent to a server – not to us, not to anyone else. The QR code and the PDF are created on your device, and when you close the page, everything is gone.',
+      },
     },
     'password-generator': {
       slug: 'password-generator',
@@ -937,6 +1087,68 @@ export const en = {
           a: 'You don’t have to: use a password manager. It remembers all your passwords and fills them in for you.',
         },
       ],
+      seeAlso: { toolId: 'password-card', text: 'Prefer a password on paper? {link}: print a grid of random characters and read your password from it.' },
+    },
+    'password-card': {
+      slug: 'password-card-generator',
+      name: 'Password card',
+      short: 'Printable grid of random characters.',
+      title: 'Password Card Generator – Print a Random Grid',
+      description:
+        'Print a password card: a grid of random characters for your wallet or desk. Remember only a start cell and a path. Made offline – nothing is stored or sent.',
+      h1: 'Password card generator',
+      lead: 'A password card is a grid of random characters you can carry in your wallet. You only remember where to start and which way to read – the card holds the actual password.',
+      steps: [
+        'Choose the size and the characters – a new random card appears right away.',
+        'Click “Print card”. Cut out the wallet card, or keep the A4 page in a safe place.',
+        'For each account, pick a start cell such as C4 and a path you can remember, for example “12 characters to the right”. The characters along the path are your password.',
+      ],
+      sections: [
+        {
+          h: 'How to use a password card',
+          p: [
+            'Think of the card as a map: the secret isn’t the card, it’s the way you read it. Choose a start cell by its column letter and row number, then a path. The simplest path is “12 characters to the right”. Others are just as easy to remember: 6 to the right and then 6 down, a diagonal, or along a row and on into the next one. When you reach the edge, carry on at the start of the next row.',
+            'You can use the same path for every account and only change the start cell, or give each account its own path. A short reminder like “Bank: F3” in your notes is harmless – without the card it’s useless. Just don’t write the start cells on the card itself.',
+          ],
+        },
+        {
+          h: 'How secure is it?',
+          p: [
+            'Every character comes from your browser’s cryptographic random generator (crypto.getRandomValues), the same one used for encryption. Read along a 12-character path, a card with letters, digits and symbols gives you a password of about 76 bits – as strong as one from a password generator, and far stronger than anything people make up.',
+            'The weak spot is the card itself: someone who has it and guesses your start cell and path can find the password. Keep it like a bank card, and print a new one if you lose it. For most people a password manager is more convenient; a password card is a good choice for a few important passwords, as a backup, or for someone who doesn’t want to use an app.',
+          ],
+        },
+        {
+          h: 'Printing tips',
+          p: [
+            'Print at 100 % (“actual size”). The wallet card is exactly as big as a bank card – 85.6 × 54 mm – so it fits any card slot or sleeve; cut along the dashed border. The A4 page has a bigger grid with larger letters, handy at home next to the computer. In the print dialog you can also choose “Save as PDF” to keep a copy – store it somewhere safe, because it’s as valuable as the paper card.',
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Is my card stored or sent anywhere?',
+          a: 'No. The card is created in your browser and never leaves your device. We can’t see it, and once you close or reload the page, it’s gone for good – nobody, not even us, can recreate it.',
+        },
+        {
+          q: 'Why avoid look-alike characters?',
+          a: 'On paper, I and l or O and 0 are easy to mix up – especially in small print. Leaving them out costs a tiny bit of strength but saves a lot of failed logins.',
+        },
+        {
+          q: 'What if a website requires a digit or a symbol?',
+          a: 'Look along your path: with all character types switched on, digits and symbols are mixed in everywhere. If your path has none, make it a character or two longer, or add a fixed character you remember, such as “!”.',
+        },
+        {
+          q: 'Can I get the same card again later?',
+          a: 'No, and that’s on purpose: the card isn’t saved anywhere. Print it – or save it as a PDF in your browser’s print dialog – before you close the page.',
+        },
+      ],
+      seeAlso: { toolId: 'password-generator', text: 'Need one password to paste into a password manager? {link}: strong random passwords, made offline.' },
+      privacy: {
+        badge: 'Your card is never sent or stored',
+        title: 'Why your card stays private',
+        text: 'The card is made on your device with your browser’s secure random generator. It isn’t sent to a server and isn’t saved anywhere – not even in your browser. Only the printout exists, so you alone decide where the card is kept.',
+      },
     },
   } satisfies Record<MainToolId, ToolText>,
 };

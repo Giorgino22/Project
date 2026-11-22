@@ -52,6 +52,15 @@ Icons come from `src/icons/icons.ts`. To add one, copy the inner SVG elements of
 },
 ```
 
+Three optional fields make a page richer (see the Swiss QR-bill and the password card in `en.ts`):
+
+- `sections` – longer explanations below "How it works" (a heading and paragraphs each). Pages that
+  should rank for a topic need some real text: what it is, how to use it, what to watch out for.
+- `seeAlso` – one sentence below the tool that links a related tool, e.g.
+  `{ toolId: 'password-card', text: 'Prefer a password on paper? {link}: …' }` (`{link}` becomes its name).
+- `privacy` – for tools without files: replaces "Your files never leave your device" and the
+  privacy box with words that fit (e.g. "Your bank details never leave your device").
+
 …and the labels the tool shows go in `components` (e.g. `WordCounter: { words: 'Words', … }`).
 Then do the same in `de.ts` with a German slug (e.g. `woerter-zaehlen`). **TypeScript reports
 an error until every language has every text**, so `npm run check` tells you what's missing.

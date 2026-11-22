@@ -26,7 +26,7 @@ export const de: Dictionary = {
   categoryIntros: {
     pdf: 'PDFs zusammenfügen, teilen, drehen und umwandeln – auch vertrauliche.',
     image: 'Fotos komprimieren, verkleinern, umwandeln und versteckte Standortdaten entfernen.',
-    generator: 'QR-Codes, Zahlungscodes und sichere Passwörter erstellen.',
+    generator: 'QR-Codes, QR-Rechnungen, Zahlungscodes, Passwörter und Passwortkarten erstellen.',
   },
 
   badge: 'Ihre Dateien verlassen nie Ihr Gerät',
@@ -115,7 +115,7 @@ export const de: Dictionary = {
       controllerText: 'Verantwortlich für die Datenverarbeitung auf dieser Website:',
       filesTitle: 'Ihre Dateien und Eingaben',
       filesText:
-        'Dateien, die Sie mit unseren Tools öffnen (z. B. PDFs und Bilder), und alles, was Sie in ein Tool eingeben (z. B. QR-Code-Inhalte oder Bankdaten), werden ausschließlich auf Ihrem Gerät in Ihrem Browser verarbeitet. Sie werden weder an unsere Server noch an Dritte übertragen, und wir können sie nicht einsehen. Wenn Sie die Seite schließen, sind sie verschwunden.',
+        'Dateien, die Sie mit unseren Tools öffnen (z. B. PDFs und Bilder), und alles, was Sie in ein Tool eingeben (z. B. QR-Code-Inhalte, Rechnungsadressen oder Bankdaten), werden ausschließlich auf Ihrem Gerät in Ihrem Browser verarbeitet. Sie werden weder an unsere Server noch an Dritte übertragen, und wir können sie nicht einsehen. Wenn Sie die Seite schließen, sind sie verschwunden.',
       hostingTitle: 'Hosting und Server-Logfiles',
       hostingText:
         'Diese Website wird von {hostName}, {hostAddress}, ausgeliefert. Beim Aufruf einer Seite übermittelt Ihr Browser automatisch technische Informationen wie Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Seite und Ihren Browsertyp. Der Hoster benötigt diese Daten, um die Website auszuliefern und vor Angriffen zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und zuverlässigen Website (Art. 6 Abs. 1 lit. f DSGVO). Daten können auch außerhalb der EU und der Schweiz verarbeitet werden. Weitere Informationen: {hostPrivacyUrl}',
@@ -358,6 +358,64 @@ export const de: Dictionary = {
         'too-long': 'Insgesamt zu viel Text. Bitte kürzen Sie den Namen oder den Verwendungszweck.',
       },
     },
+    SwissQrBill: {
+      creditorTitle: 'Ihre Angaben (Zahlungsempfänger)',
+      accountLabel: 'IBAN oder QR-IBAN',
+      accountHelp: 'Ihr Konto in der Schweiz oder in Liechtenstein (CH… oder LI…).',
+      accountQr: 'QR-IBAN – sie braucht eine QR-Referenz.',
+      accountNormal: 'IBAN – mit Creditor Reference (RF) oder ohne Referenz.',
+      nameLabel: 'Name oder Firma',
+      streetLabel: 'Straße (optional)',
+      numberLabel: 'Nr. (optional)',
+      postalCodeLabel: 'PLZ',
+      townLabel: 'Ort',
+      countryLabel: 'Land',
+      amountTitle: 'Betrag',
+      currencyLabel: 'Währung',
+      amountLabel: 'Betrag (optional)',
+      amountHelp: 'Leer lassen, dann trägt der Zahlende den Betrag von Hand ein.',
+      referenceTitle: 'Referenz',
+      referenceQrr: 'QR-Referenz',
+      referenceScor: 'Creditor Reference (RF)',
+      referenceNone: 'Keine',
+      referenceLabel: 'Referenz',
+      referenceHelpQrr: '27 Ziffern. Nur eine Rechnungs- oder Kundennummer zur Hand? Eintippen und auf „Prüfziffer ergänzen“ klicken.',
+      referenceHelpScor: 'Beginnt mit RF. Nur eine Rechnungsnummer zur Hand? Eintippen und auf „Prüfziffern ergänzen“ klicken.',
+      makeReferenceQrr: 'Prüfziffer ergänzen',
+      makeReferenceScor: 'Prüfziffern ergänzen',
+      makeReferenceError:
+        'Daraus lässt sich keine Referenz bilden: Eine QR-Referenz entsteht aus bis zu 26 Ziffern, eine Creditor Reference aus bis zu 21 Buchstaben und Ziffern.',
+      messageLabel: 'Zusätzliche Informationen (optional)',
+      messageHelp: 'Zum Beispiel „Rechnung 2026-114“. Bis zu 140 Zeichen.',
+      debtorTitle: 'Zahlbar durch (optional)',
+      debtorHelp: 'Leer lassen, dann erhält die Rechnung ein Feld für Name und Adresse des Zahlenden.',
+      languageLabel: 'Sprache der Rechnung',
+      previewLabel: 'Vorschau der QR-Rechnung',
+      emptyHint: 'Geben Sie IBAN, Name, PLZ und Ort ein, um Ihre QR-Rechnung zu sehen.',
+      downloadA4: 'PDF (A4)',
+      downloadSlip: 'PDF (nur Einzahlungsschein)',
+      downloadPng: 'QR-Code (PNG)',
+      downloadSvg: 'QR-Code (SVG)',
+      pdfTitle: 'QR-Rechnung',
+      fileA4: 'qr-rechnung.pdf',
+      fileSlip: 'qr-einzahlungsschein.pdf',
+      fileQr: 'qr-rechnung-qr-code',
+      countries: { CH: 'Schweiz', LI: 'Liechtenstein', DE: 'Deutschland', AT: 'Österreich', FR: 'Frankreich', IT: 'Italien' },
+      errors: {
+        required: 'Bitte füllen Sie „{field}“ aus.',
+        'too-long': '„{field}“ darf höchstens {max} Zeichen lang sein.',
+        character: '„{field}“ enthält „{char}“ – dieses Zeichen ist in einer QR-Rechnung nicht erlaubt. Bitte ersetzen Sie es.',
+        iban: 'Diese IBAN ist ungültig – bitte prüfen Sie sie.',
+        'iban-country': 'Eine QR-Rechnung braucht ein Konto in der Schweiz oder in Liechtenstein (IBAN beginnt mit CH oder LI).',
+        country: 'Bitte geben Sie einen zweistelligen Ländercode ein, zum Beispiel CH.',
+        amount: 'Bitte geben Sie einen Betrag zwischen 0.01 und 999 999 999.99 ein.',
+        'qr-iban-needs-qrr': 'Das ist eine QR-IBAN: Sie braucht immer eine QR-Referenz (27 Ziffern).',
+        'qrr-needs-qr-iban': 'Eine QR-Referenz funktioniert nur mit einer QR-IBAN. Verwenden Sie mit dieser IBAN eine Creditor Reference (RF) oder keine Referenz.',
+        'qr-reference': 'Diese QR-Referenz ist ungültig: Sie hat 27 Ziffern, und die letzte ist eine Prüfziffer.',
+        'creditor-reference': 'Diese Creditor Reference ist ungültig: Sie beginnt mit RF und zwei Prüfziffern.',
+        'too-much': 'Zu viel Text für einen QR-Code. Bitte kürzen Sie die Adressen oder die zusätzlichen Informationen.',
+      },
+    },
     PasswordGenerator: {
       charactersLabel: 'Zeichen',
       lengthLabel: 'Länge',
@@ -378,6 +436,17 @@ export const de: Dictionary = {
       },
       entropy: '{bits} Bit Entropie',
       needOneType: 'Wählen Sie mindestens eine Zeichenart aus.',
+    },
+    PasswordCard: {
+      sizeLabel: 'Kartengröße',
+      sizeWallet: 'Scheckkarte (85,6 × 54 mm)',
+      sizeA4: 'A4-Seite',
+      newCard: 'Neue Karte',
+      print: 'Karte drucken',
+      entropy: 'Jedes Zeichen bringt {bits} Bit. Ein Weg von 12 Zeichen: rund {total} Bit.',
+      needOneType: 'Wählen Sie mindestens eine Zeichenart aus.',
+      tableLabel: 'Passwortkarte: {rows} Zeilen und {columns} Spalten mit Zufallszeichen',
+      printHint: 'Drucken Sie sie gleich aus: Die Karte gibt es nur in diesem Tab, später lässt sie sich nicht wiederherstellen.',
     },
   },
 
@@ -869,13 +938,87 @@ export const de: Dictionary = {
         },
         {
           q: 'Funktioniert das für die Schweizer QR-Rechnung?',
-          a: 'Nein. Die Schweiz verwendet einen eigenen Standard, die „QR-Rechnung“. GiroCodes sind für Euro-Zahlungen im SEPA-Raum gedacht.',
+          a: 'Nein. Die Schweiz verwendet einen eigenen Standard, die „QR-Rechnung“, und GiroCodes sind für Euro-Zahlungen im SEPA-Raum gedacht. Für Schweizer Rechnungen nutzen Sie unseren Generator für QR-Rechnungen.',
         },
         {
           q: 'Brauche ich die BIC?',
           a: 'Für Zahlungen innerhalb des Europäischen Wirtschaftsraums nicht – Sie können das Feld leer lassen.',
         },
       ],
+      seeAlso: { toolId: 'swiss-qr-bill', text: 'Rechnung an Kunden in der Schweiz? {link}: Zahlteil und Empfangsschein als PDF.' },
+    },
+    'swiss-qr-bill': {
+      slug: 'qr-rechnung-erstellen',
+      name: 'QR-Rechnung erstellen',
+      short: 'QR-Rechnungen mit Empfangsschein als PDF.',
+      title: 'QR-Rechnung erstellen – kostenlos als PDF, ohne Upload',
+      description:
+        'Schweizer QR-Rechnung mit Zahlteil und Empfangsschein als PDF erstellen (A4 oder nur Einzahlungsschein) oder nur den QR-Code. Aktueller SIX-Standard, kostenlos.',
+      h1: 'QR-Rechnung erstellen',
+      lead: 'Erstellen Sie Zahlteil und Empfangsschein einer Schweizer QR-Rechnung – als druckfertiges PDF oder als QR-Code für Ihre eigene Rechnungsvorlage. Nach dem aktuellen SIX-Standard und vollständig in Ihrem Browser.',
+      steps: [
+        'Geben Sie Ihre IBAN oder QR-IBAN, Ihren Namen und Ihre Adresse ein – also wer das Geld erhält.',
+        'Ergänzen Sie nach Wunsch Betrag, Referenz, zusätzliche Informationen und die Adresse des Zahlenden. Was Sie leer lassen, füllt der Zahlende von Hand aus.',
+        'Prüfen Sie die Vorschau. Laden Sie dann das PDF herunter – eine A4-Seite mit dem Einzahlungsschein unten oder nur den Einzahlungsschein – oder nur den QR-Code als PNG oder SVG.',
+      ],
+      sections: [
+        {
+          h: 'Was ist eine QR-Rechnung?',
+          p: [
+            'Die QR-Rechnung ist der Einzahlungsschein der Schweiz und Liechtensteins. Seit Oktober 2022 ist sie der einzige: Sie hat die alten orangen und roten Einzahlungsscheine abgelöst. Sie besteht aus zwei Teilen. Links steht der Empfangsschein, den der Zahlende bei einer Einzahlung am Postschalter behält. Rechts folgt der Zahlteil mit dem Swiss QR Code – dem quadratischen Code mit dem kleinen Schweizerkreuz in der Mitte.',
+            'Der QR-Code enthält alles, was eine Bank braucht: Ihr Konto, Ihren Namen und Ihre Adresse, Betrag, Währung, Referenz und die Adresse des Zahlenden. Eine Banking-App liest ihn in einer Sekunde – niemand muss mehr eine IBAN oder eine 27-stellige Nummer abtippen. Dieselben Angaben stehen zusätzlich neben dem Code, für Zahlungen am Schalter oder von Hand im E-Banking.',
+          ],
+        },
+        {
+          h: 'IBAN oder QR-IBAN?',
+          p: [
+            'Eine QR-IBAN sieht aus wie eine normale IBAN, aber die Stellen 5 bis 9 – die Identifikationsnummer der Bank – liegen zwischen 30000 und 31999. Banken vergeben QR-IBANs an Kunden, die Zahlungseingänge automatisch zuordnen möchten: Eine Zahlung auf eine QR-IBAN trägt immer eine 27-stellige QR-Referenz, anhand derer Ihre Buchhaltungssoftware die richtige Rechnung als bezahlt markiert. Fragen Sie Ihre Bank, wenn Sie eine brauchen – meist ist es eine zusätzliche Nummer für Ihr bestehendes Konto.',
+            'Mit einer normalen IBAN verwenden Sie die internationale Creditor Reference (sie beginnt mit RF) oder gar keine Referenz. Schreiben Sie dann die Rechnungsnummer in die zusätzlichen Informationen, damit Sie wissen, wofür eine Zahlung ist. Der Generator prüft die IBAN und die Prüfziffern beider Referenzarten und meldet, wenn etwas nicht zusammenpasst.',
+          ],
+        },
+        {
+          h: 'Seit November 2025: nur noch strukturierte Adressen',
+          p: [
+            'Seit dem 21. November 2025 akzeptieren Banken nur noch QR-Rechnungen mit strukturierten Adressen: Straße, Hausnummer, Postleitzahl und Ort stehen je in einem eigenen Feld. Die ältere „kombinierte“ Adresse – zwei freie Zeilen wie „Rue du Lac 1268“ und „2501 Biel“ – ist nicht mehr erlaubt, und Zahlungen mit solchen Rechnungen können abgelehnt werden. Erzeugen Ihre Buchhaltungssoftware oder alte Vorlagen noch kombinierte Adressen, ist es Zeit, sie zu ersetzen.',
+            'Dieser Generator erstellt ausschließlich strukturierte Adressen, wie es Version 2.3 der Implementation Guidelines von SIX verlangt. Straße und Hausnummer sind optional – manche Adressen haben keine –, Postleitzahl, Ort und Land sind dagegen immer nötig.',
+          ],
+        },
+        {
+          h: 'QR-Rechnung richtig drucken',
+          p: [
+            'Der Einzahlungsschein ist genau 210 × 105 mm groß: das untere Drittel eines A4-Blatts. Drucken Sie das A4-PDF in Originalgröße (100 %), nicht „an Seite anpassen“ – sonst wird der QR-Code kleiner als die vorgeschriebenen 46 × 46 mm. Normales weißes Papier genügt. Auf Papier ohne Perforation zeigen die gestrichelten Linien mit der Schere, wo abgetrennt wird – so verlangt es der Standard.',
+            'Das PDF mit nur dem Einzahlungsschein eignet sich für perforiertes QR-Rechnungspapier oder als letzte Seite Ihrer eigenen Rechnung. Eine QR-Rechnung als PDF per E-Mail zu verschicken ist ebenfalls erlaubt: Ihre Kunden scannen den Code direkt vom Bildschirm. Brauchen Sie den Code in Ihrer eigenen Rechnungsvorlage? Laden Sie ihn als SVG (in jeder Größe scharf) oder PNG herunter und platzieren Sie ihn in 46 × 46 mm.',
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Akzeptieren Banken diese QR-Rechnungen?',
+          a: 'Ja. Sie entsprechen den Implementation Guidelines (Version 2.3) und dem Style Guide von SIX, deshalb kann jede Banking-App in der Schweiz und in Liechtenstein sie scannen. Wie bei jeder neuen Rechnungsvorlage lohnt es sich, die erste Rechnung vor dem Versand mit der eigenen Banking-App zu testen.',
+        },
+        {
+          q: 'Werden meine Bankdaten und Adressen hochgeladen?',
+          a: 'Nein. QR-Code und PDF entstehen in Ihrem Browser. Ihre IBAN, Namen und Adressen verlassen Ihr Gerät nie – wir können sie nicht sehen, und nach dem Schließen der Seite bleibt nichts zurück.',
+        },
+        {
+          q: 'Woher bekomme ich eine QR-Referenz?',
+          a: 'Meist aus Ihrer Buchhaltungssoftware. Haben Sie nur eine Rechnungs- oder Kundennummer, tippen Sie sie ins Referenzfeld und klicken Sie auf „Prüfziffer ergänzen“: Der Generator füllt sie auf 27 Stellen auf und hängt die Prüfziffer an. Manche Banken verlangen ihre eigene Kundennummer am Anfang jeder QR-Referenz – fragen Sie im Zweifel Ihre Bank.',
+        },
+        {
+          q: 'Kann ich Betrag oder Zahlenden leer lassen?',
+          a: 'Ja. Die Rechnung zeigt dann leere Felder mit Eckmarken, und der Zahlende trägt Betrag oder Name und Adresse von Hand ein – praktisch für Spenden oder für Einzahlungsscheine, die Sie verteilen.',
+        },
+        {
+          q: 'Funktioniert das auch mit Euro?',
+          a: 'Ja – wählen Sie EUR. Das Konto muss trotzdem eine Schweizer oder Liechtensteiner IBAN sein. Für Euro-Überweisungen auf Konten in anderen Ländern verwenden Sie stattdessen einen GiroCode (EPC-QR-Code).',
+        },
+      ],
+      seeAlso: { toolId: 'epc-qr-code', text: 'Rechnung an Kunden im Euroraum? {link}: der Zahlungscode, den deren Banking-App scannt.' },
+      privacy: {
+        badge: 'Ihre Bankdaten verlassen nie Ihr Gerät',
+        title: 'Warum Ihre Rechnungsdaten privat bleiben',
+        text: 'QR-Rechnungen enthalten Namen, Adressen und Bankdaten. Deshalb läuft dieser Generator vollständig in Ihrem Browser: Was Sie eingeben, wird an keinen Server gesendet – weder an uns noch an Dritte. QR-Code und PDF entstehen auf Ihrem Gerät, und wenn Sie die Seite schließen, ist alles weg.',
+      },
     },
     'password-generator': {
       slug: 'passwort-generator',
@@ -909,6 +1052,68 @@ export const de: Dictionary = {
           a: 'Gar nicht: Verwenden Sie einen Passwort-Manager. Er merkt sich alle Passwörter und füllt sie für Sie aus.',
         },
       ],
+      seeAlso: { toolId: 'password-card', text: 'Lieber ein Passwort auf Papier? {link}: Drucken Sie ein Raster aus Zufallszeichen und lesen Sie Ihr Passwort darauf ab.' },
+    },
+    'password-card': {
+      slug: 'passwortkarte',
+      name: 'Passwortkarte',
+      short: 'Druckbares Raster aus Zufallszeichen.',
+      title: 'Passwortkarte erstellen – Zufallsraster zum Ausdrucken',
+      description:
+        'Passwortkarte erstellen: ein Raster aus Zufallszeichen fürs Portemonnaie oder den Schreibtisch. Sie merken sich nur Startfeld und Weg. Offline, nichts wird gespeichert.',
+      h1: 'Passwortkarte erstellen',
+      lead: 'Eine Passwortkarte ist ein Raster aus Zufallszeichen, das ins Portemonnaie passt. Sie merken sich nur, wo Sie anfangen und in welche Richtung Sie lesen – das eigentliche Passwort steht auf der Karte.',
+      steps: [
+        'Wählen Sie Größe und Zeichen – sofort erscheint eine neue Zufallskarte.',
+        'Klicken Sie auf „Karte drucken“. Schneiden Sie die Karte im Scheckkartenformat aus oder bewahren Sie die A4-Seite sicher auf.',
+        'Wählen Sie für jedes Konto ein Startfeld wie C4 und einen Weg, den Sie sich merken können, etwa „12 Zeichen nach rechts“. Die Zeichen entlang des Wegs sind Ihr Passwort.',
+      ],
+      sections: [
+        {
+          h: 'So verwenden Sie eine Passwortkarte',
+          p: [
+            'Stellen Sie sich die Karte als Landkarte vor: Das Geheimnis ist nicht die Karte, sondern wie Sie sie lesen. Wählen Sie ein Startfeld über Spaltenbuchstabe und Zeilennummer, dann einen Weg. Der einfachste Weg lautet „12 Zeichen nach rechts“. Andere sind genauso leicht zu merken: 6 nach rechts und dann 6 nach unten, eine Diagonale oder eine Zeile entlang und in der nächsten weiter. Am Rand geht es am Anfang der nächsten Zeile weiter.',
+            'Sie können für alle Konten denselben Weg nutzen und nur das Startfeld ändern oder jedem Konto einen eigenen Weg geben. Eine kurze Notiz wie „Bank: F3“ ist harmlos – ohne die Karte nützt sie niemandem. Schreiben Sie die Startfelder nur nicht auf die Karte selbst.',
+          ],
+        },
+        {
+          h: 'Wie sicher ist das?',
+          p: [
+            'Jedes Zeichen stammt aus dem kryptografischen Zufallsgenerator Ihres Browsers (crypto.getRandomValues) – demselben, der auch für Verschlüsselung verwendet wird. Entlang eines Wegs von 12 Zeichen ergibt eine Karte mit Buchstaben, Ziffern und Sonderzeichen ein Passwort mit rund 76 Bit: so stark wie eines aus einem Passwort-Generator und viel stärker als alles, was man sich selbst ausdenkt.',
+            'Die Schwachstelle ist die Karte selbst: Wer sie hat und Ihr Startfeld und Ihren Weg errät, kann das Passwort finden. Bewahren Sie sie auf wie eine Bankkarte und drucken Sie eine neue, wenn Sie sie verlieren. Für die meisten Menschen ist ein Passwort-Manager bequemer; eine Passwortkarte eignet sich gut für einige wichtige Passwörter, als Reserve oder für alle, die keine App verwenden möchten.',
+          ],
+        },
+        {
+          h: 'Tipps zum Drucken',
+          p: [
+            'Drucken Sie in Originalgröße (100 %). Die Karte im Scheckkartenformat ist genau so groß wie eine Bankkarte – 85,6 × 54 mm – und passt in jedes Kartenfach und jede Schutzhülle; schneiden Sie entlang des gestrichelten Rands. Die A4-Seite hat ein größeres Raster mit größerer Schrift, praktisch zu Hause neben dem Computer. Im Druckdialog können Sie auch „Als PDF speichern“ wählen – bewahren Sie die Datei sicher auf, denn sie ist so wertvoll wie die Karte aus Papier.',
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Wird meine Karte gespeichert oder gesendet?',
+          a: 'Nein. Die Karte entsteht in Ihrem Browser und verlässt Ihr Gerät nie. Wir können sie nicht sehen, und sobald Sie die Seite schließen oder neu laden, ist sie endgültig weg – niemand, auch wir nicht, kann sie wiederherstellen.',
+        },
+        {
+          q: 'Warum ähnliche Zeichen vermeiden?',
+          a: 'Auf Papier verwechselt man I und l oder O und 0 leicht – besonders bei kleiner Schrift. Sie wegzulassen kostet ein klein wenig Stärke, erspart aber viele fehlgeschlagene Anmeldungen.',
+        },
+        {
+          q: 'Was, wenn eine Website eine Ziffer oder ein Sonderzeichen verlangt?',
+          a: 'Schauen Sie entlang Ihres Wegs: Sind alle Zeichenarten aktiviert, sind Ziffern und Sonderzeichen überall eingestreut. Fehlt eines, verlängern Sie den Weg um ein, zwei Zeichen oder hängen Sie ein festes Zeichen an, das Sie sich merken, etwa „!“.',
+        },
+        {
+          q: 'Kann ich dieselbe Karte später noch einmal bekommen?',
+          a: 'Nein, und das ist Absicht: Die Karte wird nirgends gespeichert. Drucken Sie sie aus – oder speichern Sie sie über den Druckdialog als PDF –, bevor Sie die Seite schließen.',
+        },
+      ],
+      seeAlso: { toolId: 'password-generator', text: 'Ein einzelnes Passwort für den Passwort-Manager gesucht? {link}: starke Zufallspasswörter, offline erstellt.' },
+      privacy: {
+        badge: 'Ihre Karte wird nie gesendet oder gespeichert',
+        title: 'Warum Ihre Karte privat bleibt',
+        text: 'Die Karte entsteht auf Ihrem Gerät mit dem sicheren Zufallsgenerator Ihres Browsers. Sie wird an keinen Server gesendet und nirgends gespeichert – auch nicht in Ihrem Browser. Es gibt nur den Ausdruck, und Sie allein entscheiden, wo die Karte liegt.',
+      },
     },
   },
 };

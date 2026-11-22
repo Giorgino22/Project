@@ -89,3 +89,19 @@ export async function decodeQrCanvas(page: Page, selector: string): Promise<stri
     return decode(image.data, image.width, image.height)?.data ?? null;
   }, selector);
 }
+
+/** Reads the QR code in an image file (e.g. a downloaded PNG): draws it on a canvas in the page, then decodes it. */
+export async function decodeQrImage(page: Page, bytes: Uint8Array): Promise<string | null> {
+  await page.evaluate(async (base64) => {
+    const blob = await (await fetch(`data:image/png;base64,${base64}`)).blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.id = 'qr-test-canvas';
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0);
+    canvas.hidden = true;
+    document.body.append(canvas);
+  }, Buffer.from(bytes).toString('base64'));
+  return decodeQrCanvas(page, '#qr-test-canvas');
+}
