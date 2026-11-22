@@ -362,3 +362,77 @@
     border-radius: 3px;
   }
 }
+
+/* ---------- Finger chart (practice page) ---------- */
+
+.finger-chart {
+  margin: 0 0 40px;
+}
+
+.finger-chart figure {
+  margin: 20px 0 0;
+}
+
+.finger-chart figcaption {
+  margin-top: 10px;
+  color: var(--pencil);
+  font-size: 0.9375rem;
+}
+
+/* The same keyboard drawing as the keyboard test, without the arrow block and the F-keys. */
+.keyboard-static {
+  grid-template-columns: 1fr;
+}
+
+.keyboard-static .keys-main {
+  grid-template-rows: repeat(5, 1fr);
+  aspect-ratio: 15 / 5;
+}
+
+/* One colour per finger: cool colours for the left hand, warm ones for the right. Light enough
+   for ink labels in light and dark mode (the board itself is dark in both). */
+.finger-left-pinky { --finger: #b9dcff; }
+.finger-left-ring { --finger: #a3dccb; }
+.finger-left-middle { --finger: #cde8a8; }
+.finger-left-index { --finger: #b7c4f7; }
+.finger-right-index { --finger: #f8c7a4; }
+.finger-right-middle { --finger: #eedcae; }
+.finger-right-ring { --finger: #f5b8c6; }
+.finger-right-pinky { --finger: #dcc8f1; }
+.finger-both-thumb { --finger: #e2e0d8; }
+
+.keyboard-static .key {
+  background: var(--finger, #8a8c90);
+  box-shadow: none;
+}
+
+/* The home row, underlined like the bumps on F and J */
+.keyboard-static .home-key {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.finger-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px 28px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finger-list li {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  column-gap: 10px;
+}
+
+.finger-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--finger);
+  transform: translateY(2px);
+}

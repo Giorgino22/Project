@@ -1,7 +1,7 @@
 /** Checks for every page: search-engine tags, fits on a phone, no requests to other servers. */
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/', '/privacy/', '/imprint/', '/de/datenschutz/', '/de/impressum/'];
+const PAGES = ['/', '/privacy/', '/imprint/', '/de/', '/de/datenschutz/', '/de/impressum/'];
 
 test('every page is ready for search engines and phones', async ({ page, baseURL }) => {
   const foreign: string[] = [];
@@ -33,6 +33,7 @@ test('the sitemap lists every page', async ({ request }) => {
 
 test('the legal pages exist in English and German and point to each other', async ({ page, request }) => {
   for (const [en, de] of [
+    ['/', '/de/'],
     ['/privacy/', '/de/datenschutz/'],
     ['/imprint/', '/de/impressum/'],
   ]) {

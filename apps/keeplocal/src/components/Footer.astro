@@ -1,5 +1,5 @@
 ---
-import { sites, siteIn, siteUrl } from '@tools/shared/network';
+import { sites, siteIn } from '@tools/shared/network';
 import { config } from '../config';
 import { t, type Lang } from '../i18n';
 import { alternatesOf, legalPath, toolPath, toolText } from '../site/pages';
@@ -47,7 +47,7 @@ const sisterSites = sites.filter((site) => site.id !== 'keeplocal' && site.id !=
               </li>
             ))
           }
-          <li><a href={`${siteUrl('hub')}/`}>{dict.footer.allTools}</a></li>
+          <li><a href={siteIn('hub', lang).url}>{dict.footer.allTools}</a></li>
         </ul>
       </nav>
       <div>

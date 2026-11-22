@@ -285,6 +285,18 @@ export const en = {
     noCode: 'no code',
   },
 
+  /** The finger chart on the practice page (src/components/FingerChart.astro) */
+  fingers: {
+    title: 'Which finger types which key?',
+    text: 'Each colour is one finger. Rest your fingers on the home row – A S D F and J K L ; – and move each finger only to the keys of its colour, then back. Keys for the left hand have cool colours, keys for the right hand warm ones. Both thumbs rest on the space bar.',
+    caption: 'Touch typing finger chart for a US keyboard',
+    homeKeys: 'Underlined: the home row. F and J have small bumps you can feel without looking.',
+    hands: { left: 'Left', right: 'Right', both: 'Both' },
+    names: { pinky: 'little finger', ring: 'ring finger', middle: 'middle finger', index: 'index finger', thumb: 'thumbs' },
+    /** "{hand} {finger}" → "Left index finger" */
+    label: '{hand} {finger}',
+  },
+
   notFound: {
     title: 'Page not found',
     text: 'This page doesn’t exist. Try one of these:',

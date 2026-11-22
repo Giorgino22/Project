@@ -69,11 +69,20 @@ export interface Site {
    */
   dataNote?: string;
   /**
-   * The site in other languages (only if it has them): its start page, name and one sentence,
-   * e.g. de: { path: '/de/', name: 'Glücksrad', description: '…' }. Footers of pages in that
-   * language link there instead of to the English start page.
+   * The site for speakers of other languages: where they should go, its name, one sentence and
+   * (for the hub's German start page) its most popular pages, e.g.
+   * de: { path: '/de/', name: 'Glücksrad', description: '…', links: [...] }. Footers of pages in
+   * that language link there instead of to the English start page. A site without pages in that
+   * language (Humm) can still have German texts here; its path then stays '/'.
    */
-  translations?: Partial<Record<Lang, { path: string; name: string; description: string }>>;
+  translations?: Partial<Record<Lang, SiteText>>;
+}
+
+export interface SiteText {
+  path: string;
+  name: string;
+  description: string;
+  links?: { path: string; label: string }[];
 }
 
 /**
@@ -87,9 +96,8 @@ export const sites: Site[] = [
     name: network.name,
     description: 'Free online tools that are fast, simple and respect your privacy.',
     links: [],
-    // The hub has no German start page (yet), only German legal pages – so the path stays '/'.
     translations: {
-      de: { path: '/', name: network.name, description: 'Kostenlose Online-Tools: schnell, einfach und mit Respekt für Ihre Privatsphäre.' },
+      de: { path: '/de/', name: network.name, description: 'Kostenlose Online-Tools: schnell, einfach und mit Respekt für Ihre Privatsphäre.' },
     },
   },
   {
@@ -107,7 +115,20 @@ export const sites: Site[] = [
       { path: '/password-card-generator/', label: 'Password card' },
     ],
     translations: {
-      de: { path: '/de/', name: 'KeepLocal', description: 'PDF- & Bild-Tools, die Ihre Dateien nie hochladen.' },
+      de: {
+        path: '/de/',
+        name: 'KeepLocal',
+        description: 'PDF- & Bild-Tools, die Ihre Dateien nie hochladen.',
+        links: [
+          { path: '/de/pdf-zusammenfuegen/', label: 'PDF zusammenfügen' },
+          { path: '/de/bild-zu-text/', label: 'Bild zu Text' },
+          { path: '/de/jpg-in-pdf/', label: 'JPG in PDF' },
+          { path: '/de/bild-komprimieren/', label: 'Bild komprimieren' },
+          { path: '/de/qr-rechnung-erstellen/', label: 'QR-Rechnung erstellen' },
+          { path: '/de/passwort-generator/', label: 'Passwort-Generator' },
+          { path: '/de/passwortkarte/', label: 'Passwortkarte' },
+        ],
+      },
     },
   },
   {
@@ -125,6 +146,11 @@ export const sites: Site[] = [
         path: '/de/',
         name: 'Glücksrad',
         description: 'Glücksrad und Namen-Zufallsgenerator für Schule, Spiele und Entscheidungen.',
+        links: [
+          { path: '/de/', label: 'Glücksrad drehen' },
+          { path: '/de/ja-nein-gluecksrad/', label: 'Ja-oder-Nein-Rad' },
+          { path: '/de/teamgenerator/', label: 'Teamgenerator' },
+        ],
       },
     },
   },
@@ -139,7 +165,16 @@ export const sites: Site[] = [
       { path: '/keyboard-test/', label: 'Keyboard test' },
     ],
     translations: {
-      de: { path: '/de/', name: 'Tipptest', description: 'Tipptest, Tippen üben und Tastaturtest – mit deutschen Wörtern.' },
+      de: {
+        path: '/de/',
+        name: 'Tipptest',
+        description: 'Tipptest, Tippen üben und Tastaturtest – mit deutschen Wörtern.',
+        links: [
+          { path: '/de/', label: 'Tipptest' },
+          { path: '/de/tippen-ueben/', label: 'Tippen üben' },
+          { path: '/de/tastaturtest/', label: 'Tastaturtest' },
+        ],
+      },
     },
   },
   {
@@ -149,6 +184,15 @@ export const sites: Site[] = [
     description: 'Hum, sing or whistle a tune and find out which song it is.',
     links: [{ path: '/', label: 'Find a song by humming' }],
     dataNote: 'To find the song, your recording is sent to Google’s AI. We don’t keep it.',
+    // Humm is English only; this is how the hub's German page describes it.
+    translations: {
+      de: {
+        path: '/',
+        name: 'Humm',
+        description: 'Summen, singen oder pfeifen Sie eine Melodie – Humm findet den Song (Seite auf Englisch).',
+        links: [{ path: '/', label: 'Song durch Summen finden' }],
+      },
+    },
   },
 ];
 
@@ -163,7 +207,7 @@ export function siteUrl(id: SiteId): string {
  * A site's start page, name and description in a language – the English ones if the site has no
  * version in that language. siteIn('wheel', 'de') → { url: 'https://wheel.example.com/de/', name: 'Glücksrad', … }
  */
-export function siteIn(id: SiteId, lang: Lang): { url: string; path: string; name: string; description: string } {
+export function siteIn(id: SiteId, lang: Lang): Required<SiteText> & { url: string } {
   const site = sites.find((s) => s.id === id)!;
   const translation = lang === defaultLang ? undefined : site.translations?.[lang];
   const path = translation?.path ?? '/';
@@ -172,6 +216,7 @@ export function siteIn(id: SiteId, lang: Lang): { url: string; path: string; nam
     path,
     name: translation?.name ?? site.name,
     description: translation?.description ?? site.description,
+    links: translation?.links ?? site.links,
   };
 }
 

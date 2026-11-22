@@ -45,7 +45,9 @@ explain complex parts, and value usability.
 - Typing in German: big number = Anschläge pro Minute (`cpm`), words per minute below it. German word lists
   (`src/lib/words-de.ts`): nouns capitalised, no ß and no word starting with Ä/Ö/Ü (Swiss keyboards). Keyboard test:
   ISO QWERTZ (`qwertzMainBlock`, Enter two rows tall) with German or Swiss labels (`ch`), Swiss first for `de-CH` browsers.
-- The hub's privacy policy/legal notice exist in English and German (`apps/hub/src/pages/de/`) – change both together.
+- The hub's front page, privacy policy and legal notice exist in English and German (`apps/hub/src/pages/de/`) –
+  change both together. German hub links come from `translations.de.links` in network.ts.
+- Typing practice pages show a finger chart (`FingerChart.astro`, finger table `FINGER_KEYS` in `src/lib/keyboard.ts`).
 
 ## Design system (all sites)
 

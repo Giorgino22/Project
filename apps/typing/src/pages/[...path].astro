@@ -7,6 +7,7 @@
  * The page list and the URLs come from src/site.ts, the texts from src/i18n/.
  */
 import ToolPage from '@tools/shared/components/ToolPage.astro';
+import FingerChart from '../components/FingerChart.astro';
 import KeyboardTester from '../components/KeyboardTester.astro';
 import TypingTest from '../components/TypingTest.astro';
 import { alternatesOf, getAllPages, pagesIn, site, type TypingPage } from '../site';
@@ -37,4 +38,5 @@ const { page } = Astro.props;
   noAds={page.noAds}
 >
   {page.test ? <TypingTest lang={page.lang} {...page.test} /> : <KeyboardTester lang={page.lang} />}
+  {page.key === 'practice' && <FingerChart lang={page.lang} />}
 </ToolPage>

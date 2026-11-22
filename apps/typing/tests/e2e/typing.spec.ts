@@ -226,3 +226,18 @@ test('Swiss browsers see Swiss labels first', async ({ browser, baseURL }) => {
   await expect(page.locator('.keytest input[value="ch"]')).toBeChecked();
   await context.close();
 });
+
+test('the practice pages show which finger types which key', async ({ page }) => {
+  await page.goto('/de/tippen-ueben/');
+  const chart = page.locator('.finger-chart');
+  await expect(chart.getByRole('heading', { name: 'Welcher Finger tippt welche Taste?' })).toBeVisible();
+  await expect(chart.locator('.finger-list')).toContainText('Linker Zeigefinger: 4 5 R T F G V B');
+  await expect(chart.locator('.finger-list')).toContainText('Rechter Zeigefinger: 6 7 Z U H J N M');
+  await expect(chart.locator('.key.finger-right-pinky', { hasText: 'Ö' })).toBeVisible();
+
+  await page.goto('/typing-practice/');
+  await expect(page.locator('.finger-list')).toContainText('Right index finger: 6 7 Y U H J N M');
+  // Only on the practice page
+  await page.goto('/');
+  await expect(page.locator('.finger-chart')).toHaveCount(0);
+});

@@ -147,3 +147,44 @@ export function keyName(key: string, names: KeyNames = { space: 'Space', dead: '
   if (key === 'Dead') return names.dead;
   return key || names.unknown;
 }
+
+// ---------- 10-finger system: which finger presses which key ----------
+
+/** 'both': the thumbs, which share the space bar */
+export type Hand = 'left' | 'right' | 'both';
+export type Finger = 'pinky' | 'ring' | 'middle' | 'index' | 'thumb';
+
+/**
+ * The keys of each finger in the 10-finger system (touch typing). The table uses the physical
+ * keys (codes), so it is the same for US and QWERTZ keyboards: on QWERTZ, "KeyY" is the Z key
+ * and "KeyZ" the Y key. Keys that aren't listed (Esc, F-keys, Ctrl, arrows…) have no fixed finger.
+ */
+const FINGER_KEYS: [Hand, Finger, string][] = [
+  ['left', 'pinky', 'Backquote Digit1 Tab KeyQ CapsLock KeyA ShiftLeft IntlBackslash KeyZ'],
+  ['left', 'ring', 'Digit2 KeyW KeyS KeyX'],
+  ['left', 'middle', 'Digit3 KeyE KeyD KeyC'],
+  ['left', 'index', 'Digit4 Digit5 KeyR KeyT KeyF KeyG KeyV KeyB'],
+  ['right', 'index', 'Digit6 Digit7 KeyY KeyU KeyH KeyJ KeyN KeyM'],
+  ['right', 'middle', 'Digit8 KeyI KeyK Comma'],
+  ['right', 'ring', 'Digit9 KeyO KeyL Period'],
+  [
+    'right',
+    'pinky',
+    'Digit0 Minus Equal Backspace KeyP BracketLeft BracketRight Backslash Semicolon Quote Enter Slash ShiftRight',
+  ],
+  ['both', 'thumb', 'Space AltRight'], // AltRight = AltGr (for @, € …) on German keyboards
+];
+
+/** fingerOf('KeyF') → { hand: 'left', finger: 'index' }; undefined for keys without a fixed finger */
+export function fingerOf(code: string): { hand: Hand; finger: Finger } | undefined {
+  const row = FINGER_KEYS.find(([, , codes]) => codes.split(' ').includes(code));
+  return row && { hand: row[0], finger: row[1] };
+}
+
+/** The fingers in the order of a chart's legend, each with its keys: left pinky … right pinky, thumbs. */
+export function fingerGroups(): { hand: Hand; finger: Finger; codes: string[] }[] {
+  return FINGER_KEYS.map(([hand, finger, codes]) => ({ hand, finger, codes: codes.split(' ') }));
+}
+
+/** Where the fingers rest: the "home row" keys. F and J have small bumps you can feel. */
+export const HOME_KEYS = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'];

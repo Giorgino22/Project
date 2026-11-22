@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { dictionaries, languages } from '../../src/i18n';
-import { keyboards, keyName, mainBlock, navBlock, qwertzMainBlock, type Key } from '../../src/lib/keyboard';
+import {
+  fingerGroups,
+  fingerOf,
+  HOME_KEYS,
+  keyboards,
+  keyName,
+  mainBlock,
+  navBlock,
+  qwertzMainBlock,
+  type Key,
+} from '../../src/lib/keyboard';
 import {
   countKeystrokes,
   durationLabel,
@@ -227,6 +237,40 @@ describe('keyboard layouts', () => {
     expect(keyName(' ', dictionaries.de.keyboard)).toBe('Leertaste');
     expect(keyName('Dead', dictionaries.de.keyboard)).toBe('Tottaste (Akzent)');
     expect(keyName('ä', dictionaries.de.keyboard)).toBe('ä');
+  });
+});
+
+describe('10-finger chart', () => {
+  it('every typing key of both keyboards has exactly one finger', () => {
+    const all = fingerGroups().flatMap((group) => group.codes);
+    expect(new Set(all).size).toBe(all.length); // no key belongs to two fingers
+    for (const board of Object.values(keyboards)) {
+      for (const key of board.main.slice(1).flat()) {
+        if (!key.code || /Control|Meta|AltLeft|ContextMenu/.test(key.code)) continue; // no fixed finger
+        expect(fingerOf(key.code), key.code).toBeDefined();
+      }
+    }
+  });
+
+  it('uses the usual assignment, also on QWERTZ', () => {
+    expect(fingerOf('KeyF')).toEqual({ hand: 'left', finger: 'index' });
+    expect(fingerOf('KeyJ')).toEqual({ hand: 'right', finger: 'index' });
+    expect(fingerOf('KeyY')).toEqual({ hand: 'right', finger: 'index' }); // the Z key on QWERTZ
+    expect(fingerOf('KeyZ')).toEqual({ hand: 'left', finger: 'pinky' }); // the Y key on QWERTZ
+    expect(fingerOf('Semicolon')).toEqual({ hand: 'right', finger: 'pinky' }); // Ö
+    expect(fingerOf('Space')?.finger).toBe('thumb');
+    expect(fingerOf('Escape')).toBeUndefined();
+    for (const code of HOME_KEYS) expect(fingerOf(code)?.finger, code).not.toBe('thumb');
+  });
+
+  it('every language names every hand and finger', () => {
+    for (const lang of languages) {
+      const text = dictionaries[lang].fingers;
+      for (const group of fingerGroups()) {
+        expect(text.hands[group.hand], lang).toBeTruthy();
+        expect(text.names[group.finger], lang).toBeTruthy();
+      }
+    }
   });
 });
 

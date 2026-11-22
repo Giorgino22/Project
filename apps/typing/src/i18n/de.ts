@@ -275,6 +275,16 @@ export const de: Dictionary = {
     noCode: 'kein Code',
   },
 
+  fingers: {
+    title: 'Welcher Finger tippt welche Taste?',
+    text: 'Jede Farbe steht für einen Finger. Legen Sie die Finger auf die Grundreihe – A S D F und J K L Ö – und bewegen Sie jeden Finger nur zu den Tasten seiner Farbe und wieder zurück. Tasten der linken Hand haben kühle Farben, Tasten der rechten Hand warme. Beide Daumen ruhen auf der Leertaste.',
+    caption: 'Fingerzuordnung beim 10-Finger-System auf einer deutschen QWERTZ-Tastatur',
+    homeKeys: 'Unterstrichen: die Grundreihe. F und J haben kleine Erhebungen, die Sie ohne Hinsehen ertasten.',
+    hands: { left: 'Linker', right: 'Rechter', both: 'Beide' },
+    names: { pinky: 'kleiner Finger', ring: 'Ringfinger', middle: 'Mittelfinger', index: 'Zeigefinger', thumb: 'Daumen' },
+    label: '{hand} {finger}',
+  },
+
   notFound: {
     title: 'Seite nicht gefunden',
     text: 'Diese Seite gibt es nicht (mehr). Vielleicht hilft eine dieser Seiten weiter:',

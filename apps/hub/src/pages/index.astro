@@ -2,6 +2,7 @@
 /**
  * Front page of the central domain. The tin picture shows one tool per site; below it, each
  * site gets a column (lined up under its tool) with its most popular pages.
+ * The German version is de/index.astro – keep both in step.
  */
 import Icon from '@tools/shared/components/Icon.astro';
 import SiteLayout from '@tools/shared/components/SiteLayout.astro';
@@ -16,7 +17,17 @@ const description =
 const toolSites = sites.filter((site) => site.id !== 'hub');
 ---
 
-<SiteLayout site="hub" title={title} description={description} path="/" jsonLd={[websiteSchema(network.name, `${siteUrl('hub')}/`, description)]}>
+<SiteLayout
+  site="hub"
+  title={title}
+  description={description}
+  path="/"
+  alternates={[
+    { lang: 'en', path: '/' },
+    { lang: 'de', path: '/de/' },
+  ]}
+  jsonLd={[websiteSchema(network.name, `${siteUrl('hub')}/`, description)]}
+>
   <div class="container">
     <section class="hub-hero">
       <h1 class="display">A tin of handy tools for everyday jobs.</h1>

@@ -50,7 +50,7 @@ const text = frameTexts[lang];
 const current = sites.find((s) => s.id === site)!;
 const here = siteIn(site, lang); // name, description and start page of this site in this language
 const base = siteUrl(site);
-const hub = site === 'hub' ? '' : siteUrl('hub');
+const hub = site === 'hub' ? '' : siteUrl('hub'); // '' = links within the hub stay relative
 const legal = legalPaths[lang];
 const others = sites.filter((s) => s.id !== site && s.id !== 'hub');
 // Language menu and hreflang links only when the page really exists in more than one language.
@@ -190,7 +190,7 @@ const toJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
               <div>
                 <h2>{network.name}</h2>
                 <ul>
-                  <li><a href={`${hub}/`}>{text.allTools}</a></li>
+                  <li><a href={siteIn('hub', lang).url}>{text.allTools}</a></li>
                   <li><a href={hub + legal.privacy}>{text.privacy}</a></li>
                   <li><a href={hub + legal.imprint}>{text.imprint}</a></li>
                 </ul>

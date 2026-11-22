@@ -20,6 +20,7 @@ costs a fraction of a cent – see [apps/humm](#humm-the-song-finder) below.
 \* Third-party estimates (Semrush/Similarweb). Why these sites: [docs/STRATEGY.md](docs/STRATEGY.md).
 
 - **Going live (≈ 3 hours, once):** [docs/LAUNCH-CHECKLIST.md](docs/LAUNCH-CHECKLIST.md)
+- **Getting visitors and income – what to do next:** [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md)
 - **KeepLocal in detail:** [apps/keeplocal/README.md](apps/keeplocal/README.md)
 
 ## All settings are in one file

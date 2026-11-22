@@ -1,0 +1,73 @@
+---
+/**
+ * Finger chart for the practice page: the keyboard of the page's language (US or QWERTZ),
+ * each key coloured by the finger that types it in the 10-finger system, plus the same
+ * information as a list (for screen readers, people who can't tell the colours apart, and search
+ * engines). No script – it's a picture made of HTML. Finger assignment: src/lib/keyboard.ts.
+ */
+import { fill } from '@tools/shared/i18n';
+import { t, type SiteLang } from '../i18n';
+import { fingerGroups, fingerOf, HOME_KEYS, keyboards, type Key } from '../lib/keyboard';
+
+interface Props {
+  lang: SiteLang;
+}
+
+const { lang } = Astro.props;
+const dict = t(lang);
+const text = dict.fingers;
+// The keys of the main block without the row of F-keys (they have no fixed finger).
+const rows = keyboards[dict.keyboard.board].main.slice(1);
+const labelOf = new Map(rows.flat().map((key) => [key.code, key.label]));
+
+/** CSS class of a key's colour, e.g. "finger-left-index" ("" = no fixed finger: grey) */
+const colour = (key: Key) => {
+  const finger = fingerOf(key.code);
+  return finger ? `finger-${finger.hand}-${finger.finger}` : '';
+};
+const span = (key: Key) => `grid-column: span ${key.width * 4};${key.rows ? ` grid-row: span ${key.rows};` : ''}`;
+
+// The list under the chart: "Left index finger: 4 5 R T F G V B"
+const groups = fingerGroups().map((group) => ({
+  ...group,
+  name: fill(text.label, { hand: text.hands[group.hand], finger: text.names[group.finger] }),
+  keys: group.codes.map((code) => labelOf.get(code)).filter(Boolean),
+}));
+---
+
+<section class="finger-chart">
+  <h2>{text.title}</h2>
+  <p>{text.text}</p>
+  <figure>
+    <div class="keyboard keyboard-static" aria-hidden="true">
+      <div class="keys-main">
+        {
+          rows.map((row) => (
+            <div class="key-row">
+              {row.map((key) =>
+                key.code ? (
+                  <span class:list={['key', colour(key), { 'home-key': HOME_KEYS.includes(key.code) }]} style={span(key)}>
+                    {key.label}
+                  </span>
+                ) : (
+                  <span style={span(key)} />
+                ),
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+    <figcaption>{text.caption}. {text.homeKeys}</figcaption>
+  </figure>
+  <ul class="finger-list">
+    {
+      groups.map((group) => (
+        <li>
+          <span class:list={['finger-swatch', `finger-${group.hand}-${group.finger}`]} />
+          <span><strong>{group.name}:</strong> {group.keys.join(' ')}</span>
+        </li>
+      ))
+    }
+  </ul>
+</section>

@@ -1,0 +1,89 @@
+---
+/**
+ * German front page of the central domain (toolstin.com/de/): the German version of ../index.astro
+ * (keep both in step). It links every site's German pages – names and links come from
+ * `translations.de` in packages/shared/src/network.ts. Humm has no German pages, so it links the
+ * English one and says so.
+ */
+import Icon from '@tools/shared/components/Icon.astro';
+import SiteLayout from '@tools/shared/components/SiteLayout.astro';
+import { websiteSchema } from '@tools/shared/lib/seo';
+import { features, network, sites, siteIn, siteUrl } from '@tools/shared/network';
+import TinScene from '../../components/TinScene.astro';
+import '../../styles/hub.css';
+
+const title = `${network.name} – Kostenlose Online-Tools für PDF, Tippen und mehr`;
+const description =
+  'Kostenlose Online-Tools: PDF- und Bild-Tools, ein Tipptest, ein Glücksrad und ein Song-Finder zum Summen. Ohne Anmeldung, nichts zu installieren.';
+const toolSites = sites.filter((site) => site.id !== 'hub').map((site) => ({ id: site.id, ...siteIn(site.id, 'de') }));
+const schema = { ...websiteSchema(network.name, `${siteUrl('hub')}/de/`, description), inLanguage: 'de' };
+---
+
+<SiteLayout
+  site="hub"
+  lang="de"
+  title={title}
+  description={description}
+  path="/de/"
+  alternates={[
+    { lang: 'en', path: '/' },
+    { lang: 'de', path: '/de/' },
+  ]}
+  jsonLd={[schema]}
+>
+  <div class="container">
+    <section class="hub-hero">
+      <h1 class="display">Eine Dose voller praktischer Tools für den Alltag.</h1>
+      <p class="lead">
+        PDFs zusammenfügen, im Unterricht einen Namen auslosen, die eigene Tippgeschwindigkeit testen oder den Song finden,
+        der einem nicht aus dem Kopf geht. Ihre Dateien und Texte bleiben in Ihrem Browser – nur der Song-Finder schickt
+        Ihr Summen an eine KI, und das sagt er auch.
+      </p>
+    </section>
+
+    <TinScene />
+
+    <ul class="site-list">
+      {
+        toolSites.map((site) => (
+          <li>
+            <h2>
+              <a href={site.url}>{site.name}</a>
+            </h2>
+            <p>{site.description}</p>
+            <ul>
+              {site.links.map((link) => (
+                <li>
+                  <a href={siteUrl(site.id) + link.path}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ul>
+
+    <section class="hub-about">
+      <div>
+        <h2>Wie kann das kostenlos sein?</h2>
+        <p>
+          Fast die ganze Arbeit erledigt Ihr eigener Browser, deshalb kosten die Seiten kaum etwas im Betrieb.
+          {features.ads && ' Ein paar Anzeigen bezahlen den Rest.'} Sie brauchen nie ein Konto, und es gibt keine
+          kostenpflichtige Version.
+        </p>
+      </div>
+      <div class="callout">
+        <Icon name="eye" />
+        <div>
+          <h2>Prüfen Sie es selbst</h2>
+          <p>
+            Öffnen Sie die Entwicklertools Ihres Browsers (auf den meisten Computern mit F12), wechseln Sie zum Tab
+            „Netzwerk“ und verwenden Sie ein beliebiges Tool. Sie werden sehen: Ihre Dateien werden nirgendwohin gesendet.
+            Die einzige Ausnahme ist der Song-Finder: Um eine Melodie zu erkennen, muss er Ihre Aufnahme an die KI von
+            Google senden.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+</SiteLayout>

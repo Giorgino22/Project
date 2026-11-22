@@ -14,6 +14,26 @@ test('the front page links to every site and its popular tools', async ({ page }
   await expect(humm.locator('li a')).toHaveCount(1);
 });
 
+test('the German front page links the German pages of every site', async ({ page }) => {
+  await page.goto('/de/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  for (const url of [
+    'https://keeplocal.toolstin.com/de/pdf-zusammenfuegen/',
+    'https://wheel.toolstin.com/de/',
+    'https://wheel.toolstin.com/de/teamgenerator/',
+    'https://typing.toolstin.com/de/tippen-ueben/',
+    'https://typing.toolstin.com/de/tastaturtest/',
+  ]) {
+    await expect(page.locator(`.site-list a[href="${url}"]`).first(), url).toBeVisible();
+  }
+  // No English-only page is linked as if it were German – except Humm, which says so
+  await expect(page.locator('.site-list')).toContainText('Seite auf Englisch');
+  await expect(page.locator('.site-list > li')).toHaveCount(4);
+  // German pages of the network point "All our tools" here
+  await page.goto('/de/datenschutz/');
+  await expect(page.locator('.site-header .logo')).toHaveAttribute('href', '/de/');
+});
+
 test('the four site columns stand under their tools in the tin', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
